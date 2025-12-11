@@ -12,22 +12,25 @@ import logging
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 import matplotlib
-matplotlib.use('PDF')  # Non-interactive backend
+matplotlib.use('SVG')  # Non-interactive backend
 import matplotlib.pyplot as plt
 
+from PyA3EDA.core.constants import Constants
 
-def _convert_to_energy_dict(profile_data: List[Dict[str, Any]], energy_type: str) -> Dict[str, float]:
+
+def _convert_to_energy_dict(profile_data: List[Dict[str, Any]], energy_type: str, unit: str) -> Dict[str, float]:
     """
     Convert profile data list to energy dictionary format expected by plotting functions.
     
     Args:
         profile_data: List of stage dictionaries with Stage, Calc_Type, and energy columns
-        energy_type: Either "E" or "G" 
+        energy_type: Either "E" or "G"
+        unit: Energy unit string
         
     Returns:
         Dictionary mapping stage keys to energy values
     """
-    energy_column = f"{energy_type} (kcal/mol)"
+    energy_column = f"{energy_type} ({unit})"
     energy_dict = {}
     
     for stage in profile_data:
@@ -101,33 +104,33 @@ def _define_profiles(energy_dict: Dict[str, float]) -> List[Dict[str, Any]]:
     
     # Define the 4 standard profiles
     profile_frz = [
-        {"label": "Reactant", "key": reactant_key},
-        {"label": "Pre-TS",   "key": "preTS_frz_cat"},
+        {"label": "reactant", "key": reactant_key},
+        {"label": "pre-TS",   "key": "preTS_frz_cat"},
         {"label": "TS",       "key": "TS_frz_cat"},
-        {"label": "Post-TS",  "key": "postTS_frz_cat"},
-        {"label": "Product",  "key": product_key},
+        {"label": "post-TS",  "key": "postTS_frz_cat"},
+        {"label": "product",  "key": product_key},
     ]
     
     profile_pol = [
-        {"label": "Reactant", "key": reactant_key},
-        {"label": "Pre-TS",   "key": "preTS_pol_cat"},
+        {"label": "reactant", "key": reactant_key},
+        {"label": "pre-TS",   "key": "preTS_pol_cat"},
         {"label": "TS",       "key": "TS_pol_cat"},
-        {"label": "Post-TS",  "key": "postTS_pol_cat"},
-        {"label": "Product",  "key": product_key},
+        {"label": "post-TS",  "key": "postTS_pol_cat"},
+        {"label": "product",  "key": product_key},
     ]
     
     profile_full = [
-        {"label": "Reactant", "key": reactant_key},
-        {"label": "Pre-TS",   "key": "preTS_full_cat"},
+        {"label": "reactant", "key": reactant_key},
+        {"label": "pre-TS",   "key": "preTS_full_cat"},
         {"label": "TS",       "key": "TS_full_cat"},
-        {"label": "Post-TS",  "key": "postTS_full_cat"},
-        {"label": "Product",  "key": product_key},
+        {"label": "post-TS",  "key": "postTS_full_cat"},
+        {"label": "product",  "key": product_key},
     ]
     
     profile_uncat = [
-        {"label": "Reactant", "key": reactant_key},
+        {"label": "reactant", "key": reactant_key},
         {"label": "TS",       "key": "TS"},
-        {"label": "Product",  "key": product_key},
+        {"label": "product",  "key": product_key},
     ]
     
     profiles = [
@@ -181,22 +184,49 @@ def _plot_single_profile(ax, profile: List[Dict[str, str]], energy_dict: Dict[st
     # Get energies for this profile
     energies = [energy_dict[stage['key']] for stage in profile]
 
+    # Annotation offsets by (color, stage_label) for fine-grained control
+    # Format: (color, stage_label): (va, y_offset, x_offset)
+    # Default offsets by color
+    DEFAULT_OFFSETS = {
+        'firebrick':    ('bottom', 0.1, 0.0),
+        'black':        ('bottom', 0.1, 0.0),
+        'forestgreen':  ('top', -0.5, 0.0),
+        'royalblue':    ('top', -0.5, 0.0),
+    }
+    
+    # Custom overrides: (color, stage_label) -> (va, y_offset, x_offset)
+    # Customize these for specific stage/color combinations
+    CUSTOM_OFFSETS = {
+        # Example: move black TS annotation to the left
+        ('black', 'TS'):        ('bottom', 0.2, -0.6),
+        # Example: move green TS annotation to the right
+        ('forestgreen', 'TS'):  ('bottom', -1.5, 0.6),
+        ('forestgreen', 'pre-TS'):  ('bottom', -1.5, 0.6),
+        ('forestgreen', 'post-TS'):  ('bottom', -1.5, -0.7),
+        ('firebrick', 'post-TS'):  ('bottom', 0.1, 0.1),
+        ('black', 'product'):  ('bottom', 0.1, 0.05),
+
+    }
+
     # Draw horizontal bars and annotations
     for i, (x, E) in enumerate(zip(x_starts, energies)):
-        ax.plot([x, x + bar_width], [E, E], lw=bar_linewidth, color=color, solid_capstyle='round')
-
-        # Annotation offsets
-        if color in ['firebrick', 'black']:
-            va = 'bottom'
-            offset = 0.1
-        else:
-            va = 'top'
-            offset = -0.5
-
         stage_label = profile[i]['label']
-        if (stage_label in ['Reactant', 'Product']) and (not annotate_rp):
+        
+        # Skip Reactant/Product bars for profiles that don't annotate them
+        # (only uncatalyzed/black draws bars at these positions)
+        if (stage_label.lower() in ['reactant', 'product']) and (not annotate_rp):
             continue
-        ax.text(x_centers[i], E + offset, f"{E:.1f}",
+        
+        ax.plot([x, x + bar_width], [E, E], lw=bar_linewidth, color=color, solid_capstyle='round')
+        
+        # Get offset: check custom first, then default
+        key = (color, stage_label)
+        if key in CUSTOM_OFFSETS:
+            va, y_offset, x_offset = CUSTOM_OFFSETS[key]
+        else:
+            va, y_offset, x_offset = DEFAULT_OFFSETS.get(color, ('bottom', 0.5, 0))
+        
+        ax.text(x_centers[i] + x_offset, E + y_offset, f"{E:.1f}",
                 color=color, weight="normal", ha="center", va=va, fontsize=24)
 
     # Draw dashed connections
@@ -209,7 +239,7 @@ def _plot_single_profile(ax, profile: List[Dict[str, str]], energy_dict: Dict[st
                 linestyle="--", color=color, lw=dash_linewidth, solid_capstyle='round')
 
 
-def _plot_energy_profiles(energy_dict: Dict[str, float], catalyst_name: str, energy_type: str, output_path: Path):
+def _plot_energy_profiles(energy_dict: Dict[str, float], catalyst_name: str, energy_type: str, output_path: Path, unit: str = "kcal/mol"):
     """
     Generate and save a complete energy profile plot.
     
@@ -218,6 +248,7 @@ def _plot_energy_profiles(energy_dict: Dict[str, float], catalyst_name: str, ene
         catalyst_name: Name of catalyst for the plot
         energy_type: "E" or "G" for energy type
         output_path: Full path where to save the plot
+        unit: Energy unit for axis label
     """
     profiles = _define_profiles(energy_dict)
     
@@ -225,7 +256,7 @@ def _plot_energy_profiles(energy_dict: Dict[str, float], catalyst_name: str, ene
         logging.warning(f"No valid profiles found for {catalyst_name} - skipping plot")
         return
     
-    fig, ax = plt.subplots(figsize=(14, 6))
+    fig, ax = plt.subplots(figsize=(14, 8))
     
     # Plot each profile
     for prof in profiles:
@@ -245,7 +276,7 @@ def _plot_energy_profiles(energy_dict: Dict[str, float], catalyst_name: str, ene
     ax.set_xticks(xtick_positions)
     ax.set_xticklabels(xtick_labels, fontsize=12, fontweight="bold")
     ax.set_xlabel("reaction coordinate", fontsize=20, fontweight="bold")
-    ax.set_ylabel(f" $\\Delta$ {energy_type}", fontsize=20, fontweight="bold")
+    ax.set_ylabel(rf"$\Delta$ {energy_type} ({unit})", fontsize=20, fontweight="bold")
     # ax.set_title(f"Reaction Profiles for {catalyst_name}", fontsize=14)
     # ax.legend()
     # ax.grid(True, linestyle="--", alpha=0.5)
@@ -278,7 +309,7 @@ def _plot_energy_profiles(energy_dict: Dict[str, float], catalyst_name: str, ene
     
     # Save plot
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    plt.savefig(output_path, format="pdf", transparent=False, dpi=300)
+    plt.savefig(output_path, format="svg", transparent=False, dpi=300)
     logging.info(f"Saved energy profile plot: {output_path}")
     plt.close(fig)
 
@@ -320,6 +351,9 @@ def plot_all_profiles(processed_data: Dict[str, Dict[str, Any]], base_dir: Path)
                 
                 # Process each catalyst
                 for catalyst, catalyst_data in catalyst_profiles.items():
+                    # Get unit from data (set at extraction time)
+                    unit = catalyst_data.get("unit", Constants.ENERGY_UNIT)
+                    
                     # Process each energy type (E and G)
                     for energy_type in ["E", "G"]:
                         profile_data = catalyst_data.get(energy_type, [])
@@ -328,7 +362,7 @@ def plot_all_profiles(processed_data: Dict[str, Dict[str, Any]], base_dir: Path)
                         
                         try:
                             # Convert to energy dictionary format
-                            energy_dict = _convert_to_energy_dict(profile_data, energy_type)
+                            energy_dict = _convert_to_energy_dict(profile_data, energy_type, unit)
                             if not energy_dict:
                                 continue
                             
@@ -336,11 +370,11 @@ def plot_all_profiles(processed_data: Dict[str, Dict[str, Any]], base_dir: Path)
                             normalized_dict = _normalize_energies(energy_dict)
                             
                             # Generate plot filename (matching CSV naming convention)
-                            plot_filename = f"{calc_mode}_profile_{energy_type}_{combo_name}_{catalyst}.pdf"
+                            plot_filename = f"{calc_mode}_profile_{energy_type}_{combo_name}_{catalyst}.svg"
                             plot_path = plots_dir / plot_filename
                             
                             # Generate and save plot
-                            _plot_energy_profiles(normalized_dict, catalyst, energy_type, plot_path)
+                            _plot_energy_profiles(normalized_dict, catalyst, energy_type, plot_path, unit)
                             total_plots += 1
                             
                         except Exception as e:

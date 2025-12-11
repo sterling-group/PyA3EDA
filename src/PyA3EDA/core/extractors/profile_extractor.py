@@ -12,6 +12,8 @@ Example:
 import logging
 from typing import Dict, List, Any, Optional
 
+from PyA3EDA.core.constants import Constants
+
 
 class ProfileExtractor:
     """
@@ -367,7 +369,7 @@ class ProfileExtractor:
         for catalyst in self.components["all_catalysts"]:
             raw_profile = self._generate_catalyst_profile(catalyst)
             if raw_profile:  # Only include non-empty profiles
-                catalyst_profiles = {"raw": raw_profile}
+                catalyst_profiles = {"raw": raw_profile, "unit": Constants.ENERGY_UNIT}
                 
                 if filter_duplicates:
                     catalyst_profiles["E"] = self._filter_profile(raw_profile, "E")

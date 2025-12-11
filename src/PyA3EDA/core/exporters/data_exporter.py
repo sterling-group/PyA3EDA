@@ -1,195 +1,174 @@
 """
 Data Exporter Module
 
-Pure file writers for direct CSV and XYZ export:
-- write_csv_data: Generic CSV writer with configurable data type for logging
-- write_xyz_files: Write XYZ coordinate files
+Unified export functions for all data types:
+- Raw calculation data (OPT/SP)
+- Energy profiles (raw and filtered)
+- Delta-delta barrier contributions
+- XYZ coordinate files
 """
 import logging
 import pandas as pd
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Any
 
 from PyA3EDA.core.utils.file_utils import write_text
 
 
-def write_csv_data(data_list: List[Dict[str, Any]], file_path: Path, data_type: str = "data") -> bool:
-    """
-    Write data to CSV file with generic data type support.
-    
-    Args:
-        data_list: List of data dictionaries (CSV-ready)
-        file_path: Output CSV file path
-        data_type: Type of data for logging (e.g., "OPT", "SP", "profile")
-        
-    Returns:
-        True if successful, False otherwise
-    """
-    if not data_list:
-        logging.warning(f"No {data_type} data to write")
+def _write_csv(data: List[Dict[str, Any]], file_path: Path, data_type: str = "data") -> bool:
+    """Write list of dicts to CSV. Returns True on success."""
+    if not data:
         return False
-        
     try:
-        # Create DataFrame and save directly
-        df = pd.DataFrame(data_list)
         file_path.parent.mkdir(parents=True, exist_ok=True)
-        df.to_csv(file_path, index=False)
-        logging.info(f"Saved {len(df)} {data_type} rows to {file_path}")
+        pd.DataFrame(data).to_csv(file_path, index=False)
+        logging.info(f"Saved {len(data)} {data_type} rows to {file_path}")
         return True
-        
     except Exception as e:
-        logging.error(f"Failed to write {data_type} CSV file {file_path}: {e}")
+        logging.error(f"Failed to write {data_type} CSV {file_path}: {e}")
         return False
 
 
-def write_xyz_files(data_list: List[Dict[str, Any]], output_dir: Path) -> Dict[str, Path]:
-    """
-    Write coordinate data to XYZ files.
-    
-    Args:
-        data_list: List of data dictionaries with coordinate information
-        output_dir: Output directory for XYZ files
-        
-    Returns:
-        Dictionary mapping file identifiers to file paths
-    """
-    results = {}
-    
+def _write_xyz(data_list: List[Dict[str, Any]], output_dir: Path) -> int:
+    """Write XYZ coordinate files. Returns count of files written."""
     if not data_list:
-        logging.warning("No coordinate data to write")
-        return results
-        
+        return 0
+    
+    from PyA3EDA.core.utils.xyz_format_utils import format_xyz_content
     output_dir.mkdir(parents=True, exist_ok=True)
+    count = 0
     
     for data in data_list:
-        if not data.get("coordinates"):
+        coords = data.get("coordinates")
+        if not coords:
             continue
-            
-        try:
-            # Create XYZ content using existing util function
-            from PyA3EDA.core.utils.xyz_format_utils import format_xyz_content
-            
-            coords = data["coordinates"]
-            n_atoms = coords.get('n_atoms', 0)
-            atoms = coords.get('atoms', [])
-            charge = coords.get('Charge', 0)
-            multiplicity = coords.get('Multiplicity', 1)
-            
-            xyz_content = format_xyz_content(n_atoms, charge, multiplicity, atoms)
-            if not xyz_content:
-                continue
-                
-            # Generate filename - remove _opt suffix if present
-            species = data.get("Species", "unknown")
-            file_stem = data.get("output_file_stem", species)
-            
-            # Remove _opt suffix if it exists at the end
-            if file_stem.endswith("_opt"):
-                file_stem = file_stem[:-4]
-                
-            filename = f"{file_stem}.xyz"
-
-            file_path = output_dir / filename
-            
-            # Write file
-            if write_text(file_path, xyz_content):
-                results[file_stem] = file_path
-                logging.debug(f"Written XYZ file: {file_path}")
-                
-        except Exception as e:
-            logging.error(f"Failed to write XYZ file for {data.get('Species', 'unknown')}: {e}")
+        
+        xyz_content = format_xyz_content(
+            coords.get('n_atoms', 0),
+            coords.get('Charge', 0),
+            coords.get('Multiplicity', 1),
+            coords.get('atoms', [])
+        )
+        if not xyz_content:
             continue
+        
+        file_stem = data.get("output_file_stem", data.get("Species", "unknown"))
+        if file_stem.endswith("_opt"):
+            file_stem = file_stem[:-4]
+        
+        if write_text(output_dir / f"{file_stem}.xyz", xyz_content):
+            count += 1
     
-    logging.info(f"Written {len(results)} XYZ files to {output_dir}")
-    return results
+    logging.info(f"Written {count} XYZ files to {output_dir}")
+    return count
 
 
-def export_all_data(processed_data: Dict[str, Dict[str, Any]], base_dir: Path) -> None:
+def _build_delta_delta_rows(
+    catalyst_data: Dict[str, Dict[str, Any]], 
+    catalyst_order: List[str], 
+    energy_type: str
+) -> List[Dict[str, Any]]:
+    """Build CSV rows for delta-delta data, respecting catalyst order."""
+    rows = []
+    for catalyst in catalyst_order:
+        if catalyst not in catalyst_data:
+            continue
+        data = catalyst_data[catalyst]
+        barriers = data.get("barriers", {})
+        contribs = data.get("contributions", {})
+        rows.append({
+            "Catalyst": catalyst,
+            f"Barrier_uncat ({energy_type})": barriers.get("uncat"),
+            f"Barrier_frz ({energy_type})": barriers.get("frz"),
+            f"Barrier_pol ({energy_type})": barriers.get("pol"),
+            f"Barrier_full ({energy_type})": barriers.get("full"),
+            f"ΔΔ{energy_type}‡_frz": contribs.get("frz"),
+            f"ΔΔ{energy_type}‡_pol": contribs.get("pol"),
+            f"ΔΔ{energy_type}‡_ct": contribs.get("ct"),
+            f"ΔΔ{energy_type}‡_complete": contribs.get("complete"),
+        })
+    return rows
+
+
+def export_all_data(
+    processed_data: Dict[str, Dict[str, Any]], 
+    base_dir: Path,
+    delta_delta_data: Dict[str, Dict[str, Any]] = None,
+    catalyst_order: List[str] = None
+) -> None:
     """
     Export all processed data to organized file structure.
     
     Args:
-        processed_data: Dictionary mapping method combo names to their processed data
-                       (includes raw data + profiles)
-        base_dir: Base directory where results will be exported
+        processed_data: Method combo data with raw data + profiles
+        base_dir: Base directory for results
+        delta_delta_data: Optional pre-extracted delta-delta contributions
+        catalyst_order: Optional catalyst order for delta-delta export
         
-    Creates directory structure:
-        base_dir/results/{method_combo}/
-        ├── raw_data/           # Raw extracted data + raw profiles (all entries)
-        │   ├── opt_{opt_method_combo}.csv
-        │   ├── sp_{sp_method_combo}.csv
-        │   ├── raw_opt_profile_{method_combo}_{catalyst}.csv
-        │   └── raw_sp_profile_{method_combo}_{catalyst}.csv
-        ├── profiles/           # Filtered profiles (lowest energy per stage) 
-        │   ├── opt_profile_E_{method_combo}_{catalyst}.csv     # OPT filtered by E
-        │   ├── opt_profile_G_{method_combo}_{catalyst}.csv     # OPT filtered by G
-        │   ├── sp_profile_E_{method_combo}_{catalyst}.csv      # SP filtered by E
-        │   └── sp_profile_G_{method_combo}_{catalyst}.csv      # SP filtered by G
-        └── xyz_files/          # XYZ coordinate files
+    Directory structure:
+        results/{method_combo}/
+        ├── raw_data/      - Raw OPT/SP data + raw profiles
+        ├── profiles/      - Filtered profiles (E and G)
+        ├── delta_delta/   - Barrier contributions
+        └── xyz_files/     - Coordinate files
     """
     if not processed_data:
         logging.warning("No processed data provided for export")
         return
     
-    # Create results directory structure
     results_dir = base_dir / "results"
-    logging.info(f"Exporting {len(processed_data)} method combos to {results_dir}")
-    
     total_files = 0
     
-    # Export each method combo
     for combo_name, combo_data in processed_data.items():
         try:
-            # Create structured output directories
-            method_combo_dir = results_dir / combo_name
-            raw_data_dir = method_combo_dir / "raw_data"
-            profiles_dir = method_combo_dir / "profiles"
-            xyz_dir = method_combo_dir / "xyz_files"
-            
+            dirs = {
+                "raw": results_dir / combo_name / "raw_data",
+                "profiles": results_dir / combo_name / "profiles",
+                "delta_delta": results_dir / combo_name / "delta_delta",
+                "xyz": results_dir / combo_name / "xyz_files",
+            }
             combo_files = 0
-            # Export raw data and profiles for all calculation modes
+            
+            # Export OPT and SP data
             for calc_mode in ["opt", "sp"]:
                 data_key = f"{calc_mode}_data"
-                if not combo_data.get(data_key):
+                raw_data = combo_data.get(data_key)
+                if not raw_data:
                     continue
                 
-                # Get method combo name and data type
-                if calc_mode == "opt":
-                    method_combo = combo_name
-                    data_type = "OPT"
-                else:  # sp
-                    method_combo = combo_data[data_key][0].get("SP_Method_Combo", combo_name)
-                    data_type = "SP"
+                method_combo = combo_name if calc_mode == "opt" else raw_data[0].get("SP_Method_Combo", combo_name)
                 
-                # Export raw CSV
-                raw_file_path = raw_data_dir / f"{calc_mode}_{method_combo}.csv"
-                if write_csv_data(combo_data[data_key], raw_file_path, data_type):
+                # Raw calculation data
+                if _write_csv(raw_data, dirs["raw"] / f"{calc_mode}_{method_combo}.csv", calc_mode.upper()):
                     combo_files += 1
                 
-                # Export profiles (from pre-processed data)
-                profiles_data = combo_data.get("profiles", {}).get(data_key, {})
-                if profiles_data:
-                    for catalyst, catalyst_data in profiles_data.items():
-                        # Raw profiles
-                        if catalyst_data["raw"] and write_csv_data(catalyst_data["raw"], raw_data_dir / f"raw_{calc_mode}_profile_{method_combo}_{catalyst}.csv", "raw profile"):
+                # Profiles per catalyst
+                profiles = combo_data.get("profiles", {}).get(data_key, {})
+                for catalyst, cat_profiles in profiles.items():
+                    # Raw profile
+                    if _write_csv(cat_profiles.get("raw"), dirs["raw"] / f"raw_{calc_mode}_profile_{method_combo}_{catalyst}.csv", "raw profile"):
+                        combo_files += 1
+                    # Filtered profiles
+                    for energy_type in ["E", "G"]:
+                        if _write_csv(cat_profiles.get(energy_type), dirs["profiles"] / f"{calc_mode}_profile_{energy_type}_{method_combo}_{catalyst}.csv", f"{energy_type} profile"):
                             combo_files += 1
-                        
-                        # Filtered profiles (E and G)
-                        for energy_type in ["E", "G"]:
-                            if catalyst_data[energy_type] and write_csv_data(catalyst_data[energy_type], profiles_dir / f"{calc_mode}_profile_{energy_type}_{method_combo}_{catalyst}.csv", f"filtered {energy_type} profile"):
-                                combo_files += 1
-                    
-            # Export XYZ data
-            if combo_data.get("xyz_data"):
-                xyz_results = write_xyz_files(combo_data["xyz_data"], xyz_dir)
-                if xyz_results:
-                    combo_files += len(xyz_results)
+                
+                # Delta-delta data
+                if delta_delta_data and catalyst_order:
+                    dd_combo = delta_delta_data.get(combo_name, {}).get(data_key, {})
+                    for energy_type in ["E", "G"]:
+                        rows = _build_delta_delta_rows(dd_combo.get(energy_type, {}), catalyst_order, energy_type)
+                        filename = f"delta_delta_{combo_name}_{energy_type}.csv" if calc_mode == "opt" else f"delta_delta_{calc_mode}_{combo_name}_{energy_type}.csv"
+                        if _write_csv(rows, dirs["delta_delta"] / filename, "delta-delta"):
+                            combo_files += 1
+            
+            # XYZ files
+            combo_files += _write_xyz(combo_data.get("xyz_data", []), dirs["xyz"])
             
             total_files += combo_files
             logging.info(f"Exported {combo_name}: {combo_files} files")
-                
+            
         except Exception as e:
-            logging.error(f"Failed to export method combo {combo_name}: {e}")
-            continue
+            logging.error(f"Failed to export {combo_name}: {e}")
     
-    logging.info(f"Export completed: {len(processed_data)} method combos, {total_files} total files")
+    logging.info(f"Export completed: {len(processed_data)} combos, {total_files} files")
