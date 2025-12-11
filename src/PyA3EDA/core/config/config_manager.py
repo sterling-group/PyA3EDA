@@ -178,3 +178,13 @@ class ConfigManager:
             original["eda2"] = method.get("eda2")
             
         return sanitized, original
+
+    def get_catalyst_order(self) -> list:
+        """
+        Returns list of catalyst names in the order they appear in the config file.
+        
+        Returns:
+            List of catalyst name strings
+        """
+        catalysts = self.processed_config.get("catalysts", [])
+        return [cat["name"]["opt"] for cat in catalysts]
