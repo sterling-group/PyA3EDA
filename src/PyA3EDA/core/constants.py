@@ -39,6 +39,9 @@ class Constants:
     ATM_TO_PA = 101325.0 # 1 atm = 101325 Pa
     M3_TO_L = 1000.0 # cubic meter (m^3) = 1000 liters (L) = 1000 dm^3
 
+    # Default energy unit for output
+    ENERGY_UNIT = "kcal/mol"
+
     ESCAPE_MAP = {
         ' ': '-space-', '(': '-lparen-', ')': '-rparen-',
         '[': '-lbracket-', ']': '-rbracket-', '{': '-lbrace-', '}': '-rbrace-',
