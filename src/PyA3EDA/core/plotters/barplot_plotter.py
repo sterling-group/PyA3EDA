@@ -19,17 +19,28 @@ import matplotlib.colors as mc
 
 # Base colors for contribution types (keys match extractor output)
 BASE_COLORS = {
+    "trans_frz": "darkorange",    # Trans entropy for FRZ
+    "trans_pol": "gold",          # Trans entropy for POL  
+    "trans_ct": "khaki",          # Trans entropy for CT
+    "trans_complete": "dimgray",  # Trans entropy for complete
     "frz": "firebrick",
     "pol": "forestgreen",
     "ct": "royalblue",
     "complete": "black"
 }
 
-# Contribution types to plot (lowercase for data lookup)
-CONTRIBUTION_TYPES = ["frz", "pol", "ct", "complete"]
+# Contribution types for E (electronic energy)
+E_CONTRIBUTION_TYPES = ["frz", "pol", "ct", "complete"]
+E_DISPLAY_LABELS = ["FRZ", "POL", "CT", "FULL"]
 
-# Display labels (uppercase for plot)
-DISPLAY_LABELS = ["FRZ", "POL", "CT", "FULL"]
+# Contribution types for G (free energy with all entropy) - standard EDA bars
+G_CONTRIBUTION_TYPES = ["frz", "pol", "ct", "complete"]
+G_DISPLAY_LABELS = ["FRZ", "POL", "CT", "FULL"]
+
+# Contribution types for G_no_trans with trans contributions shown
+# Shows where translational entropy cancels vs doesn't cancel
+G_NOTRANS_CONTRIBUTION_TYPES = ["trans_frz", "frz", "trans_pol", "pol", "trans_ct", "ct", "trans_complete", "complete"]
+G_NOTRANS_DISPLAY_LABELS = ["ΔS·FRZ", "FRZ", "ΔS·POL", "POL", "ΔS·CT", "CT", "ΔS·FULL", "FULL"]
 
 
 def _lighten_color(color: str, amount: float = 0.0) -> Tuple[float, float, float]:
@@ -74,7 +85,8 @@ def _plot_single_barplot(
     delta_delta_data: Dict[str, Dict[str, Any]],
     catalyst_order: List[str],
     energy_type: str,
-    output_path: Path
+    output_path: Path,
+    trans_data: Dict[str, Dict[str, float]] = None
 ) -> None:
     """
     Generate and save a single delta-delta barplot with color variants per catalyst.
@@ -82,8 +94,9 @@ def _plot_single_barplot(
     Args:
         delta_delta_data: Dict mapping catalyst names to their data with "contributions" key
         catalyst_order: List of catalyst names in desired plot order
-        energy_type: "E" or "G" for axis labeling
+        energy_type: "E", "G", or "G_no_trans" for axis labeling
         output_path: Full path where to save the plot
+        trans_data: Optional dict with trans contributions (for G_no_trans plot)
     """
     # Filter to catalysts that have data, preserving order
     ordered_cats = [cat for cat in catalyst_order if cat in delta_delta_data]
@@ -95,16 +108,31 @@ def _plot_single_barplot(
     # Extract unit from first catalyst's data (all should have same unit)
     unit = delta_delta_data[ordered_cats[0]].get("unit", "kcal/mol")
     
-    n_groups = len(CONTRIBUTION_TYPES)
+    # Select contribution types and labels based on energy type
+    if energy_type == "G_no_trans" and trans_data:
+        contribution_types = G_NOTRANS_CONTRIBUTION_TYPES
+        display_labels = G_NOTRANS_DISPLAY_LABELS
+    elif energy_type in ["G", "G_no_trans"]:
+        contribution_types = G_CONTRIBUTION_TYPES
+        display_labels = G_DISPLAY_LABELS
+    else:
+        contribution_types = E_CONTRIBUTION_TYPES
+        display_labels = E_DISPLAY_LABELS
+    
+    n_groups = len(contribution_types)
     n_cats = len(ordered_cats)
     
     # Build data array [n_groups, n_cats] - None values become 0.0
     data = np.zeros((n_groups, n_cats))
     has_value = np.zeros((n_groups, n_cats), dtype=bool)  # Track which have real values
-    for j, ctype in enumerate(CONTRIBUTION_TYPES):
+    for j, ctype in enumerate(contribution_types):
         for i, cat in enumerate(ordered_cats):
-            contributions = delta_delta_data[cat].get("contributions", {})
-            val = contributions.get(ctype)
+            # Check trans_data for trans_ types, otherwise use main contributions
+            if ctype.startswith("trans_") and trans_data and cat in trans_data:
+                val = trans_data[cat].get(ctype)
+            else:
+                contributions = delta_delta_data[cat].get("contributions", {})
+                val = contributions.get(ctype)
             if val is not None:
                 data[j, i] = val
                 has_value[j, i] = True
@@ -126,7 +154,7 @@ def _plot_single_barplot(
     # Plot bars for each catalyst with progressively lighter colors
     for i, cat in enumerate(ordered_cats):
         lightness = lightness_amounts[i]
-        colors = [_lighten_color(BASE_COLORS[ctype], lightness) for ctype in CONTRIBUTION_TYPES]
+        colors = [_lighten_color(BASE_COLORS[ctype], lightness) for ctype in contribution_types]
         offset = (i - (n_cats - 1) / 2) * bar_width
         x_positions = group_positions + offset
         ax.bar(x_positions, data[:, i], bar_width, label=cat, color=colors)
@@ -155,8 +183,8 @@ def _plot_single_barplot(
     ax.set_xticks(group_positions)
     
     # Set xticklabels with matching colors (use display labels)
-    xticklabels = ax.set_xticklabels(DISPLAY_LABELS, fontsize=24, fontweight="bold")
-    base_color_list = [BASE_COLORS[ctype] for ctype in CONTRIBUTION_TYPES]
+    xticklabels = ax.set_xticklabels(display_labels, fontsize=24, fontweight="bold")
+    base_color_list = [BASE_COLORS[ctype] for ctype in contribution_types]
     for label, color in zip(xticklabels, base_color_list):
         label.set_color(color)
     
@@ -172,8 +200,9 @@ def _plot_single_barplot(
                 arrowprops=dict(arrowstyle="->", color="k", lw=2.5),
                 clip_on=False)
     
-    # Labels
-    ax.set_ylabel(rf"$\Delta\Delta {energy_type}^\ddagger$ ({unit})", fontsize=20, fontweight="bold")
+    # Labels - use G for display even if energy_type is G_no_trans
+    display_energy = "G" if energy_type.startswith("G") else energy_type
+    ax.set_ylabel(rf"$\Delta\Delta {display_energy}^\ddagger$ ({unit})", fontsize=20, fontweight="bold")
     
     # Legend for catalysts (using gray shades matching their lightness)
     if n_cats > 1:
@@ -231,29 +260,44 @@ def plot_delta_delta_barplots(
             
             calc_mode = "opt" if data_key == "opt_data" else "sp"
             
-            for energy_type in ["E", "G"]:
-                catalyst_data = energy_type_data.get(energy_type, {})
-                if not catalyst_data:
-                    continue
-                
+            # Plot E (electronic energy)
+            e_data = energy_type_data.get("E", {})
+            if e_data:
                 try:
-                    # Get catalysts that have data, in order
-                    plotted_cats = [cat for cat in catalyst_order if cat in catalyst_data]
-                    if not plotted_cats:
-                        continue
-                    
-                    # Generate filename with catalyst names
-                    cats_str = "_".join(plotted_cats)
-                    plot_filename = f"delta_delta_barplot_{calc_mode}_{combo_name}_{cats_str}_{energy_type}.svg"
-                    
-                    plot_path = plots_dir / plot_filename
-                    
-                    # Generate and save plot
-                    _plot_single_barplot(catalyst_data, catalyst_order, energy_type, plot_path)
-                    total_plots += 1
-                    
+                    plotted_cats = [cat for cat in catalyst_order if cat in e_data]
+                    if plotted_cats:
+                        cats_str = "_".join(plotted_cats)
+                        plot_path = plots_dir / f"delta_delta_barplot_{calc_mode}_{combo_name}_{cats_str}_E.svg"
+                        _plot_single_barplot(e_data, catalyst_order, "E", plot_path)
+                        total_plots += 1
                 except Exception as e:
-                    logging.error(f"Failed to generate barplot for {combo_name} {energy_type}: {e}")
-                    continue
+                    logging.error(f"Failed to generate E barplot for {combo_name}: {e}")
+            
+            # Plot G (full free energy with all entropy)
+            g_data = energy_type_data.get("G", {})
+            if g_data:
+                try:
+                    plotted_cats = [cat for cat in catalyst_order if cat in g_data]
+                    if plotted_cats:
+                        cats_str = "_".join(plotted_cats)
+                        plot_path = plots_dir / f"delta_delta_barplot_{calc_mode}_{combo_name}_{cats_str}_G.svg"
+                        _plot_single_barplot(g_data, catalyst_order, "G", plot_path)
+                        total_plots += 1
+                except Exception as e:
+                    logging.error(f"Failed to generate G barplot for {combo_name}: {e}")
+            
+            # Plot G_no_trans with trans contributions (if available)
+            g_no_trans_data = energy_type_data.get("G_no_trans", {})
+            trans_data = energy_type_data.get("G_trans", {})
+            if g_no_trans_data:
+                try:
+                    plotted_cats = [cat for cat in catalyst_order if cat in g_no_trans_data]
+                    if plotted_cats:
+                        cats_str = "_".join(plotted_cats)
+                        plot_path = plots_dir / f"delta_delta_barplot_{calc_mode}_{combo_name}_{cats_str}_G_notrans.svg"
+                        _plot_single_barplot(g_no_trans_data, catalyst_order, "G_no_trans", plot_path, trans_data)
+                        total_plots += 1
+                except Exception as e:
+                    logging.error(f"Failed to generate G_no_trans barplot for {combo_name}: {e}")
     
     logging.info(f"Barplot generation completed: {total_plots} plots created")

@@ -23,7 +23,7 @@ def _convert_to_energy_dict(profile_data: List[Dict[str, Any]], energy_type: str
     
     Args:
         profile_data: List of stage dictionaries with Stage, Calc_Type, and energy columns
-        energy_type: Either "E" or "G"
+        energy_type: "E", "G", or "G_no_trans"
         unit: Energy unit string
         
     Returns:
@@ -89,9 +89,9 @@ def _calculate_barrier(energy_dict: Dict[str, float], calc_type: Optional[str] =
         if ts_key not in energy_dict:
             return None
             
-        # Use preTS if available, otherwise just use Reactants
-        if preTSkey in energy_dict:
-            baseline = min(reactant_energy, energy_dict[preTSkey])
+        # Use preTS if available and lower than Reactants
+        if preTSkey in energy_dict and energy_dict[preTSkey] < reactant_energy:
+            baseline = energy_dict[preTSkey]
         else:
             baseline = reactant_energy
             
@@ -160,6 +160,40 @@ def _calculate_delta_delta_contributions(
     return contributions
 
 
+def _calculate_barriers_and_contributions(
+    profile_data: List[Dict[str, Any]], 
+    energy_type: str, 
+    unit: str
+) -> Optional[Dict[str, Any]]:
+    """
+    Calculate barriers and contributions for a single energy type.
+    
+    Args:
+        profile_data: Profile data list with stage energies
+        energy_type: "E", "G", or "G_no_trans"
+        unit: Energy unit string
+        
+    Returns:
+        Dict with barriers and contributions, or None if insufficient data
+    """
+    energy_dict = _convert_to_energy_dict(profile_data, energy_type, unit)
+    if not energy_dict:
+        return None
+        
+    barriers = {
+        "uncat": _calculate_barrier(energy_dict, None),
+        "frz": _calculate_barrier(energy_dict, "frz_cat"),
+        "pol": _calculate_barrier(energy_dict, "pol_cat"),
+        "full": _calculate_barrier(energy_dict, "full_cat")
+    }
+    
+    contributions = _calculate_delta_delta_contributions(barriers)
+    if not contributions:
+        return None
+        
+    return {"barriers": barriers, "contributions": contributions}
+
+
 def extract_catalyst_delta_delta(
     catalyst_profiles: Dict[str, Dict[str, List[Dict[str, Any]]]],
     energy_type: str,
@@ -170,13 +204,14 @@ def extract_catalyst_delta_delta(
     
     Args:
         catalyst_profiles: Dict mapping catalyst names to profile data (with "E" and "G" keys)
-        energy_type: "E" or "G"
+        energy_type: "E", "G", or "G_no_trans"
         catalyst_order: List of catalyst names in desired order
         
     Returns:
         Dict mapping catalyst names to their data containing:
         - "barriers": dict with uncat, frz, pol, full barrier values
         - "contributions": dict with frz, pol, ct, complete contribution values
+        - "unit": energy unit string
     """
     results = {}
     
@@ -185,39 +220,58 @@ def extract_catalyst_delta_delta(
             logging.debug(f"Catalyst {catalyst} not found in profiles - skipping")
             continue
         
-        # Get unit from catalyst data (set at extraction time)
         unit = catalyst_profiles[catalyst].get("unit", Constants.ENERGY_UNIT)
+        profile_data = catalyst_profiles[catalyst].get("G" if energy_type == "G_no_trans" else energy_type, [])
         
-        profile_data = catalyst_profiles[catalyst].get(energy_type, [])
         if not profile_data:
             logging.debug(f"No {energy_type} profile data for catalyst {catalyst}")
             continue
-            
-        # Convert to energy dict
-        energy_dict = _convert_to_energy_dict(profile_data, energy_type, unit)
-        if not energy_dict:
-            continue
-            
-        # Calculate all barriers
-        barriers = {
-            "uncat": _calculate_barrier(energy_dict, None),
-            "frz": _calculate_barrier(energy_dict, "frz_cat"),
-            "pol": _calculate_barrier(energy_dict, "pol_cat"),
-            "full": _calculate_barrier(energy_dict, "full_cat")
-        }
         
-        # Calculate contributions
-        contributions = _calculate_delta_delta_contributions(barriers)
-        
-        if contributions:
-            results[catalyst] = {
-                "barriers": barriers,
-                "contributions": contributions,
-                "unit": unit
-            }
-            logging.debug(f"Catalyst {catalyst} contributions: {contributions}")
+        result = _calculate_barriers_and_contributions(profile_data, energy_type, unit)
+        if result:
+            result["unit"] = unit
+            results[catalyst] = result
+            logging.debug(f"Catalyst {catalyst} {energy_type} contributions: {result['contributions']}")
             
     return results
+
+
+def extract_trans_contributions(
+    g_data: Dict[str, Dict[str, Any]],
+    g_no_trans_data: Dict[str, Dict[str, Any]]
+) -> Dict[str, Dict[str, float]]:
+    """
+    Calculate translational entropy contributions per EDA term.
+    
+    trans_bar = contribution(G) - contribution(G_no_trans)
+    
+    Args:
+        g_data: Delta-delta data for full G
+        g_no_trans_data: Delta-delta data for G_no_trans
+        
+    Returns:
+        Dict mapping catalyst to trans contributions {trans_frz, trans_pol, trans_ct, trans_complete}
+    """
+    trans_contributions = {}
+    
+    for catalyst in g_data:
+        if catalyst not in g_no_trans_data:
+            continue
+            
+        g_contrib = g_data[catalyst].get("contributions", {})
+        no_trans_contrib = g_no_trans_data[catalyst].get("contributions", {})
+        
+        trans = {}
+        for bar_type in ["frz", "pol", "ct", "complete"]:
+            g_val = g_contrib.get(bar_type)
+            no_trans_val = no_trans_contrib.get(bar_type)
+            if g_val is not None and no_trans_val is not None:
+                trans[f"trans_{bar_type}"] = g_val - no_trans_val
+        
+        if trans:
+            trans_contributions[catalyst] = trans
+            
+    return trans_contributions
 
 
 def extract_all_delta_delta(
@@ -268,15 +322,26 @@ def extract_all_delta_delta(
             
             data_delta_delta = {}
             
-            # Process each energy type (E and G)
-            for energy_type in ["E", "G"]:
-                delta_delta = extract_catalyst_delta_delta(
-                    catalyst_profiles,
-                    energy_type,
-                    catalyst_order
-                )
-                if delta_delta:
-                    data_delta_delta[energy_type] = delta_delta
+            # Extract E contributions
+            e_data = extract_catalyst_delta_delta(catalyst_profiles, "E", catalyst_order)
+            if e_data:
+                data_delta_delta["E"] = e_data
+            
+            # Extract G contributions (full G with all entropy)
+            g_data = extract_catalyst_delta_delta(catalyst_profiles, "G", catalyst_order)
+            if g_data:
+                data_delta_delta["G"] = g_data
+            
+            # Extract G_no_trans contributions
+            g_no_trans_data = extract_catalyst_delta_delta(catalyst_profiles, "G_no_trans", catalyst_order)
+            if g_no_trans_data:
+                data_delta_delta["G_no_trans"] = g_no_trans_data
+                
+                # Calculate trans contributions (G - G_no_trans per bar)
+                if g_data:
+                    trans_data = extract_trans_contributions(g_data, g_no_trans_data)
+                    if trans_data:
+                        data_delta_delta["G_trans"] = trans_data
             
             if data_delta_delta:
                 combo_delta_delta[data_key] = data_delta_delta

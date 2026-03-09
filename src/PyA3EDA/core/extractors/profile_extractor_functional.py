@@ -42,17 +42,20 @@ def _build_energy_lookup(raw_data: List[Dict[str, Any]]) -> Dict[str, Dict[str, 
         # Get energy values
         e_val = data.get("E (kcal/mol)") or data.get("SP_E (kcal/mol)")
         g_val = data.get("G (kcal/mol)")  # May be None for SP-only data
+        g_no_trans_val = data.get("G_no_trans (kcal/mol)")  # G without translational entropy
         
         # Require at least E value (G is optional for SP-only calculations)
         if e_val is not None:
             calc_type = data.get("Calc_Type", "")
             
+            entry = {"E": e_val, "G": g_val, "G_no_trans": g_no_trans_val}
+            
             # Create calc_type-specific key if calc_type exists
             if calc_type and calc_type != "unknown":
-                energy_lookup[f"{species}_{calc_type}"] = {"E": e_val, "G": g_val}
+                energy_lookup[f"{species}_{calc_type}"] = entry.copy()
             
             # Always create base species key
-            energy_lookup[species] = {"E": e_val, "G": g_val}
+            energy_lookup[species] = entry
     
     return energy_lookup
 
@@ -99,7 +102,9 @@ def _create_stage(stage_name: str, species_list: List[str], energy_lookup: Dict[
     
     total_e = 0.0
     total_g = 0.0
+    total_g_no_trans = 0.0
     has_g_data = True  # Track if all species have G values
+    has_g_no_trans_data = True  # Track if all species have G_no_trans values
     calc_types = calc_types or [None] * len(species_list)
     
     # Sum energies for all species
@@ -115,6 +120,12 @@ def _create_stage(stage_name: str, species_list: List[str], energy_lookup: Dict[
             has_g_data = False
         else:
             total_g += energy["G"]
+        
+        # Handle G_no_trans
+        if energy.get("G_no_trans") is None:
+            has_g_no_trans_data = False
+        else:
+            total_g_no_trans += energy["G_no_trans"]
     
     # Get primary calc_type with sanity check
     non_empty_calc_types = [ct for ct in calc_types if ct]
@@ -130,7 +141,7 @@ def _create_stage(stage_name: str, species_list: List[str], energy_lookup: Dict[
     else:
         source = "Addition"
     
-    return {
+    result = {
         "Stage": stage_name,
         "Calc_Type": primary_calc_type,
         "Species": " + ".join(species_list),
@@ -138,6 +149,12 @@ def _create_stage(stage_name: str, species_list: List[str], energy_lookup: Dict[
         "G (kcal/mol)": total_g if has_g_data else None,  # None if no G data available
         "Source": source
     }
+    
+    # Add G_no_trans if available
+    if has_g_no_trans_data:
+        result["G_no_trans (kcal/mol)"] = total_g_no_trans
+    
+    return result
 
 
 def _generate_stages(stage_type: str, catalyst: str, raw_data: List[Dict[str, Any]], components: Dict[str, List[str]], energy_lookup: Dict[str, Dict[str, float]]) -> List[Dict[str, Any]]:

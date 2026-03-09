@@ -18,9 +18,9 @@ from typing import Dict, Any, Optional, List
 from PyA3EDA.core.utils.file_utils import read_text
 from PyA3EDA.core.parsers.qchem_result_parser import (
     parse_energy, parse_final_energy, parse_total_energy, parse_enthalpy, parse_entropy, 
-    parse_optimization_status, parse_thermodynamic_conditions, parse_qrrho_parameters, 
-    parse_imaginary_frequencies, parse_zero_point_energy, parse_smd_detail_block, 
-    parse_smd_cds_extended_print, parse_eda_polarized_energy, 
+    parse_translational_entropy, parse_optimization_status, parse_thermodynamic_conditions, 
+    parse_qrrho_parameters, parse_imaginary_frequencies, parse_zero_point_energy, 
+    parse_smd_detail_block, parse_smd_cds_extended_print, parse_eda_polarized_energy, 
     parse_eda_convergence_energy, parse_bsse_energy
 )
 from PyA3EDA.core.parsers.output_xyz_parser import parse_qchem_output_xyz
@@ -205,6 +205,9 @@ def extract_opt_thermodynamic_data(content: str, metadata: Dict[str, Any]) -> Di
     
     if entropy_data := parse_entropy(content):
         data.update(entropy_data)
+    
+    if s_trans_data := parse_translational_entropy(content):
+        data.update(s_trans_data)
     
     if thermo_data := parse_thermodynamic_conditions(content):
         data.update(thermo_data)
@@ -457,6 +460,9 @@ def apply_thermodynamic_corrections(data: Dict[str, Any], opt_content: str) -> N
     if entropy_data := parse_entropy(opt_content):
         data.update(entropy_data)
     
+    if s_trans_data := parse_translational_entropy(opt_content):
+        data.update(s_trans_data)
+    
     if thermo_data := parse_thermodynamic_conditions(opt_content):
         data.update(thermo_data)
     
@@ -490,16 +496,24 @@ def calculate_enthalpy_and_gibbs(data: Dict[str, Any], mode: str) -> None:
         logging.debug(f"{mode.upper()}: Skipping G calculation - missing keys: {missing_keys}")
         return
     
-    g_gas = data["H (kcal/mol)"] - data["Temperature (K)"] * data["Total Entropy Corr. (kcal/mol.K)"]
+    temperature = data["Temperature (K)"]
+    g_gas = data["H (kcal/mol)"] - temperature * data["Total Entropy Corr. (kcal/mol.K)"]
     data["G(gas) (kcal/mol)"] = g_gas
     data["G (kcal/mol)"] = g_gas
-    logging.debug(f"{mode.upper()}: Calculated G(gas) = {g_gas:.6f} kcal/mol at T={data['Temperature (K)']} K")
+    logging.debug(f"{mode.upper()}: Calculated G(gas) = {g_gas:.6f} kcal/mol at T={temperature} K")
+    
+    # Calculate G_no_trans = G + T*S_trans (G without translational entropy contribution)
+    # This is used for separating translational entropy in EDA analysis
+    if "S_trans (kcal/mol.K)" in data:
+        s_trans = data["S_trans (kcal/mol.K)"]
+        g_no_trans = g_gas + temperature * s_trans  # Adding back T*S_trans
+        data["G_no_trans (kcal/mol)"] = g_no_trans
+        logging.debug(f"{mode.upper()}: Calculated G_no_trans = {g_no_trans:.6f} kcal/mol")
     
     # Apply solvent correction if any solvent model is used (not gas phase)
     solvent_key = f"{'SP_' if mode == 'sp' else ''}Solvent"
     solvent = data.get(solvent_key, "gas").lower()
     if solvent != "gas" and all(k in data for k in ["Temperature (K)", "Pressure (atm)"]):
-        temperature = data["Temperature (K)"]
         pressure = data["Pressure (atm)"]
         correction = calculate_standard_state_correction(temperature, pressure)
         g_solvent = g_gas + correction
@@ -507,8 +521,14 @@ def calculate_enthalpy_and_gibbs(data: Dict[str, Any], mode: str) -> None:
         data["Standard State Corr. (kcal/mol)"] = correction
         data["G (kcal/mol)"] = g_solvent
         logging.debug(f"{mode.upper()}: Applied standard state correction for {solvent}: "
-                     f"dG = {correction:.6f} kcal/mol (T={temperature} K, P={pressure} atm)")
-        logging.debug(f"{mode.upper()}: G(1M) = {g_solvent:.6f} kcal/mol")
+                      f"dG = {correction:.6f} kcal/mol (T={temperature} K, P={pressure} atm)")
+        logging.debug(f"{mode.upper()}: G(gas) = {g_gas:.6f} kcal/mol,\n G(1M) = {g_solvent:.6f} kcal/mol")
+        
+        # Also apply correction to G_no_trans
+        if "G_no_trans (kcal/mol)" in data:
+            data["G_no_trans (kcal/mol)"] = data["G_no_trans (kcal/mol)"] #+ correction
+            # logging.debug(f"{mode.upper()}: Applied standard state correction to G_no_trans for {solvent}")
+            logging.debug(f"{mode.upper()}: G_no_trans = {data['G_no_trans (kcal/mol)']:.6f} kcal/mol")
     elif solvent != "gas":
         logging.debug(f"{mode.upper()}: Skipping standard state correction for {solvent} - missing temperature or pressure")
     else:

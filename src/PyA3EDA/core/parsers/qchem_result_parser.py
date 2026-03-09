@@ -25,6 +25,7 @@ PATTERNS = {
     "total_enthalpy_fallback": re.compile(r"Total Enthalpy:\s+([-+]?\d+\.\d+)\s+([A-Za-z][A-Za-z0-9./\-]*)", re.MULTILINE),
     "qrrho_total_entropy": re.compile(r"QRRHO-Total Entropy:\s+([-+]?\d+\.\d+)\s+([A-Za-z][A-Za-z0-9./\-]*)", re.MULTILINE),
     "total_entropy_fallback": re.compile(r"Total Entropy:\s+([-+]?\d+\.\d+)\s+([A-Za-z][A-Za-z0-9./\-]*)", re.MULTILINE),
+    "translational_entropy": re.compile(r"Translational Entropy:\s+([-+]?\d+\.\d+)\s+([A-Za-z][A-Za-z0-9./\-]*)", re.MULTILINE),
     # SMD CDS energy patterns - capture values with units from detailed block
     "smd_g_enp": re.compile(r"\(3\)\s+G-ENP\(liq\) elect-nuc-pol free energy of system\s+([-+]?\d+\.\d+)\s+(a\.u\.)", re.MULTILINE),
     "smd_g_s": re.compile(r"\(6\)\s+G-S\(liq\) free energy of system\s+([-+]?\d+\.\d+)\s+(a\.u\.)", re.MULTILINE),
@@ -175,6 +176,18 @@ def parse_entropy(content: str) -> Optional[Dict[str, Any]]:
         return {
             "Total Entropy Corr. (kcal/mol.K)": convert_unit(entropy_value, entropy_unit, "kcal/mol.K"),
             "entropy_fallback_used": fallback_used
+        }
+    return None
+
+
+def parse_translational_entropy(content: str) -> Optional[Dict[str, Any]]:
+    """Parse translational entropy from Q-Chem output content."""
+    result, _ = extract_with_pattern(content, PATTERNS["translational_entropy"])
+    
+    if result is not None:
+        entropy_value, entropy_unit = result
+        return {
+            "S_trans (kcal/mol.K)": convert_unit(entropy_value, entropy_unit, "kcal/mol.K")
         }
     return None
 
