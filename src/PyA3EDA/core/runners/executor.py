@@ -8,16 +8,16 @@ import subprocess
 import time
 from pathlib import Path
 
-def execute_qchem(input_file: Path, cores: int = 64, time_limit: str = "10-00:00:00", 
+def execute_qchem(input_file: Path, cores: int = 32, time_limit: str = "7-00:00:00", 
                  node: str = "c-06-10,c-06-11,c-06-12") -> bool:
     """Execute a Q-Chem calculation using qqchem submission script."""
     logging.info(f'Executing qqchem for {input_file}')
     try:
         subprocess.run(
             # ['qqchem', '-c', str(cores), '-t', time_limit, '-M', '8000', '-m', '256000', input_file.name],
-            ['qqchem', '-c', str(cores), '-t', time_limit, input_file.name],
+            # ['qqchem', '-c', str(cores), '-t', time_limit, input_file.name],
             # ['qqchem', '-c', str(cores), '-t', time_limit, '-M', '8000', '-m', '256000', '-v', 'modqchem', '--qcsetup', '/groups/sterling/software-tools/qchem/qcsetup6211', input_file.name],
-            # ['qqchem', '-c', str(cores), '-t', time_limit, '-v', 'modqchem', '--qcsetup', '/groups/sterling/software-tools/qchem/qcsetup6211', input_file.name],
+            ['qqchem', '-c', str(cores), '-t', time_limit, '-v', 'modqchem', '--qcsetup', '/groups/sterling/software-tools/qchem/qcsetup6211', input_file.name],
             # '-x', node,
             check=True,
             cwd=input_file.parent
