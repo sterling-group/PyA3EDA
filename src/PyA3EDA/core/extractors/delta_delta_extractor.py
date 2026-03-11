@@ -51,7 +51,8 @@ def _convert_to_energy_dict(profile_data: List[Dict[str, Any]], energy_type: str
     return energy_dict
 
 
-def _calculate_barrier(energy_dict: Dict[str, float], calc_type: Optional[str] = None) -> Optional[float]:
+def _calculate_barrier(energy_dict: Dict[str, float], calc_type: Optional[str] = None,
+                       baseline_choices: Dict[str, str] = None) -> Optional[float]:
     """
     Calculate barrier by subtracting min(Reactants, preTS) energy from TS energy.
     
@@ -61,9 +62,12 @@ def _calculate_barrier(energy_dict: Dict[str, float], calc_type: Optional[str] =
     Args:
         energy_dict: Dictionary mapping stage keys to energy values
         calc_type: None for uncatalyzed, or "frz_cat", "pol_cat", "full_cat"
+        baseline_choices: Optional dict mapping calc_type to the baseline key chosen
+            by another energy surface (e.g. G). When provided, the same baseline stage
+            is used instead of re-evaluating min() on this surface's values.
         
     Returns:
-        Barrier height in kcal/mol, or None if required keys are missing
+        Tuple-like: barrier height in kcal/mol, or None if required keys are missing.
     """
     # Find reactant energy
     reactant_energy = None
@@ -88,12 +92,20 @@ def _calculate_barrier(energy_dict: Dict[str, float], calc_type: Optional[str] =
         
         if ts_key not in energy_dict:
             return None
-            
-        # Use preTS if available and lower than Reactants
-        if preTSkey in energy_dict and energy_dict[preTSkey] < reactant_energy:
-            baseline = energy_dict[preTSkey]
+
+        # If baseline_choices provided, use the same baseline stage as the reference surface
+        if baseline_choices and calc_type in baseline_choices:
+            chosen_key = baseline_choices[calc_type]
+            if chosen_key in energy_dict:
+                baseline = energy_dict[chosen_key]
+            else:
+                baseline = reactant_energy
         else:
-            baseline = reactant_energy
+            # Default: pick min(Reactants, preTS) on this surface
+            if preTSkey in energy_dict and energy_dict[preTSkey] < reactant_energy:
+                baseline = energy_dict[preTSkey]
+            else:
+                baseline = reactant_energy
             
         return energy_dict[ts_key] - baseline
 
@@ -160,10 +172,39 @@ def _calculate_delta_delta_contributions(
     return contributions
 
 
+def _determine_baseline_choices(energy_dict: Dict[str, float]) -> Dict[str, str]:
+    """
+    Determine which baseline stage (Reactants vs preTS) is chosen for each calc_type.
+    
+    Returns:
+        Dict mapping calc_type to the key of the chosen baseline stage.
+    """
+    reactant_energy = None
+    reactant_key = None
+    for key in ["Reactants", "Reactant"]:
+        if key in energy_dict:
+            reactant_energy = energy_dict[key]
+            reactant_key = key
+            break
+
+    if reactant_energy is None:
+        return {}
+
+    choices = {}
+    for calc_type in ["frz_cat", "pol_cat", "full_cat"]:
+        preTSkey = f"preTS_{calc_type}"
+        if preTSkey in energy_dict and energy_dict[preTSkey] < reactant_energy:
+            choices[calc_type] = preTSkey
+        else:
+            choices[calc_type] = reactant_key
+    return choices
+
+
 def _calculate_barriers_and_contributions(
     profile_data: List[Dict[str, Any]], 
     energy_type: str, 
-    unit: str
+    unit: str,
+    baseline_choices: Dict[str, str] = None
 ) -> Optional[Dict[str, Any]]:
     """
     Calculate barriers and contributions for a single energy type.
@@ -172,32 +213,40 @@ def _calculate_barriers_and_contributions(
         profile_data: Profile data list with stage energies
         energy_type: "E", "G", or "G_no_trans"
         unit: Energy unit string
+        baseline_choices: Optional dict mapping calc_type to baseline key.
+            Used by G_no_trans to reuse G's baseline choices.
         
     Returns:
-        Dict with barriers and contributions, or None if insufficient data
+        Dict with barriers, contributions, and baseline_choices
     """
     energy_dict = _convert_to_energy_dict(profile_data, energy_type, unit)
     if not energy_dict:
         return None
-        
+
+    # Determine baseline choices on this surface (used for E/G)
+    # or use provided ones (for G_no_trans reusing G's choices)
+    if baseline_choices is None:
+        baseline_choices = _determine_baseline_choices(energy_dict)
+
     barriers = {
-        "uncat": _calculate_barrier(energy_dict, None),
-        "frz": _calculate_barrier(energy_dict, "frz_cat"),
-        "pol": _calculate_barrier(energy_dict, "pol_cat"),
-        "full": _calculate_barrier(energy_dict, "full_cat")
+        "uncat": _calculate_barrier(energy_dict, None, baseline_choices),
+        "frz": _calculate_barrier(energy_dict, "frz_cat", baseline_choices),
+        "pol": _calculate_barrier(energy_dict, "pol_cat", baseline_choices),
+        "full": _calculate_barrier(energy_dict, "full_cat", baseline_choices)
     }
     
     contributions = _calculate_delta_delta_contributions(barriers)
     if not contributions:
         return None
         
-    return {"barriers": barriers, "contributions": contributions}
+    return {"barriers": barriers, "contributions": contributions, "baseline_choices": baseline_choices}
 
 
 def extract_catalyst_delta_delta(
     catalyst_profiles: Dict[str, Dict[str, List[Dict[str, Any]]]],
     energy_type: str,
-    catalyst_order: List[str]
+    catalyst_order: List[str],
+    g_baseline_choices: Dict[str, Dict[str, str]] = None
 ) -> Dict[str, Dict[str, Any]]:
     """
     Extract delta-delta contributions for all catalysts from profile data.
@@ -206,6 +255,8 @@ def extract_catalyst_delta_delta(
         catalyst_profiles: Dict mapping catalyst names to profile data (with "E" and "G" keys)
         energy_type: "E", "G", or "G_no_trans"
         catalyst_order: List of catalyst names in desired order
+        g_baseline_choices: For G_no_trans only: dict mapping catalyst name to baseline
+            choices determined by G, so G_no_trans uses the same reference stages.
         
     Returns:
         Dict mapping catalyst names to their data containing:
@@ -227,7 +278,12 @@ def extract_catalyst_delta_delta(
             logging.debug(f"No {energy_type} profile data for catalyst {catalyst}")
             continue
         
-        result = _calculate_barriers_and_contributions(profile_data, energy_type, unit)
+        # For G_no_trans, reuse baseline choices from G so both surfaces use the same reference
+        baseline = None
+        if energy_type == "G_no_trans" and g_baseline_choices and catalyst in g_baseline_choices:
+            baseline = g_baseline_choices[catalyst]
+        
+        result = _calculate_barriers_and_contributions(profile_data, energy_type, unit, baseline)
         if result:
             result["unit"] = unit
             results[catalyst] = result
@@ -332,8 +388,13 @@ def extract_all_delta_delta(
             if g_data:
                 data_delta_delta["G"] = g_data
             
-            # Extract G_no_trans contributions
-            g_no_trans_data = extract_catalyst_delta_delta(catalyst_profiles, "G_no_trans", catalyst_order)
+            # Extract G_no_trans contributions using G's baseline choices
+            # so both surfaces measure barriers from the same reference stage
+            g_baselines = {cat: cat_data["baseline_choices"] 
+                          for cat, cat_data in g_data.items() 
+                          if "baseline_choices" in cat_data} if g_data else {}
+            g_no_trans_data = extract_catalyst_delta_delta(
+                catalyst_profiles, "G_no_trans", catalyst_order, g_baselines)
             if g_no_trans_data:
                 data_delta_delta["G_no_trans"] = g_no_trans_data
                 
