@@ -176,6 +176,11 @@ def _determine_baseline_choices(energy_dict: Dict[str, float]) -> Dict[str, str]
     """
     Determine which baseline stage (Reactants vs preTS) is chosen for each calc_type.
     
+    The decision is driven by the full_cat preTS: if preTS_full_cat is lower than
+    Reactants, then ALL calc_types (frz, pol, full) use their respective preTS as
+    baseline. This keeps the decomposition chain consistent so that the delta-delta
+    subtractions (frz-uncat, pol-frz, full-pol) all use the same baseline type.
+    
     Returns:
         Dict mapping calc_type to the key of the chosen baseline stage.
     """
@@ -190,10 +195,14 @@ def _determine_baseline_choices(energy_dict: Dict[str, float]) -> Dict[str, str]
     if reactant_energy is None:
         return {}
 
+    # Decision driven by full_cat preTS
+    full_preTSkey = "preTS_full_cat"
+    use_preTS = (full_preTSkey in energy_dict and energy_dict[full_preTSkey] < reactant_energy)
+
     choices = {}
     for calc_type in ["frz_cat", "pol_cat", "full_cat"]:
         preTSkey = f"preTS_{calc_type}"
-        if preTSkey in energy_dict and energy_dict[preTSkey] < reactant_energy:
+        if use_preTS and preTSkey in energy_dict:
             choices[calc_type] = preTSkey
         else:
             choices[calc_type] = reactant_key
