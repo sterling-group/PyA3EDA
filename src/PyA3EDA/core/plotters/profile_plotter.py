@@ -102,57 +102,30 @@ def _define_profiles(energy_dict: Dict[str, float], energy_type: str) -> List[Di
     if product_key not in energy_dict:
         raise KeyError(f"Product stage not found. Available keys: {list(energy_dict.keys())}")
     
-    # Define profile stages.
-    # For G_trans, keep FRZ/POL/FULL pathways unchanged and add trans as
-    # an extra pre-TS bar during plotting.
-    if energy_type == "G_trans":
-        profile_frz = [
-            {"label": "reactant",      "key": reactant_key},
-            {"label": "pre-TS",        "key": "preTS_frz_cat"},
-            {"label": "TS",            "key": "TS_frz_cat"},
-            {"label": "post-TS",       "key": "postTS_frz_cat"},
-            {"label": "product",       "key": product_key},
-        ]
-
-        profile_pol = [
-            {"label": "reactant",      "key": reactant_key},
-            {"label": "pre-TS",        "key": "preTS_pol_cat"},
-            {"label": "TS",            "key": "TS_pol_cat"},
-            {"label": "post-TS",       "key": "postTS_pol_cat"},
-            {"label": "product",       "key": product_key},
-        ]
-
-        profile_full = [
-            {"label": "reactant",      "key": reactant_key},
-            {"label": "pre-TS",        "key": "preTS_full_cat"},
-            {"label": "TS",            "key": "TS_full_cat"},
-            {"label": "post-TS",       "key": "postTS_full_cat"},
-            {"label": "product",       "key": product_key},
-        ]
-    else:
-        profile_frz = [
-            {"label": "reactant", "key": reactant_key},
-            {"label": "pre-TS",   "key": "preTS_frz_cat"},
-            {"label": "TS",       "key": "TS_frz_cat"},
-            {"label": "post-TS",  "key": "postTS_frz_cat"},
-            {"label": "product",  "key": product_key},
-        ]
-        
-        profile_pol = [
-            {"label": "reactant", "key": reactant_key},
-            {"label": "pre-TS",   "key": "preTS_pol_cat"},
-            {"label": "TS",       "key": "TS_pol_cat"},
-            {"label": "post-TS",  "key": "postTS_pol_cat"},
-            {"label": "product",  "key": product_key},
-        ]
-        
-        profile_full = [
-            {"label": "reactant", "key": reactant_key},
-            {"label": "pre-TS",   "key": "preTS_full_cat"},
-            {"label": "TS",       "key": "TS_full_cat"},
-            {"label": "post-TS",  "key": "postTS_full_cat"},
-            {"label": "product",  "key": product_key},
-        ]
+    # Define profile stages (same structure for E/G/G_trans base plot).
+    profile_frz = [
+        {"label": "reactant", "key": reactant_key},
+        {"label": "pre-TS",   "key": "preTS_frz_cat"},
+        {"label": "TS",       "key": "TS_frz_cat"},
+        {"label": "post-TS",  "key": "postTS_frz_cat"},
+        {"label": "product",  "key": product_key},
+    ]
+    
+    profile_pol = [
+        {"label": "reactant", "key": reactant_key},
+        {"label": "pre-TS",   "key": "preTS_pol_cat"},
+        {"label": "TS",       "key": "TS_pol_cat"},
+        {"label": "post-TS",  "key": "postTS_pol_cat"},
+        {"label": "product",  "key": product_key},
+    ]
+    
+    profile_full = [
+        {"label": "reactant", "key": reactant_key},
+        {"label": "pre-TS",   "key": "preTS_full_cat"},
+        {"label": "TS",       "key": "TS_full_cat"},
+        {"label": "post-TS",  "key": "postTS_full_cat"},
+        {"label": "product",  "key": product_key},
+    ]
     
     profile_uncat = [
         {"label": "reactant", "key": reactant_key},
@@ -266,7 +239,14 @@ def _plot_single_profile(ax, profile: List[Dict[str, str]], energy_dict: Dict[st
                 linestyle="--", color=color, lw=dash_linewidth, solid_capstyle='round')
 
 
-def _plot_energy_profiles(energy_dict: Dict[str, float], catalyst_name: str, energy_type: str, output_path: Path, unit: str = "kcal/mol"):
+def _plot_energy_profiles(
+    energy_dict: Dict[str, float],
+    catalyst_name: str,
+    energy_type: str,
+    output_path: Path,
+    unit: str = "kcal/mol",
+    trans_prets_value: Optional[float] = None,
+):
     """
     Generate and save a complete energy profile plot.
     
@@ -291,19 +271,15 @@ def _plot_energy_profiles(energy_dict: Dict[str, float], catalyst_name: str, ene
         ax.plot([], [], color=prof["color"], lw=4, label=prof["name"])
 
     # For G_trans, add a dedicated trans bar at pre-TS without altering FRZ/POL/FULL traces.
-    if energy_type == "G_trans":
-        trans_prets_key = "preTS_trans_cat"
-        if trans_prets_key in energy_dict:
-            x_start = 2.0
-            bar_width = 0.5
-            y_val = energy_dict[trans_prets_key]
-            color = "darkorange"
-            ax.plot([x_start, x_start + bar_width], [y_val, y_val], lw=4, color=color, solid_capstyle='round')
-            ax.text(x_start + bar_width / 2, y_val + 0.1, f"{y_val:.1f}",
-                    color=color, weight="normal", ha="center", va="bottom", fontsize=24)
-            ax.plot([], [], color=color, lw=4, label="TRANS")
-        else:
-            logging.warning("G_trans plotting: missing preTS trans calc-type stage key '%s'", trans_prets_key)
+    if energy_type == "G_trans" and trans_prets_value is not None:
+        x_start = 2.0
+        bar_width = 0.5
+        y_val = trans_prets_value
+        color = "darkorange"
+        ax.plot([x_start, x_start + bar_width], [y_val, y_val], lw=4, color=color, solid_capstyle='round')
+        ax.text(x_start + bar_width / 2, y_val + 0.1, f"{y_val:.1f}",
+                color=color, weight="normal", ha="center", va="bottom", fontsize=24)
+        ax.plot([], [], color=color, lw=4, label="TRANS")
 
     # Configure axes
     ax.tick_params(bottom=False, left=False)
@@ -397,25 +373,46 @@ def plot_all_profiles(processed_data: Dict[str, Dict[str, Any]], base_dir: Path)
                     
                     # Process each energy type (E, G, and translational G)
                     for energy_type in ["E", "G", "G_trans"]:
-                        profile_data = catalyst_data.get(energy_type, [])
+                        # G_trans plot uses normal G profiles + additional trans preTS bar.
+                        profile_key = "G" if energy_type == "G_trans" else energy_type
+                        profile_data = catalyst_data.get(profile_key, [])
                         if not profile_data:
                             continue
                         
                         try:
                             # Convert to energy dictionary format
-                            energy_dict = _convert_to_energy_dict(profile_data, energy_type, unit)
+                            energy_dict = _convert_to_energy_dict(profile_data, profile_key, unit)
                             if not energy_dict:
                                 continue
                             
                             # Normalize energies
                             normalized_dict = _normalize_energies(energy_dict)
+
+                            trans_prets_value = None
+                            if energy_type == "G_trans":
+                                trans_profile_data = catalyst_data.get("G_trans", [])
+                                trans_energy_dict = _convert_to_energy_dict(trans_profile_data, "G_trans", unit)
+                                if "preTS_trans_cat" in trans_energy_dict:
+                                    trans_prets_value = trans_energy_dict["preTS_trans_cat"]
+                                else:
+                                    logging.warning(
+                                        "G_trans plotting: missing preTS trans calc-type stage key '%s' for %s in %s",
+                                        "preTS_trans_cat", catalyst, combo_name
+                                    )
                             
                             # Generate plot filename (matching CSV naming convention)
                             plot_filename = f"{calc_mode}_profile_{energy_type}_{combo_name}_{catalyst}.svg"
                             plot_path = plots_dir / plot_filename
                             
                             # Generate and save plot
-                            _plot_energy_profiles(normalized_dict, catalyst, energy_type, plot_path, unit)
+                            _plot_energy_profiles(
+                                normalized_dict,
+                                catalyst,
+                                energy_type,
+                                plot_path,
+                                unit,
+                                trans_prets_value,
+                            )
                             total_plots += 1
                             
                         except Exception as e:
