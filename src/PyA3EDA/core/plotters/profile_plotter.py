@@ -245,7 +245,7 @@ def _plot_energy_profiles(
     energy_type: str,
     output_path: Path,
     unit: str = "kcal/mol",
-    trans_prets_value: Optional[float] = None,
+    trans_overlay_values: Optional[Dict[str, float]] = None,
 ):
     """
     Generate and save a complete energy profile plot.
@@ -270,15 +270,24 @@ def _plot_energy_profiles(
         _plot_single_profile(ax, prof["profile"], energy_dict, prof["color"], prof["annotate_rp"])
         ax.plot([], [], color=prof["color"], lw=4, label=prof["name"])
 
-    # For G_trans, add a dedicated trans bar at pre-TS without altering FRZ/POL/FULL traces.
-    if energy_type == "G_trans" and trans_prets_value is not None:
-        x_start = 2.0
+    # For G_trans, add dedicated translational bars without altering FRZ/POL/FULL traces.
+    if energy_type == "G_trans" and trans_overlay_values:
         bar_width = 0.5
-        y_val = trans_prets_value
         color = "darkorange"
-        ax.plot([x_start, x_start + bar_width], [y_val, y_val], lw=4, color=color, solid_capstyle='round')
-        ax.text(x_start + bar_width / 2, y_val + 0.1, f"{y_val:.1f}",
-                color=color, weight="normal", ha="center", va="bottom", fontsize=24)
+        x_positions = {
+            "preTS": 2.0,
+            "TS": 4.0,
+            "postTS": 6.0,
+            "product": 8.0,
+        }
+        for stage_name in ["preTS", "TS", "postTS", "product"]:
+            if stage_name not in trans_overlay_values:
+                continue
+            x_start = x_positions[stage_name]
+            y_val = trans_overlay_values[stage_name]
+            ax.plot([x_start, x_start + bar_width], [y_val, y_val], lw=4, color=color, solid_capstyle='round')
+            ax.text(x_start + bar_width / 2, y_val + 0.1, f"{y_val:.1f}",
+                    color=color, weight="normal", ha="center", va="bottom", fontsize=24)
         ax.plot([], [], color=color, lw=4, label="TRANS")
 
     # Configure axes
@@ -389,16 +398,32 @@ def plot_all_profiles(processed_data: Dict[str, Dict[str, Any]], base_dir: Path)
                             # Normalize energies
                             normalized_dict = _normalize_energies(energy_dict)
 
-                            trans_prets_value = None
+                            trans_overlay_values = None
                             if energy_type == "G_trans":
                                 trans_profile_data = catalyst_data.get("G_trans", [])
                                 trans_energy_dict = _convert_to_energy_dict(trans_profile_data, "G_trans", unit)
-                                if "preTS_trans_cat" in trans_energy_dict:
-                                    trans_prets_value = trans_energy_dict["preTS_trans_cat"]
-                                else:
+                                if trans_energy_dict:
+                                    normalized_trans_energy = _normalize_energies(trans_energy_dict)
+                                    trans_overlay_values = {}
+
+                                    if "preTS_trans_cat" in normalized_trans_energy:
+                                        trans_overlay_values["preTS"] = normalized_trans_energy["preTS_trans_cat"]
+                                    if "TS_full_cat" in normalized_trans_energy:
+                                        trans_overlay_values["TS"] = normalized_trans_energy["TS_full_cat"]
+                                    if "postTS_full_cat" in normalized_trans_energy:
+                                        trans_overlay_values["postTS"] = normalized_trans_energy["postTS_full_cat"]
+
+                                    product_key = "Products" if "Products" in normalized_trans_energy else "Product"
+                                    if product_key in normalized_trans_energy:
+                                        trans_overlay_values["product"] = normalized_trans_energy[product_key]
+
+                                    if not trans_overlay_values:
+                                        trans_overlay_values = None
+
+                                if not trans_overlay_values:
                                     logging.warning(
-                                        "G_trans plotting: missing preTS trans calc-type stage key '%s' for %s in %s",
-                                        "preTS_trans_cat", catalyst, combo_name
+                                        "G_trans plotting: missing translational overlay stages for %s in %s",
+                                        catalyst, combo_name
                                     )
                             
                             # Generate plot filename (matching CSV naming convention)
@@ -412,7 +437,7 @@ def plot_all_profiles(processed_data: Dict[str, Dict[str, Any]], base_dir: Path)
                                 energy_type,
                                 plot_path,
                                 unit,
-                                trans_prets_value,
+                                trans_overlay_values,
                             )
                             total_plots += 1
                             
