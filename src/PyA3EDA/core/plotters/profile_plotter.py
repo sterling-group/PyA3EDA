@@ -103,21 +103,12 @@ def _define_profiles(energy_dict: Dict[str, float], energy_type: str) -> List[Di
         raise KeyError(f"Product stage not found. Available keys: {list(energy_dict.keys())}")
     
     # Define profile stages.
-    # For G_trans, keep the same 5-stage reaction path and use trans as
-    # a calc-type at the pre-TS stage.
+    # For G_trans, keep FRZ/POL/FULL pathways unchanged and add trans as
+    # an extra pre-TS bar during plotting.
     if energy_type == "G_trans":
-        trans_prets_key = "preTS_trans_cat"
-        if trans_prets_key not in energy_dict:
-            logging.warning(
-                "G_trans plotting: missing preTS trans calc-type stage key '%s'. "
-                "Falling back to preTS_full_cat for plotting continuity.",
-                trans_prets_key,
-            )
-            trans_prets_key = "preTS_full_cat"
-
         profile_frz = [
             {"label": "reactant",      "key": reactant_key},
-            {"label": "pre-TS",        "key": trans_prets_key},
+            {"label": "pre-TS",        "key": "preTS_frz_cat"},
             {"label": "TS",            "key": "TS_frz_cat"},
             {"label": "post-TS",       "key": "postTS_frz_cat"},
             {"label": "product",       "key": product_key},
@@ -125,7 +116,7 @@ def _define_profiles(energy_dict: Dict[str, float], energy_type: str) -> List[Di
 
         profile_pol = [
             {"label": "reactant",      "key": reactant_key},
-            {"label": "pre-TS",        "key": trans_prets_key},
+            {"label": "pre-TS",        "key": "preTS_pol_cat"},
             {"label": "TS",            "key": "TS_pol_cat"},
             {"label": "post-TS",       "key": "postTS_pol_cat"},
             {"label": "product",       "key": product_key},
@@ -133,7 +124,7 @@ def _define_profiles(energy_dict: Dict[str, float], energy_type: str) -> List[Di
 
         profile_full = [
             {"label": "reactant",      "key": reactant_key},
-            {"label": "pre-TS",        "key": trans_prets_key},
+            {"label": "pre-TS",        "key": "preTS_full_cat"},
             {"label": "TS",            "key": "TS_full_cat"},
             {"label": "post-TS",       "key": "postTS_full_cat"},
             {"label": "product",       "key": product_key},
@@ -298,6 +289,21 @@ def _plot_energy_profiles(energy_dict: Dict[str, float], catalyst_name: str, ene
     for prof in profiles:
         _plot_single_profile(ax, prof["profile"], energy_dict, prof["color"], prof["annotate_rp"])
         ax.plot([], [], color=prof["color"], lw=4, label=prof["name"])
+
+    # For G_trans, add a dedicated trans bar at pre-TS without altering FRZ/POL/FULL traces.
+    if energy_type == "G_trans":
+        trans_prets_key = "preTS_trans_cat"
+        if trans_prets_key in energy_dict:
+            x_start = 2.0
+            bar_width = 0.5
+            y_val = energy_dict[trans_prets_key]
+            color = "darkorange"
+            ax.plot([x_start, x_start + bar_width], [y_val, y_val], lw=4, color=color, solid_capstyle='round')
+            ax.text(x_start + bar_width / 2, y_val + 0.1, f"{y_val:.1f}",
+                    color=color, weight="normal", ha="center", va="bottom", fontsize=24)
+            ax.plot([], [], color=color, lw=4, label="TRANS")
+        else:
+            logging.warning("G_trans plotting: missing preTS trans calc-type stage key '%s'", trans_prets_key)
 
     # Configure axes
     ax.tick_params(bottom=False, left=False)
