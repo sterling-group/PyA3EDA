@@ -406,8 +406,10 @@ def plot_all_profiles(processed_data: Dict[str, Dict[str, Any]], base_dir: Path)
                                     normalized_trans_energy = _normalize_energies(trans_energy_dict)
                                     trans_overlay_values = {}
 
-                                    if "preTS_trans_cat" in normalized_trans_energy:
-                                        trans_overlay_values["preTS"] = normalized_trans_energy["preTS_trans_cat"]
+                                    # Build TRANS overlay from a single consistent family (full_cat + product).
+                                    # This avoids ambiguity when preTS_trans_cat may come from legacy data.
+                                    if "preTS_full_cat" in normalized_trans_energy:
+                                        trans_overlay_values["preTS"] = normalized_trans_energy["preTS_full_cat"]
                                     if "TS_full_cat" in normalized_trans_energy:
                                         trans_overlay_values["TS"] = normalized_trans_energy["TS_full_cat"]
                                     if "postTS_full_cat" in normalized_trans_energy:
