@@ -37,7 +37,7 @@ G_DISPLAY_LABELS = ["FRZ", "POL", "CT", "FULL"]
 # Contribution types for G_notrans-style plot under the new transG model:
 # one trans bar, then FRZ/POL/CT/FULL from adjusted G contributions.
 G_NOTRANS_CONTRIBUTION_TYPES = ["trans", "frz", "pol", "ct", "complete"]
-G_NOTRANS_DISPLAY_LABELS = ["ΔG_trans", "FRZ", "POL", "CT", "FULL"]
+G_NOTRANS_DISPLAY_LABELS = ["translation", "FRZ", "POL", "CT", "FULL"]
 
 
 def _lighten_color(color: str, amount: float = 0.0) -> Tuple[float, float, float]:
