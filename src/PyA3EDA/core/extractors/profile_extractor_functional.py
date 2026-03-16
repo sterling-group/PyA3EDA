@@ -258,17 +258,13 @@ def _generate_catalyst_profile(catalyst: str, raw_data: List[Dict[str, Any]], co
     profile.extend(_generate_stages("postTS", catalyst, raw_data, components, energy_lookup))
     profile.extend(_generate_stages("products", catalyst, raw_data, components, energy_lookup))
 
-    # Add derived trans-reference stage at preTS based on full preTS and reactants.
-    # This is used for the translational delta-delta formulation.
-    react_stage = next(
-        (s for s in profile if s.get("Stage") == "Reactants" and not s.get("Calc_Type") and s.get("G_trans (kcal/mol)") is not None),
-        None,
-    )
+    # Add derived trans-reference stage at preTS as an absolute stage value.
+    # Keeping this absolute makes TRANS stage handling uniform in downstream normalization.
     prets_full_stage = next(
         (s for s in profile if s.get("Stage") == "preTS" and s.get("Calc_Type") == "full_cat" and s.get("G_trans (kcal/mol)") is not None),
         None,
     )
-    if react_stage and prets_full_stage:
+    if prets_full_stage:
         profile.append({
             "Stage": "preTS",
             "Calc_Type": "trans_cat",
@@ -276,7 +272,7 @@ def _generate_catalyst_profile(catalyst: str, raw_data: List[Dict[str, Any]], co
             "Species": prets_full_stage.get("Species", ""),
             "E (kcal/mol)": None,
             "G (kcal/mol)": None,
-            "G_trans (kcal/mol)": prets_full_stage["G_trans (kcal/mol)"] - react_stage["G_trans (kcal/mol)"],
+            "G_trans (kcal/mol)": prets_full_stage["G_trans (kcal/mol)"],
             "Source": "Derived",
         })
     

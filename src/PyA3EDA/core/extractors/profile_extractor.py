@@ -324,6 +324,24 @@ class ProfileExtractor:
         profile.extend(self._generate_stages("ts_nocat", catalyst))
         profile.extend(self._generate_stages("postTS", catalyst))
         profile.extend(self._generate_stages("products", catalyst))
+
+        # Add derived trans-reference stage at preTS as an absolute stage value.
+        # Keeping this absolute makes TRANS stage handling uniform in downstream normalization.
+        prets_full_stage = next(
+            (s for s in profile if s.get("Stage") == "preTS" and s.get("Calc_Type") == "full_cat" and s.get("G_trans (kcal/mol)") is not None),
+            None,
+        )
+        if prets_full_stage:
+            profile.append({
+                "Stage": "preTS",
+                "Calc_Type": "trans_cat",
+                # Keep species aligned with full_cat stage so filtering can retain this row.
+                "Species": prets_full_stage.get("Species", ""),
+                "E (kcal/mol)": None,
+                "G (kcal/mol)": None,
+                "G_trans (kcal/mol)": prets_full_stage["G_trans (kcal/mol)"],
+                "Source": "Derived",
+            })
         
         return profile
 
@@ -354,7 +372,7 @@ class ProfileExtractor:
                     min_species = min_full_cat.get("Species", "")
                     
                     filtered.append(min_full_cat)
-                    for calc_type in ["pol_cat", "frz_cat"]:
+                    for calc_type in ["pol_cat", "frz_cat", "trans_cat"]:
                         matching_stages = [
                             s for s in calc_type_stages 
                             if s.get("Calc_Type") == calc_type and s.get("Species") == min_species
