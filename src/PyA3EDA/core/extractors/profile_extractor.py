@@ -79,14 +79,14 @@ class ProfileExtractor:
             # Get energy values
             e_val = data.get("E (kcal/mol)") or data.get("SP_E (kcal/mol)")
             g_val = data.get("G (kcal/mol)")
-            g_no_trans_val = data.get("G_no_trans (kcal/mol)")
+            g_trans_val = data.get("G_trans (kcal/mol)")
             
             if e_val is not None and g_val is not None:
                 calc_type = data.get("Calc_Type", "")
                 
                 entry = {"E": e_val, "G": g_val}
-                if g_no_trans_val is not None:
-                    entry["G_no_trans"] = g_no_trans_val
+                if g_trans_val is not None:
+                    entry["G_trans"] = g_trans_val
                 
                 # Create calc_type-specific key if calc_type exists
                 if calc_type and calc_type != "unknown":
@@ -138,7 +138,7 @@ class ProfileExtractor:
                 - 'Species': Combined species string (space + separated)
                 - 'E (kcal/mol)': Total electronic energy
                 - 'G (kcal/mol)': Total Gibbs free energy
-                - 'G_no_trans (kcal/mol)': Total G without translational entropy (if available)
+                - 'G_trans (kcal/mol)': Translational Gibbs contribution (if available)
                 - 'Source': Energy source description
                 Returns None if any required energies are unavailable.
         """
@@ -147,8 +147,8 @@ class ProfileExtractor:
             return None
         
         total_e = total_g = 0.0
-        total_g_no_trans = 0.0
-        has_g_no_trans = False
+        total_g_trans = 0.0
+        has_g_trans = False
         calc_types = calc_types or [None] * len(species_list)
         
         # Sum energies for all species
@@ -158,10 +158,10 @@ class ProfileExtractor:
                 return None
             total_e += energy["E"]
             total_g += energy["G"]
-            # Sum G_no_trans if available
-            if "G_no_trans" in energy:
-                total_g_no_trans += energy["G_no_trans"]
-                has_g_no_trans = True
+            # Sum G_trans if available
+            if "G_trans" in energy:
+                total_g_trans += energy["G_trans"]
+                has_g_trans = True
         
         # Get primary calc_type with sanity check
         non_empty_calc_types = [ct for ct in calc_types if ct]
@@ -186,9 +186,9 @@ class ProfileExtractor:
             "Source": source
         }
         
-        # Add G_no_trans if available for this stage
-        if has_g_no_trans:
-            result["G_no_trans (kcal/mol)"] = total_g_no_trans
+        # Add G_trans if available for this stage
+        if has_g_trans:
+            result["G_trans (kcal/mol)"] = total_g_trans
         
         return result
     
@@ -395,6 +395,7 @@ class ProfileExtractor:
                 if filter_duplicates:
                     catalyst_profiles["E"] = self._filter_profile(raw_profile, "E")
                     catalyst_profiles["G"] = self._filter_profile(raw_profile, "G")
+                    catalyst_profiles["G_trans"] = self._filter_profile(raw_profile, "G_trans")
                 
                 profiles[catalyst] = catalyst_profiles
         

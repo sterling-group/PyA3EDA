@@ -42,13 +42,13 @@ def _build_energy_lookup(raw_data: List[Dict[str, Any]]) -> Dict[str, Dict[str, 
         # Get energy values
         e_val = data.get("E (kcal/mol)") or data.get("SP_E (kcal/mol)")
         g_val = data.get("G (kcal/mol)")  # May be None for SP-only data
-        g_no_trans_val = data.get("G_no_trans (kcal/mol)")  # G without translational entropy
+        g_trans_val = data.get("G_trans (kcal/mol)")  # Translational Gibbs contribution
         
         # Require at least E value (G is optional for SP-only calculations)
         if e_val is not None:
             calc_type = data.get("Calc_Type", "")
             
-            entry = {"E": e_val, "G": g_val, "G_no_trans": g_no_trans_val}
+            entry = {"E": e_val, "G": g_val, "G_trans": g_trans_val}
             
             # Create calc_type-specific key if calc_type exists
             if calc_type and calc_type != "unknown":
@@ -102,9 +102,9 @@ def _create_stage(stage_name: str, species_list: List[str], energy_lookup: Dict[
     
     total_e = 0.0
     total_g = 0.0
-    total_g_no_trans = 0.0
+    total_g_trans = 0.0
     has_g_data = True  # Track if all species have G values
-    has_g_no_trans_data = True  # Track if all species have G_no_trans values
+    has_g_trans_data = True  # Track if all species have G_trans values
     calc_types = calc_types or [None] * len(species_list)
     
     # Sum energies for all species
@@ -121,11 +121,11 @@ def _create_stage(stage_name: str, species_list: List[str], energy_lookup: Dict[
         else:
             total_g += energy["G"]
         
-        # Handle G_no_trans
-        if energy.get("G_no_trans") is None:
-            has_g_no_trans_data = False
+        # Handle G_trans
+        if energy.get("G_trans") is None:
+            has_g_trans_data = False
         else:
-            total_g_no_trans += energy["G_no_trans"]
+            total_g_trans += energy["G_trans"]
     
     # Get primary calc_type with sanity check
     non_empty_calc_types = [ct for ct in calc_types if ct]
@@ -150,9 +150,9 @@ def _create_stage(stage_name: str, species_list: List[str], energy_lookup: Dict[
         "Source": source
     }
     
-    # Add G_no_trans if available
-    if has_g_no_trans_data:
-        result["G_no_trans (kcal/mol)"] = total_g_no_trans
+    # Add G_trans if available
+    if has_g_trans_data:
+        result["G_trans (kcal/mol)"] = total_g_trans
     
     return result
 
@@ -257,6 +257,28 @@ def _generate_catalyst_profile(catalyst: str, raw_data: List[Dict[str, Any]], co
     profile.extend(_generate_stages("ts_nocat", catalyst, raw_data, components, energy_lookup))
     profile.extend(_generate_stages("postTS", catalyst, raw_data, components, energy_lookup))
     profile.extend(_generate_stages("products", catalyst, raw_data, components, energy_lookup))
+
+    # Add derived trans-reference stage at preTS based on full preTS and reactants.
+    # This is used for the translational delta-delta formulation.
+    react_stage = next(
+        (s for s in profile if s.get("Stage") == "Reactants" and not s.get("Calc_Type") and s.get("G_trans (kcal/mol)") is not None),
+        None,
+    )
+    prets_full_stage = next(
+        (s for s in profile if s.get("Stage") == "preTS" and s.get("Calc_Type") == "full_cat" and s.get("G_trans (kcal/mol)") is not None),
+        None,
+    )
+    if react_stage and prets_full_stage:
+        profile.append({
+            "Stage": "preTS",
+            "Calc_Type": "trans_cat",
+            # Keep species aligned with full_cat stage so filtering can retain this row.
+            "Species": prets_full_stage.get("Species", ""),
+            "E (kcal/mol)": None,
+            "G (kcal/mol)": None,
+            "G_trans (kcal/mol)": prets_full_stage["G_trans (kcal/mol)"] - react_stage["G_trans (kcal/mol)"],
+            "Source": "Derived",
+        })
     
     return profile
 
@@ -298,7 +320,7 @@ def _filter_profile(profile: List[Dict[str, Any]], energy_type: str) -> List[Dic
                 min_species = min_full_cat.get("Species", "")
                 
                 filtered.append(min_full_cat)
-                for calc_type in ["pol_cat", "frz_cat"]:
+                for calc_type in ["pol_cat", "frz_cat", "trans_cat"]:
                     matching_stages = [
                         s for s in calc_type_stages 
                         if s.get("Calc_Type") == calc_type and s.get("Species") == min_species
@@ -350,6 +372,7 @@ def extract_profiles(raw_data_list: List[Dict[str, Any]], filter_duplicates: boo
             if filter_duplicates:
                 catalyst_profiles["E"] = _filter_profile(raw_profile, "E")
                 catalyst_profiles["G"] = _filter_profile(raw_profile, "G")
+                catalyst_profiles["G_trans"] = _filter_profile(raw_profile, "G_trans")
             
             profiles[catalyst] = catalyst_profiles
     

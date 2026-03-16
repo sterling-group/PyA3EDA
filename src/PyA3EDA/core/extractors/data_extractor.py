@@ -28,6 +28,7 @@ from PyA3EDA.core.status.status_checker import should_process_file
 from PyA3EDA.core.utils.unit_converter import convert_unit
 from PyA3EDA.core.utils.thermodynamics import calculate_standard_state_correction
 from PyA3EDA.core.builders.builder import iter_input_paths
+from PyA3EDA.core.constants import Constants
 
 
 # CORE EXTRACTION FUNCTIONS (pure)
@@ -502,13 +503,15 @@ def calculate_enthalpy_and_gibbs(data: Dict[str, Any], mode: str) -> None:
     data["G (kcal/mol)"] = g_gas
     logging.debug(f"{mode.upper()}: Calculated G(gas) = {g_gas:.6f} kcal/mol at T={temperature} K")
     
-    # Calculate G_no_trans = G + T*S_trans (G without translational entropy contribution)
-    # This is used for separating translational entropy in EDA analysis
+    # Calculate translational-only Gibbs contribution:
+    # G_trans = H_trans - T*S_trans, with H_trans = 5/2 * R * T (ideal-gas translation)
     if "S_trans (kcal/mol.K)" in data:
         s_trans = data["S_trans (kcal/mol.K)"]
-        g_no_trans = g_gas + temperature * s_trans  # Adding back T*S_trans
-        data["G_no_trans (kcal/mol)"] = g_no_trans
-        logging.debug(f"{mode.upper()}: Calculated G_no_trans = {g_no_trans:.6f} kcal/mol")
+        h_trans_j = 2.5 * Constants.MOLAR_GAS_CONSTANT * temperature
+        h_trans_kcal = convert_unit(h_trans_j, "J/mol", "kcal/mol")
+        g_trans = h_trans_kcal - temperature * s_trans
+        data["G_trans (kcal/mol)"] = g_trans
+        logging.debug(f"{mode.upper()}: Calculated G_trans = {g_trans:.6f} kcal/mol")
     
     # Apply solvent correction if any solvent model is used (not gas phase)
     solvent_key = f"{'SP_' if mode == 'sp' else ''}Solvent"
@@ -524,11 +527,7 @@ def calculate_enthalpy_and_gibbs(data: Dict[str, Any], mode: str) -> None:
                       f"dG = {correction:.6f} kcal/mol (T={temperature} K, P={pressure} atm)")
         logging.debug(f"{mode.upper()}: G(gas) = {g_gas:.6f} kcal/mol,\n G(1M) = {g_solvent:.6f} kcal/mol")
         
-        # Also apply correction to G_no_trans
-        if "G_no_trans (kcal/mol)" in data:
-            data["G_no_trans (kcal/mol)"] = data["G_no_trans (kcal/mol)"] #+ correction
-            # logging.debug(f"{mode.upper()}: Applied standard state correction to G_no_trans for {solvent}")
-            logging.debug(f"{mode.upper()}: G_no_trans = {data['G_no_trans (kcal/mol)']:.6f} kcal/mol")
+        # No standard-state correction is applied to G_trans by design.
     elif solvent != "gas":
         logging.debug(f"{mode.upper()}: Skipping standard state correction for {solvent} - missing temperature or pressure")
     else:

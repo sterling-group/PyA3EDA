@@ -19,10 +19,7 @@ import matplotlib.colors as mc
 
 # Base colors for contribution types (keys match extractor output)
 BASE_COLORS = {
-    "trans_frz": "darkorange",    # Trans entropy for FRZ
-    "trans_pol": "gold",          # Trans entropy for POL  
-    "trans_ct": "khaki",          # Trans entropy for CT
-    "trans_complete": "dimgray",  # Trans entropy for complete
+    "trans": "darkorange",
     "frz": "firebrick",
     "pol": "forestgreen",
     "ct": "royalblue",
@@ -37,10 +34,10 @@ E_DISPLAY_LABELS = ["FRZ", "POL", "CT", "FULL"]
 G_CONTRIBUTION_TYPES = ["frz", "pol", "ct", "complete"]
 G_DISPLAY_LABELS = ["FRZ", "POL", "CT", "FULL"]
 
-# Contribution types for G_no_trans with trans contributions shown
-# Shows where translational entropy cancels vs doesn't cancel
-G_NOTRANS_CONTRIBUTION_TYPES = ["trans_frz", "frz", "trans_pol", "pol", "trans_ct", "ct", "trans_complete", "complete"]
-G_NOTRANS_DISPLAY_LABELS = ["ΔS·FRZ", "FRZ", "ΔS·POL", "POL", "ΔS·CT", "CT", "ΔS·FULL", "FULL"]
+# Contribution types for G_notrans-style plot under the new transG model:
+# one trans bar, then FRZ/POL/CT/FULL from adjusted G contributions.
+G_NOTRANS_CONTRIBUTION_TYPES = ["trans", "frz", "pol", "ct", "complete"]
+G_NOTRANS_DISPLAY_LABELS = ["ΔG_trans", "FRZ", "POL", "CT", "FULL"]
 
 
 def _lighten_color(color: str, amount: float = 0.0) -> Tuple[float, float, float]:
@@ -127,8 +124,8 @@ def _plot_single_barplot(
     has_value = np.zeros((n_groups, n_cats), dtype=bool)  # Track which have real values
     for j, ctype in enumerate(contribution_types):
         for i, cat in enumerate(ordered_cats):
-            # Check trans_data for trans_ types, otherwise use main contributions
-            if ctype.startswith("trans_") and trans_data and cat in trans_data:
+            # Check trans_data for trans types, otherwise use main contributions
+            if (ctype == "trans" or ctype.startswith("trans_")) and trans_data and cat in trans_data:
                 val = trans_data[cat].get(ctype)
             else:
                 contributions = delta_delta_data[cat].get("contributions", {})

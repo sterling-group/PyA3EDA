@@ -24,7 +24,7 @@ def _convert_to_energy_dict(profile_data: List[Dict[str, Any]], energy_type: str
     
     Args:
         profile_data: List of stage dictionaries with Stage, Calc_Type, and energy columns
-        energy_type: Either "E" or "G"
+        energy_type: "E", "G", or "G_trans"
         unit: Energy unit string
         
     Returns:
@@ -83,7 +83,7 @@ def _normalize_energies(energy_dict: Dict[str, float]) -> Dict[str, float]:
     return normalized
 
 
-def _define_profiles(energy_dict: Dict[str, float]) -> List[Dict[str, Any]]:
+def _define_profiles(energy_dict: Dict[str, float], energy_type: str) -> List[Dict[str, Any]]:
     """
     Build the 4 standard profiles (FRZ, POL, FULL, uncatalyzed) from energy dictionary.
     
@@ -102,30 +102,66 @@ def _define_profiles(energy_dict: Dict[str, float]) -> List[Dict[str, Any]]:
     if product_key not in energy_dict:
         raise KeyError(f"Product stage not found. Available keys: {list(energy_dict.keys())}")
     
-    # Define the 4 standard profiles
-    profile_frz = [
-        {"label": "reactant", "key": reactant_key},
-        {"label": "pre-TS",   "key": "preTS_frz_cat"},
-        {"label": "TS",       "key": "TS_frz_cat"},
-        {"label": "post-TS",  "key": "postTS_frz_cat"},
-        {"label": "product",  "key": product_key},
-    ]
-    
-    profile_pol = [
-        {"label": "reactant", "key": reactant_key},
-        {"label": "pre-TS",   "key": "preTS_pol_cat"},
-        {"label": "TS",       "key": "TS_pol_cat"},
-        {"label": "post-TS",  "key": "postTS_pol_cat"},
-        {"label": "product",  "key": product_key},
-    ]
-    
-    profile_full = [
-        {"label": "reactant", "key": reactant_key},
-        {"label": "pre-TS",   "key": "preTS_full_cat"},
-        {"label": "TS",       "key": "TS_full_cat"},
-        {"label": "post-TS",  "key": "postTS_full_cat"},
-        {"label": "product",  "key": product_key},
-    ]
+    # Define profile stages.
+    # For G_trans, keep the same 5-stage reaction path and use trans as
+    # a calc-type at the pre-TS stage.
+    if energy_type == "G_trans":
+        trans_prets_key = "preTS_trans_cat"
+        if trans_prets_key not in energy_dict:
+            logging.warning(
+                "G_trans plotting: missing preTS trans calc-type stage key '%s'. "
+                "Falling back to preTS_full_cat for plotting continuity.",
+                trans_prets_key,
+            )
+            trans_prets_key = "preTS_full_cat"
+
+        profile_frz = [
+            {"label": "reactant",      "key": reactant_key},
+            {"label": "pre-TS",        "key": trans_prets_key},
+            {"label": "TS",            "key": "TS_frz_cat"},
+            {"label": "post-TS",       "key": "postTS_frz_cat"},
+            {"label": "product",       "key": product_key},
+        ]
+
+        profile_pol = [
+            {"label": "reactant",      "key": reactant_key},
+            {"label": "pre-TS",        "key": trans_prets_key},
+            {"label": "TS",            "key": "TS_pol_cat"},
+            {"label": "post-TS",       "key": "postTS_pol_cat"},
+            {"label": "product",       "key": product_key},
+        ]
+
+        profile_full = [
+            {"label": "reactant",      "key": reactant_key},
+            {"label": "pre-TS",        "key": trans_prets_key},
+            {"label": "TS",            "key": "TS_full_cat"},
+            {"label": "post-TS",       "key": "postTS_full_cat"},
+            {"label": "product",       "key": product_key},
+        ]
+    else:
+        profile_frz = [
+            {"label": "reactant", "key": reactant_key},
+            {"label": "pre-TS",   "key": "preTS_frz_cat"},
+            {"label": "TS",       "key": "TS_frz_cat"},
+            {"label": "post-TS",  "key": "postTS_frz_cat"},
+            {"label": "product",  "key": product_key},
+        ]
+        
+        profile_pol = [
+            {"label": "reactant", "key": reactant_key},
+            {"label": "pre-TS",   "key": "preTS_pol_cat"},
+            {"label": "TS",       "key": "TS_pol_cat"},
+            {"label": "post-TS",  "key": "postTS_pol_cat"},
+            {"label": "product",  "key": product_key},
+        ]
+        
+        profile_full = [
+            {"label": "reactant", "key": reactant_key},
+            {"label": "pre-TS",   "key": "preTS_full_cat"},
+            {"label": "TS",       "key": "TS_full_cat"},
+            {"label": "post-TS",  "key": "postTS_full_cat"},
+            {"label": "product",  "key": product_key},
+        ]
     
     profile_uncat = [
         {"label": "reactant", "key": reactant_key},
@@ -171,12 +207,14 @@ def _plot_single_profile(ax, profile: List[Dict[str, str]], energy_dict: Dict[st
     dash_linewidth = 2
     
     n_stages = len(profile)
-    if n_stages == 5:
+    if n_stages == 6:
+        x_starts = [0, 2, 4, 6, 8, 10]
+    elif n_stages == 5:
         x_starts = [0, 2, 4, 6, 8]
     elif n_stages == 3:
-        x_starts = [0, 4, 8]
+        x_starts = [0, 6, 10]
     else:
-        raise ValueError("Profile must have either 3 or 5 stages.")
+        raise ValueError("Profile must have 3, 5, or 6 stages.")
 
     bar_width = 0.5
     x_centers = [x + bar_width/2 for x in x_starts]
@@ -250,7 +288,7 @@ def _plot_energy_profiles(energy_dict: Dict[str, float], catalyst_name: str, ene
         output_path: Full path where to save the plot
         unit: Energy unit for axis label
     """
-    profiles = _define_profiles(energy_dict)
+    profiles = _define_profiles(energy_dict, energy_type)
     
     if not profiles:
         logging.warning(f"No valid profiles found for {catalyst_name} - skipping plot")
@@ -267,7 +305,9 @@ def _plot_energy_profiles(energy_dict: Dict[str, float], catalyst_name: str, ene
     ax.tick_params(bottom=False, left=False)
     ax.set_xticks([])
     ax.set_yticks([])
-    ax.set_xlim(-1, 10)
+    max_stage_count = max(len(p["profile"]) for p in profiles)
+    xmax = 12 if max_stage_count == 6 else 10
+    ax.set_xlim(-1, xmax)
 
 
     # Set common x-axis ticks and labels.
@@ -354,8 +394,8 @@ def plot_all_profiles(processed_data: Dict[str, Dict[str, Any]], base_dir: Path)
                     # Get unit from data (set at extraction time)
                     unit = catalyst_data.get("unit", Constants.ENERGY_UNIT)
                     
-                    # Process each energy type (E and G)
-                    for energy_type in ["E", "G"]:
+                    # Process each energy type (E, G, and translational G)
+                    for energy_type in ["E", "G", "G_trans"]:
                         profile_data = catalyst_data.get(energy_type, [])
                         if not profile_data:
                             continue

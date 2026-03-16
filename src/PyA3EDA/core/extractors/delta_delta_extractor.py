@@ -23,7 +23,7 @@ def _convert_to_energy_dict(profile_data: List[Dict[str, Any]], energy_type: str
     
     Args:
         profile_data: List of stage dictionaries with Stage, Calc_Type, and energy columns
-        energy_type: "E", "G", or "G_no_trans"
+        energy_type: "E", "G", or "G_trans"
         unit: Energy unit string
         
     Returns:
@@ -220,10 +220,10 @@ def _calculate_barriers_and_contributions(
     
     Args:
         profile_data: Profile data list with stage energies
-        energy_type: "E", "G", or "G_no_trans"
+        energy_type: "E", "G", or "G_trans"
         unit: Energy unit string
         baseline_choices: Optional dict mapping calc_type to baseline key.
-            Used by G_no_trans to reuse G's baseline choices.
+            Used by G_trans to reuse G's baseline choices.
         
     Returns:
         Dict with barriers, contributions, and baseline_choices
@@ -233,7 +233,7 @@ def _calculate_barriers_and_contributions(
         return None
 
     # Determine baseline choices on this surface (used for E/G)
-    # or use provided ones (for G_no_trans reusing G's choices)
+    # or use provided ones (for G_trans reusing G's choices)
     if baseline_choices is None:
         baseline_choices = _determine_baseline_choices(energy_dict)
 
@@ -262,10 +262,10 @@ def extract_catalyst_delta_delta(
     
     Args:
         catalyst_profiles: Dict mapping catalyst names to profile data (with "E" and "G" keys)
-        energy_type: "E", "G", or "G_no_trans"
+        energy_type: "E", "G", or "G_trans"
         catalyst_order: List of catalyst names in desired order
-        g_baseline_choices: For G_no_trans only: dict mapping catalyst name to baseline
-            choices determined by G, so G_no_trans uses the same reference stages.
+        g_baseline_choices: For G_trans only: dict mapping catalyst name to baseline
+            choices determined by G, so G_trans uses the same reference stages.
         
     Returns:
         Dict mapping catalyst names to their data containing:
@@ -281,15 +281,15 @@ def extract_catalyst_delta_delta(
             continue
         
         unit = catalyst_profiles[catalyst].get("unit", Constants.ENERGY_UNIT)
-        profile_data = catalyst_profiles[catalyst].get("G" if energy_type == "G_no_trans" else energy_type, [])
+        profile_data = catalyst_profiles[catalyst].get("G" if energy_type == "G_trans" else energy_type, [])
         
         if not profile_data:
             logging.debug(f"No {energy_type} profile data for catalyst {catalyst}")
             continue
         
-        # For G_no_trans, reuse baseline choices from G so both surfaces use the same reference
+        # For G_trans, reuse baseline choices from G so both surfaces use the same reference
         baseline = None
-        if energy_type == "G_no_trans" and g_baseline_choices and catalyst in g_baseline_choices:
+        if energy_type == "G_trans" and g_baseline_choices and catalyst in g_baseline_choices:
             baseline = g_baseline_choices[catalyst]
         
         result = _calculate_barriers_and_contributions(profile_data, energy_type, unit, baseline)
@@ -303,40 +303,81 @@ def extract_catalyst_delta_delta(
 
 def extract_trans_contributions(
     g_data: Dict[str, Dict[str, Any]],
-    g_no_trans_data: Dict[str, Dict[str, Any]]
+    g_trans_data: Dict[str, Dict[str, Any]],
+    catalyst_profiles: Dict[str, Dict[str, List[Dict[str, Any]]]],
 ) -> Dict[str, Dict[str, float]]:
     """
-    Calculate translational entropy contributions per EDA term.
-    
-    trans_bar = contribution(G) - contribution(G_no_trans)
+    Calculate translational delta-delta term and adjusted FRZ contributions.
+
+    Formulas:
+      ΔΔG_trans = (TS_frz_trans - preTS_trans_ref) - (TS_uncat_trans - Reactants_trans)
+      ΔΔG_frz_adjusted = ΔΔG_frz(G) - ΔΔG_trans
+
+    preTS_trans_ref is chosen using G baseline policy:
+    - if full_cat baseline is preTS, use preTS_full_cat(trans)
+    - else use Reactants(trans)
+
+    POL, CT, FULL contributions remain from the G decomposition chain.
     
     Args:
         g_data: Delta-delta data for full G
-        g_no_trans_data: Delta-delta data for G_no_trans
+        g_trans_data: Delta-delta data for G_trans (barriers on trans surface)
+        catalyst_profiles: Per-catalyst profile rows containing G_trans stage values
         
     Returns:
-        Dict mapping catalyst to trans contributions {trans_frz, trans_pol, trans_ct, trans_complete}
+        Dict mapping catalyst to:
+        - trans-only contribution: {"trans": value}
+        - adjusted G contributions for plotting: {"frz", "pol", "ct", "complete"}
     """
     trans_contributions = {}
+    adjusted_g_contributions = {}
     
     for catalyst in g_data:
-        if catalyst not in g_no_trans_data:
+        if catalyst not in g_trans_data or catalyst not in catalyst_profiles:
             continue
-            
-        g_contrib = g_data[catalyst].get("contributions", {})
-        no_trans_contrib = g_no_trans_data[catalyst].get("contributions", {})
-        
-        trans = {}
-        for bar_type in ["frz", "pol", "ct", "complete"]:
-            g_val = g_contrib.get(bar_type)
-            no_trans_val = no_trans_contrib.get(bar_type)
-            if g_val is not None and no_trans_val is not None:
-                trans[f"trans_{bar_type}"] = g_val - no_trans_val
-        
-        if trans:
-            trans_contributions[catalyst] = trans
-            
-    return trans_contributions
+
+        g_result = g_data[catalyst]
+        g_contrib = g_result.get("contributions", {})
+        baseline_choices = g_result.get("baseline_choices", {})
+
+        profile_data = catalyst_profiles[catalyst].get("G", [])
+        unit = g_result.get("unit", Constants.ENERGY_UNIT)
+        trans_energy = _convert_to_energy_dict(profile_data, "G_trans", unit)
+        if not trans_energy:
+            continue
+
+        react_key = "Reactants" if "Reactants" in trans_energy else "Reactant" if "Reactant" in trans_energy else None
+        if not react_key:
+            continue
+
+        ts_frz_trans = trans_energy.get("TS_frz_cat")
+        ts_uncat_trans = trans_energy.get("TS")
+        react_trans = trans_energy.get(react_key)
+        if ts_frz_trans is None or ts_uncat_trans is None or react_trans is None:
+            continue
+
+        # PreTS trans reference for catalyzed term follows full baseline decision.
+        use_prets = baseline_choices.get("full_cat", react_key).startswith("preTS")
+        prets_trans_ref = trans_energy.get("preTS_full_cat") if use_prets else react_trans
+        if prets_trans_ref is None:
+            prets_trans_ref = react_trans
+
+        ddg_trans = (ts_frz_trans - prets_trans_ref) - (ts_uncat_trans - react_trans)
+        trans_contributions[catalyst] = {"trans": ddg_trans}
+
+        # Adjust FRZ contribution only; POL/CT/FULL keep original G-chain values.
+        frz_g = g_contrib.get("frz")
+        adjusted_g_contributions[catalyst] = {
+            "frz": (frz_g - ddg_trans) if frz_g is not None else None,
+            "pol": g_contrib.get("pol"),
+            "ct": g_contrib.get("ct"),
+            "complete": g_contrib.get("complete"),
+        }
+
+    return {
+        "trans": trans_contributions,
+        "adjusted_g": adjusted_g_contributions,
+    }
 
 
 def extract_all_delta_delta(
@@ -397,21 +438,37 @@ def extract_all_delta_delta(
             if g_data:
                 data_delta_delta["G"] = g_data
             
-            # Extract G_no_trans contributions using G's baseline choices
-            # so both surfaces measure barriers from the same reference stage
-            g_baselines = {cat: cat_data["baseline_choices"] 
-                          for cat, cat_data in g_data.items() 
-                          if "baseline_choices" in cat_data} if g_data else {}
-            g_no_trans_data = extract_catalyst_delta_delta(
-                catalyst_profiles, "G_no_trans", catalyst_order, g_baselines)
-            if g_no_trans_data:
-                data_delta_delta["G_no_trans"] = g_no_trans_data
-                
-                # Calculate trans contributions (G - G_no_trans per bar)
-                if g_data:
-                    trans_data = extract_trans_contributions(g_data, g_no_trans_data)
-                    if trans_data:
-                        data_delta_delta["G_trans"] = trans_data
+            # Extract G_trans surface using G's baseline choices.
+            g_baselines = {
+                cat: cat_data["baseline_choices"]
+                for cat, cat_data in g_data.items()
+                if "baseline_choices" in cat_data
+            } if g_data else {}
+            g_trans_data = extract_catalyst_delta_delta(
+                catalyst_profiles, "G_trans", catalyst_order, g_baselines)
+
+            # Build new trans bar + adjusted G contributions for G_notrans-style plot.
+            if g_data and g_trans_data:
+                trans_payload = extract_trans_contributions(g_data, g_trans_data, catalyst_profiles)
+                trans_data = trans_payload.get("trans", {})
+                adjusted_g = trans_payload.get("adjusted_g", {})
+
+                if adjusted_g:
+                    # Keep key name for backward plot/export compatibility.
+                    adjusted_block = {}
+                    for catalyst, base in g_data.items():
+                        if catalyst not in adjusted_g:
+                            continue
+                        adjusted_block[catalyst] = {
+                            "barriers": base.get("barriers", {}),
+                            "contributions": adjusted_g[catalyst],
+                            "unit": base.get("unit", Constants.ENERGY_UNIT),
+                        }
+                    if adjusted_block:
+                        data_delta_delta["G_no_trans"] = adjusted_block
+
+                if trans_data:
+                    data_delta_delta["G_trans"] = trans_data
             
             if data_delta_delta:
                 combo_delta_delta[data_key] = data_delta_delta
