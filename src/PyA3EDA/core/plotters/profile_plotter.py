@@ -294,7 +294,7 @@ def _plot_energy_profiles(
     ax.set_xticklabels(xtick_labels, fontsize=12, fontweight="bold")
     ax.set_xlabel("reaction coordinate", fontsize=20, fontweight="bold")
     display_energy_type = "G" if energy_type in ["G", "G_trans"] else energy_type
-    ax.set_ylabel(rf"$\Delta$ {display_energy_type} ({unit})", fontsize=20, fontweight="bold")
+    ax.set_ylabel(rf"$\Delta {display_energy_type}$ ({unit})", fontsize=20, fontweight="bold")
     # ax.set_title(f"Reaction Profiles for {catalyst_name}", fontsize=14)
     # ax.legend()
     # ax.grid(True, linestyle="--", alpha=0.5)
