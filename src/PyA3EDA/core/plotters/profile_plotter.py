@@ -207,14 +207,12 @@ def _plot_single_profile(ax, profile: List[Dict[str, str]], energy_dict: Dict[st
     dash_linewidth = 2
     
     n_stages = len(profile)
-    if n_stages == 6:
-        x_starts = [0, 2, 4, 6, 8, 10]
-    elif n_stages == 5:
+    if n_stages == 5:
         x_starts = [0, 2, 4, 6, 8]
     elif n_stages == 3:
-        x_starts = [0, 6, 10]
+        x_starts = [0, 4, 8]
     else:
-        raise ValueError("Profile must have 3, 5, or 6 stages.")
+        raise ValueError("Profile must have either 3 or 5 stages.")
 
     bar_width = 0.5
     x_centers = [x + bar_width/2 for x in x_starts]
@@ -305,10 +303,7 @@ def _plot_energy_profiles(energy_dict: Dict[str, float], catalyst_name: str, ene
     ax.tick_params(bottom=False, left=False)
     ax.set_xticks([])
     ax.set_yticks([])
-    max_stage_count = max(len(p["profile"]) for p in profiles)
-    xmax = 12 if max_stage_count == 6 else 10
-    ax.set_xlim(-1, xmax)
-
+    ax.set_xlim(-1, 10)
 
     # Set common x-axis ticks and labels.
     xtick_positions = [0.25, 2.25, 4.25, 6.25, 8.25]
