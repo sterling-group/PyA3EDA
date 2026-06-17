@@ -122,9 +122,7 @@ class TestCmdExtract:
         with (
             patch("pya3eda.extractor.data.extract_all", return_value={}) as m_ea,
             patch("pya3eda.extractor.stages.build_profiles", return_value={}) as m_bp,
-            patch(
-                "pya3eda.extractor.barriers.compute_delta_delta", return_value={}
-            ) as m_dd,
+            patch("pya3eda.extractor.barriers.compute_delta_delta", return_value={}) as m_dd,
             patch("pya3eda.exporter.results.export_all") as m_exp,
             patch("pya3eda.plotter.profile.plot_all_profiles") as m_pp,
             patch("pya3eda.plotter.contributions.plot_delta_delta_barplots") as m_pb,

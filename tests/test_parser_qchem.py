@@ -46,9 +46,7 @@ class TestParseEnergy:
         assert result is not None
         assert isinstance(result, EnergyResult)
         assert result.value_ha == pytest.approx(-191.709724458668)
-        assert result.value_kcal == pytest.approx(
-            convert_unit(-191.709724458668, "Ha", "kcal/mol")
-        )
+        assert result.value_kcal == pytest.approx(convert_unit(-191.709724458668, "Ha", "kcal/mol"))
 
     def test_total_energy_from_sp(self) -> None:
         result = parse_energy(SP_OUTPUT)
@@ -301,6 +299,14 @@ class TestParseEDAEnergies:
     def test_full_cat_returns_none_for_empty(self) -> None:
         assert parse_eda_energies("", "full_cat") is None
 
+    def test_full_cat_without_bsse_or_cds(self) -> None:
+        """full_cat with a convergence energy but no BSSE / SMD-CDS lines."""
+        text = "   10   -1814.1288377459      3.50e-09     00000 Convergence criterion met\n"
+        result = parse_eda_energies(text, "full_cat")
+        assert result is not None
+        assert result.bsse_kcal is None
+        assert result.cds_kcal is None
+
 
 # ===================================================================
 # parse_status
@@ -314,7 +320,7 @@ class TestParseStatus:
         assert "00:03:00" in detail  # 180.20s wall → 00:03:00
 
     def test_empty_output(self) -> None:
-        status, detail = parse_status("")
+        status, _detail = parse_status("")
         assert status == "nofile"
 
     def test_crash_on_fatal_error(self) -> None:
@@ -390,6 +396,12 @@ class TestParseStatus:
         status, detail = parse_status("some random text", "Aborted")
         assert status == "CRASH"
         assert "Unknown failure" in detail
+
+    def test_crash_detail_error_occurred_no_match(self) -> None:
+        """'error occurred' present but no trailing detail line → Unknown failure."""
+        status, detail = parse_status("Q-Chem fatal error occurred")
+        assert status == "CRASH"
+        assert detail == "Unknown failure"
 
     def test_wall_time_no_match(self) -> None:
         """Successful output without 'Total job time' → 'unknown' time."""

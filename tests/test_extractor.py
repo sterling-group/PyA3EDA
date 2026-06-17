@@ -61,15 +61,10 @@ class TestProfileIDTraceOrder:
             assert isinstance(label, str)
 
     def test_method_label_opt(self) -> None:
-        assert (
-            ProfileID.method_label("wB97X-V_def2-SVP_smd", None)
-            == "wB97X-V_def2-SVP_smd"
-        )
+        assert ProfileID.method_label("wB97X-V_def2-SVP_smd", None) == "wB97X-V_def2-SVP_smd"
 
     def test_method_label_sp(self) -> None:
-        result = ProfileID.method_label(
-            "wB97X-V_def2-SVP_smd", "wB97M-V_def2-TZVPPD_smd_sp"
-        )
+        result = ProfileID.method_label("wB97X-V_def2-SVP_smd", "wB97M-V_def2-TZVPPD_smd_sp")
         assert result == "wB97M-V_def2-TZVPPD_smd_sp_wB97X-V_def2-SVP_smd_opt"
 
 
@@ -94,12 +89,8 @@ def _populate_tree(base: Path) -> None:
     sp = SP_SUB
 
     # Uncatalyzed: reactants
-    _write_output(
-        base, f"{mk}/no_cat/reactants/prop2enal/prop2enal_opt.out", OPT_OUTPUT
-    )
-    _write_output(
-        base, f"{mk}/no_cat/reactants/prop2enal/{sp}/prop2enal_sp.out", SP_OUTPUT
-    )
+    _write_output(base, f"{mk}/no_cat/reactants/prop2enal/prop2enal_opt.out", OPT_OUTPUT)
+    _write_output(base, f"{mk}/no_cat/reactants/prop2enal/{sp}/prop2enal_sp.out", SP_OUTPUT)
 
     # Uncatalyzed: ts
     _write_output(base, f"{mk}/no_cat/ts/tscomplex_opt.out", TS_OUTPUT)
@@ -217,7 +208,7 @@ class TestExtractAll:
         data = extracted[cid]
 
         assert data.energy is not None
-        # Final energy -191.709724458668 Ha × 627.5094740631 = kcal/mol
+        # Final energy -191.709724458668 Ha x 627.5094740631 = kcal/mol
         from pya3eda.utils import convert_unit
 
         expected_kcal = convert_unit(-191.709724458668, "Ha", "kcal/mol")
@@ -233,18 +224,16 @@ class TestExtractAll:
 
         # Derived: H = E + h_corr
         assert data.H is not None
-        assert data.H == pytest.approx(data.energy + data.h_corr, rel=1e-9)
+        assert pytest.approx(data.energy + data.h_corr, rel=1e-9) == data.H
 
         # Derived: G = H - T*S + SSC (since solvent=smd)
         assert data.G is not None
         ssc = standard_state_correction(298.15, 1.0)
         expected_G = data.H - 298.15 * data.s_corr + ssc
-        assert data.G == pytest.approx(expected_G, rel=1e-9)
+        assert pytest.approx(expected_G, rel=1e-9) == data.G
 
     def test_opt_ts_has_one_imag(self, extracted: dict) -> None:
-        cid = CalcID(
-            method_key=MK, catalyst=None, stage="ts", species="tscomplex", mode="opt"
-        )
+        cid = CalcID(method_key=MK, catalyst=None, stage="ts", species="tscomplex", mode="opt")
         assert cid in extracted, "TS not extracted"
         assert extracted[cid].imag_freq == 1
 
@@ -301,9 +290,7 @@ class TestBuildProfiles:
         return extract_all(registry, criteria="all")
 
     @pytest.fixture(scope="class")
-    def profiles(
-        self, registry: CalcRegistry, extracted: dict
-    ) -> dict[ProfileID, ProfileData]:
+    def profiles(self, registry: CalcRegistry, extracted: dict) -> dict[ProfileID, ProfileData]:
         from pya3eda.extractor.stages import build_profiles
 
         return build_profiles(registry, extracted)
@@ -349,9 +336,7 @@ class TestComputeDeltaDelta:
         return build_profiles(registry, extracted)
 
     @pytest.fixture(scope="class")
-    def dd_results(
-        self, profiles: dict, registry: CalcRegistry
-    ) -> list[DeltaDeltaData]:
+    def dd_results(self, profiles: dict, registry: CalcRegistry) -> list[DeltaDeltaData]:
         from pya3eda.extractor.barriers import compute_delta_delta
 
         return compute_delta_delta(profiles, registry.catalyst_order)
@@ -370,44 +355,24 @@ class TestComputeDeltaDelta:
                 and dd.barrier_full is not None
                 and dd.barrier_uncat is not None
             ):
-                assert dd.dd_complete == pytest.approx(
-                    dd.barrier_full - dd.barrier_uncat, abs=1e-9
-                )
+                assert dd.dd_complete == pytest.approx(dd.barrier_full - dd.barrier_uncat, abs=1e-9)
 
     def test_dd_pol_equals_pol_minus_frz(self, dd_results: list) -> None:
         for dd in dd_results:
-            if (
-                dd.dd_pol is not None
-                and dd.barrier_pol is not None
-                and dd.barrier_frz is not None
-            ):
-                assert dd.dd_pol == pytest.approx(
-                    dd.barrier_pol - dd.barrier_frz, abs=1e-9
-                )
+            if dd.dd_pol is not None and dd.barrier_pol is not None and dd.barrier_frz is not None:
+                assert dd.dd_pol == pytest.approx(dd.barrier_pol - dd.barrier_frz, abs=1e-9)
 
     def test_dd_ct_equals_full_minus_pol(self, dd_results: list) -> None:
         for dd in dd_results:
-            if (
-                dd.dd_ct is not None
-                and dd.barrier_full is not None
-                and dd.barrier_pol is not None
-            ):
-                assert dd.dd_ct == pytest.approx(
-                    dd.barrier_full - dd.barrier_pol, abs=1e-9
-                )
+            if dd.dd_ct is not None and dd.barrier_full is not None and dd.barrier_pol is not None:
+                assert dd.dd_ct == pytest.approx(dd.barrier_full - dd.barrier_pol, abs=1e-9)
 
     def test_g_ni_has_dd_ni(self, dd_results: list) -> None:
-        """G_ni entries should have dd_ni = barrier_ni − barrier_uncat."""
+        """G_ni entries should have dd_ni = barrier_ni - barrier_uncat."""
         gni_entries = [d for d in dd_results if d.energy_type == "G_ni"]
         for dd in gni_entries:
-            if (
-                dd.dd_ni is not None
-                and dd.barrier_ni is not None
-                and dd.barrier_uncat is not None
-            ):
-                assert dd.dd_ni == pytest.approx(
-                    dd.barrier_ni - dd.barrier_uncat, abs=1e-9
-                )
+            if dd.dd_ni is not None and dd.barrier_ni is not None and dd.barrier_uncat is not None:
+                assert dd.dd_ni == pytest.approx(dd.barrier_ni - dd.barrier_uncat, abs=1e-9)
 
 
 # ===================================================================
@@ -465,13 +430,13 @@ class TestSumEnergies:
         ed = _ed(calc_id=cid, energy=None, sp_energy=None, G=10.0)
         E, G = _sum_energies((cid,), {cid: ed})
         assert E is None
-        assert G == pytest.approx(10.0)
+        assert pytest.approx(10.0) == G
 
     def test_has_G_false(self) -> None:
         cid = CalcID(method_key="m", stage="r", species="x")
         ed = _ed(calc_id=cid, energy=5.0, G=None)
         E, G = _sum_energies((cid,), {cid: ed})
-        assert E == pytest.approx(5.0)
+        assert pytest.approx(5.0) == E
         assert G is None
 
     def test_sums_multiple(self) -> None:
@@ -480,15 +445,15 @@ class TestSumEnergies:
         d1 = _ed(calc_id=c1, energy=1.0, G=10.0)
         d2 = _ed(calc_id=c2, energy=2.0, G=20.0)
         E, G = _sum_energies((c1, c2), {c1: d1, c2: d2})
-        assert E == pytest.approx(3.0)
-        assert G == pytest.approx(30.0)
+        assert pytest.approx(3.0) == E
+        assert pytest.approx(30.0) == G
 
     def test_sp_energy_fallback(self) -> None:
         """When energy=None, sp_energy is used for E."""
         cid = CalcID(method_key="m", stage="r", species="x")
         ed = _ed(calc_id=cid, energy=None, sp_energy=7.0, G=10.0)
-        E, G = _sum_energies((cid,), {cid: ed})
-        assert E == pytest.approx(7.0)
+        E, _G = _sum_energies((cid,), {cid: ed})
+        assert pytest.approx(7.0) == E
 
 
 class TestArgmin:
@@ -557,9 +522,7 @@ class TestGniForStage:
         trans_cid = self._cid("trans")
         ni = NiStageRef(ref_cids=(ref_cid,), trans_cids=(trans_cid,))
         extracted = {
-            ref_cid: _ed(
-                calc_id=ref_cid, H=10.0, s_corr=0.05, s_trans=None, temperature=298.15
-            ),
+            ref_cid: _ed(calc_id=ref_cid, H=10.0, s_corr=0.05, s_trans=None, temperature=298.15),
             trans_cid: _ed(calc_id=trans_cid, s_trans=0.03),
         }
         assert _g_ni_for_stage(ni, extracted) is None
@@ -569,9 +532,7 @@ class TestGniForStage:
         trans_cid = self._cid("trans")
         ni = NiStageRef(ref_cids=(ref_cid,), trans_cids=(trans_cid,))
         extracted = {
-            ref_cid: _ed(
-                calc_id=ref_cid, H=10.0, s_corr=0.05, s_trans=0.03, temperature=298.15
-            ),
+            ref_cid: _ed(calc_id=ref_cid, H=10.0, s_corr=0.05, s_trans=0.03, temperature=298.15),
             # trans_cid missing from extracted
         }
         assert _g_ni_for_stage(ni, extracted) is None
@@ -581,9 +542,7 @@ class TestGniForStage:
         trans_cid = self._cid("trans")
         ni = NiStageRef(ref_cids=(ref_cid,), trans_cids=(trans_cid,))
         extracted = {
-            ref_cid: _ed(
-                calc_id=ref_cid, H=10.0, s_corr=0.05, s_trans=0.03, temperature=None
-            ),
+            ref_cid: _ed(calc_id=ref_cid, H=10.0, s_corr=0.05, s_trans=0.03, temperature=None),
             trans_cid: _ed(calc_id=trans_cid, s_trans=0.03),
         }
         assert _g_ni_for_stage(ni, extracted) is None
@@ -606,9 +565,7 @@ class TestGniForStage:
         s_trans = 0.038  # kcal/(mol·K)
 
         extracted = {
-            ref_cid: _ed(
-                calc_id=ref_cid, H=H, s_corr=s_corr, s_trans=s_trans, temperature=T
-            ),
+            ref_cid: _ed(calc_id=ref_cid, H=H, s_corr=s_corr, s_trans=s_trans, temperature=T),
             trans_cid: _ed(calc_id=trans_cid, s_trans=s_trans, temperature=T),
         }
 
@@ -639,17 +596,13 @@ class TestGniForStage:
         s_trans = 0.038
 
         extracted = {
-            ref_cid: _ed(
-                calc_id=ref_cid, H=H, s_corr=s_corr, s_trans=s_trans, temperature=T
-            ),
+            ref_cid: _ed(calc_id=ref_cid, H=H, s_corr=s_corr, s_trans=s_trans, temperature=T),
             trans_cid: _ed(calc_id=trans_cid, s_trans=s_trans, temperature=T),
         }
 
         result = _g_ni_for_stage(ni, extracted)
         result_no_ssc = _g_ni_for_stage(
-            NiStageRef(
-                ref_cids=(ref_cid,), trans_cids=(trans_cid,), apply_ssc_to_g_ni=False
-            ),
+            NiStageRef(ref_cids=(ref_cid,), trans_cids=(trans_cid,), apply_ssc_to_g_ni=False),
             extracted,
         )
         ssc = standard_state_correction(T)
@@ -667,9 +620,7 @@ class TestBuildStageBest:
         dict[CalcID, ExtractedData],
     ]:
         # Primary candidate: E=10, G=100
-        c_prim = CalcID(
-            method_key="m", stage="preTS", species="a", calc_type="full_cat"
-        )
+        c_prim = CalcID(method_key="m", stage="preTS", species="a", calc_type="full_cat")
         # Alternative: E=5, G=200  (better E, worse G)
         c_alt = CalcID(method_key="m", stage="preTS", species="b", calc_type="full_cat")
 
@@ -694,9 +645,9 @@ class TestBuildStageBest:
         selections: dict = {}
         sd = _build_stage_best(stage_spec, pspec, extracted, selections)
         # Best E → candidate 1 (idx 1, E=5.0)
-        assert sd.E == pytest.approx(5.0)
+        assert pytest.approx(5.0) == sd.E
         # Best G → candidate 0 (idx 0, G=100.0)
-        assert sd.G == pytest.approx(100.0)
+        assert pytest.approx(100.0) == sd.G
         # Selection recorded
         assert len(selections) == 1
 
@@ -708,17 +659,13 @@ class TestBuildStageBest:
 
         # Follower: same key, but not selection_leader
         pid_fol = ProfileID(method_key="m", catalyst="cat", calc_type="frz_cat")
-        pspec_fol = ProfileSpec(
-            id=pid_fol, stages=(stage_spec,), selection_leader=False
-        )
+        pspec_fol = ProfileSpec(id=pid_fol, stages=(stage_spec,), selection_leader=False)
         sd_fol = _build_stage_best(stage_spec, pspec_fol, extracted, selections)
         # Should use same indices as leader
-        assert sd_fol.E == pytest.approx(5.0)
-        assert sd_fol.G == pytest.approx(100.0)
+        assert pytest.approx(5.0) == sd_fol.E
+        assert pytest.approx(100.0) == sd_fol.G
 
-    def test_follower_missing_data_logs_warning(
-        self, caplog: pytest.LogCaptureFixture
-    ) -> None:
+    def test_follower_missing_data_logs_warning(self, caplog: pytest.LogCaptureFixture) -> None:
         """Follower reusing a leader index with no data → None + warning (no fallback)."""
         import logging
 
@@ -727,9 +674,7 @@ class TestBuildStageBest:
         _build_stage_best(stage_spec, pspec, extracted, selections)  # leader records
 
         pid_fol = ProfileID(method_key="m", catalyst="cat", calc_type="frz_cat")
-        pspec_fol = ProfileSpec(
-            id=pid_fol, stages=(stage_spec,), selection_leader=False
-        )
+        pspec_fol = ProfileSpec(id=pid_fol, stages=(stage_spec,), selection_leader=False)
         with caplog.at_level(logging.WARNING):
             sd_fol = _build_stage_best(stage_spec, pspec_fol, {}, selections)
         assert sd_fol.E is None
@@ -738,9 +683,7 @@ class TestBuildStageBest:
 
     def test_is_ni_overrides_G(self) -> None:
         """When is_ni=True and g_ni_ref is present, G is overridden."""
-        c_prim = CalcID(
-            method_key="m", stage="preTS", species="a", calc_type="full_cat"
-        )
+        c_prim = CalcID(method_key="m", stage="preTS", species="a", calc_type="full_cat")
         ref_cid = CalcID(method_key="m", stage="r", species="ref")
         trans_cid = CalcID(method_key="m", stage="r", species="trans")
 
@@ -760,9 +703,7 @@ class TestBuildStageBest:
 
         extracted = {
             c_prim: _ed(calc_id=c_prim, energy=10.0, G=100.0),
-            ref_cid: _ed(
-                calc_id=ref_cid, H=-50.0, s_corr=0.06, s_trans=0.03, temperature=298.15
-            ),
+            ref_cid: _ed(calc_id=ref_cid, H=-50.0, s_corr=0.06, s_trans=0.03, temperature=298.15),
             trans_cid: _ed(calc_id=trans_cid, s_trans=0.03, temperature=298.15),
         }
         sd = _build_stage_best(stage_spec, pspec, extracted, {}, is_ni=True)
@@ -776,9 +717,7 @@ class TestBuildOne:
 
     def test_ni_profile_has_no_E(self) -> None:
         """NI profile sets E=None on all stages."""
-        c_r = CalcID(
-            method_key="m", stage="reactants", species="x", calc_type="full_cat"
-        )
+        c_r = CalcID(method_key="m", stage="reactants", species="x", calc_type="full_cat")
         c_ts = CalcID(method_key="m", stage="ts", species="y", calc_type="full_cat")
 
         stages = (
@@ -786,9 +725,7 @@ class TestBuildOne:
             StageSpec(name="ts", calc_ids=(c_ts,), label="ts"),
         )
         pid = ProfileID(method_key="m", catalyst="cat", calc_type="full_cat")
-        pspec = ProfileSpec(
-            id=pid, stages=stages, selection_leader=True, ref_stage="reactants"
-        )
+        pspec = ProfileSpec(id=pid, stages=stages, selection_leader=True, ref_stage="reactants")
 
         extracted = {
             c_r: _ed(calc_id=c_r, energy=10.0, G=100.0),
@@ -804,9 +741,7 @@ class TestBuildOne:
 
     def test_ni_profile_with_ni_ref(self) -> None:
         """NI profile uses ni_ref for G on complex stages."""
-        c_r = CalcID(
-            method_key="m", stage="reactants", species="x", calc_type="full_cat"
-        )
+        c_r = CalcID(method_key="m", stage="reactants", species="x", calc_type="full_cat")
         c_ts = CalcID(method_key="m", stage="ts", species="y", calc_type="full_cat")
         ref_cid = CalcID(method_key="m", stage="r", species="ref")
         trans_cid = CalcID(method_key="m", stage="r", species="trans")
@@ -821,16 +756,12 @@ class TestBuildOne:
             StageSpec(name="ts", calc_ids=(c_ts,), label="ts", ni_ref=ni_ref),
         )
         pid = ProfileID(method_key="m", catalyst="cat", calc_type="full_cat")
-        pspec = ProfileSpec(
-            id=pid, stages=stages, selection_leader=True, ref_stage="reactants"
-        )
+        pspec = ProfileSpec(id=pid, stages=stages, selection_leader=True, ref_stage="reactants")
 
         extracted = {
             c_r: _ed(calc_id=c_r, energy=10.0, G=100.0),
             c_ts: _ed(calc_id=c_ts, energy=20.0, G=110.0),
-            ref_cid: _ed(
-                calc_id=ref_cid, H=-50.0, s_corr=0.06, s_trans=0.03, temperature=298.15
-            ),
+            ref_cid: _ed(calc_id=ref_cid, H=-50.0, s_corr=0.06, s_trans=0.03, temperature=298.15),
             trans_cid: _ed(calc_id=trans_cid, s_trans=0.03, temperature=298.15),
         }
 
@@ -859,16 +790,14 @@ class TestBuildOne:
         pd = _build_one(pspec, extracted, {})
         assert pd is not None
         ts_stage = next(s for s in pd.stages if s.name == "ts")
-        assert ts_stage.E == pytest.approx(20.0)
-        assert ts_stage.G == pytest.approx(110.0)
+        assert pytest.approx(20.0) == ts_stage.E
+        assert pytest.approx(110.0) == ts_stage.G
         assert ts_stage.rel("E") == pytest.approx(10.0)
         assert ts_stage.rel("G") == pytest.approx(10.0)
 
     def test_build_one_with_alternatives(self) -> None:
         """_build_one delegates to _build_stage_best when alternatives exist."""
-        c_r = CalcID(
-            method_key="m", stage="reactants", species="x", calc_type="full_cat"
-        )
+        c_r = CalcID(method_key="m", stage="reactants", species="x", calc_type="full_cat")
         c_ts_a = CalcID(method_key="m", stage="ts", species="a", calc_type="full_cat")
         c_ts_b = CalcID(method_key="m", stage="ts", species="b", calc_type="full_cat")
 
@@ -878,9 +807,7 @@ class TestBuildOne:
             StageSpec(name="ts", calc_ids=(c_ts_a,), label="ts", alternatives=(alt,)),
         )
         pid = ProfileID(method_key="m", catalyst="cat", calc_type="full_cat")
-        pspec = ProfileSpec(
-            id=pid, stages=stages, selection_leader=True, ref_stage="reactants"
-        )
+        pspec = ProfileSpec(id=pid, stages=stages, selection_leader=True, ref_stage="reactants")
 
         extracted = {
             c_r: _ed(calc_id=c_r, energy=10.0, G=100.0),
@@ -892,8 +819,8 @@ class TestBuildOne:
         assert pd is not None
         ts_stage = next(s for s in pd.stages if s.name == "ts")
         # Best E = 15.0 (alt), Best G = 110.0 (primary)
-        assert ts_stage.E == pytest.approx(15.0)
-        assert ts_stage.G == pytest.approx(110.0)
+        assert pytest.approx(15.0) == ts_stage.E
+        assert pytest.approx(110.0) == ts_stage.G
 
 
 # ===================================================================
@@ -1174,9 +1101,7 @@ class TestExtractOneEdgeCases:
         )()
         (tmp_path / "mol.in").touch()
         (tmp_path / "mol.out").touch()  # empty file
-        with patch(
-            "pya3eda.extractor.data.get_status", return_value=(Status.SUCCESSFUL, "ok")
-        ):
+        with patch("pya3eda.extractor.data.get_status", return_value=(Status.SUCCESSFUL, "ok")):
             result = _extract_one(spec, "all", {})
         assert result is None
 
@@ -1201,9 +1126,7 @@ class TestExtractOneEdgeCases:
         )()
         (tmp_path / "mol.in").touch()
         (tmp_path / "mol.out").write_text("some output without energy")
-        with patch(
-            "pya3eda.extractor.data.get_status", return_value=(Status.SUCCESSFUL, "ok")
-        ):
+        with patch("pya3eda.extractor.data.get_status", return_value=(Status.SUCCESSFUL, "ok")):
             result = _extract_one(spec, "all", {})
         assert result is None
 
@@ -1214,9 +1137,7 @@ class TestExtractOneEdgeCases:
         from pya3eda.extractor.data import _extract_one
         from pya3eda.status.checker import Status
 
-        cid = CalcID(
-            method_key="m", stage="ts", species="mol", mode="sp", calc_type="full_cat"
-        )
+        cid = CalcID(method_key="m", stage="ts", species="mol", mode="sp", calc_type="full_cat")
         spec = type(
             "Spec",
             (),
@@ -1230,9 +1151,7 @@ class TestExtractOneEdgeCases:
         )()
         (tmp_path / "mol.in").touch()
         (tmp_path / "mol.out").write_text("some output without EDA data")
-        with patch(
-            "pya3eda.extractor.data.get_status", return_value=(Status.SUCCESSFUL, "ok")
-        ):
+        with patch("pya3eda.extractor.data.get_status", return_value=(Status.SUCCESSFUL, "ok")):
             result = _extract_one(spec, "all", {})
         assert result is None
 
@@ -1260,13 +1179,41 @@ class TestExtractOneEdgeCases:
         )()
         (tmp_path / "mol.in").touch()
         (tmp_path / "mol.out").write_text("Final energy is -100.5 Ha\n")
-        with patch(
-            "pya3eda.extractor.data.get_status", return_value=(Status.SUCCESSFUL, "ok")
+        with (
+            patch("pya3eda.extractor.data.get_status", return_value=(Status.SUCCESSFUL, "ok")),
+            caplog.at_level(logging.WARNING),
         ):
-            with caplog.at_level(logging.WARNING):
-                result = _extract_one(spec, "all", {})  # empty opt_cache
+            result = _extract_one(spec, "all", {})  # empty opt_cache
         assert result is not None
         assert result.sp_energy is not None
         assert result.H is None
         assert result.G is None
         assert "no OPT thermo" in caplog.text
+
+
+class TestParseSpEnergyBranches:
+    def test_eda_without_cds(self) -> None:
+        """EDA SP output with no SMD-CDS line skips the CDS correction."""
+        from pya3eda.extractor.data import _parse_sp_energy
+
+        content = "   10   -1814.1288377459      3.50e-09     00000 Convergence criterion met\n"
+        spec = type("S", (), {"id": type("I", (), {"calc_type": "frz_cat"})()})()
+        assert _parse_sp_energy(content, spec) is not None
+
+
+class TestComputeGBranches:
+    def test_gas_phase_skips_ssc(self) -> None:
+        """Gas-phase G omits the standard-state correction."""
+        from pya3eda.extractor.data import _compute_G
+
+        g = _compute_G(10.0, 298.0, 0.01, "false", None)
+        assert g == pytest.approx(10.0 - 298.0 * 0.01)
+
+
+class TestComputeForCatalystBranches:
+    def test_missing_full_cat_uses_no_pretts_baseline(self) -> None:
+        """A catalyst with no full_cat profile falls back to use_preTS=False."""
+        from pya3eda.extractor.barriers import _compute_for_catalyst
+
+        result = _compute_for_catalyst("m", "cat", "opt", None, {})
+        assert isinstance(result, list)

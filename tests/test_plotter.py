@@ -59,9 +59,7 @@ def _dd(catalyst: str, etype: str, **kw) -> DeltaDeltaData:
     return DeltaDeltaData(method_key=MK, catalyst=catalyst, energy_type=etype, **kw)
 
 
-def _pspec(
-    calc_type: str | None, catalyst: str | None, leader: bool = False
-) -> ProfileSpec:
+def _pspec(calc_type: str | None, catalyst: str | None, leader: bool = False) -> ProfileSpec:
     """Minimal ProfileSpec for registry.all_profiles."""
     pid = _pid(calc_type=calc_type, catalyst=catalyst)
     stage = StageSpec(name="reactants", calc_ids=(), label="r")
@@ -138,9 +136,7 @@ class TestDrawTrace:
             ("postTS", -1.0),
             ("products", -5.0),
         ]
-        _draw_trace(
-            ax, stages, "firebrick", skip_stages=frozenset({"reactant", "product"})
-        )
+        _draw_trace(ax, stages, "firebrick", skip_stages=frozenset({"reactant", "product"}))
         plt.close(fig)
 
     def test_empty(self) -> None:
@@ -192,8 +188,22 @@ class TestStyleAxes:
         assert "E" in ylabel
         plt.close(fig)
 
+    def test_no_traces_skips_ylim(self) -> None:
+        """Empty traces → all_vals empty → ylim left untouched."""
+        import matplotlib.pyplot as plt
+
+        fig, ax = plt.subplots()
+        _style_axes(ax, "G", "kcal/mol", [])
+        plt.close(fig)
+
 
 class TestPlotCatalyst:
+    def test_skips_trace_with_no_rel_values(self, tmp_path: Path) -> None:
+        """A present profile whose rel values are all None yields no trace → not plotted."""
+        uncat = ProfileData(profile_id=_pid(), stages=(_sd("reactants"), _sd("ts")))
+        result = _plot_catalyst({}, uncat, MK, "cat1", "opt", None, "G", tmp_path)
+        assert result is False
+
     def _make_profiles(self) -> dict[ProfileID, ProfileData]:
         uncat_stages = (
             _sd("reactants", _rel={"E": 0.0, "G": 0.0}),
@@ -296,8 +306,15 @@ class TestPlotAllProfiles:
         plot_all_profiles(profiles, registry, tmp_path)
 
         svgs = list((tmp_path / "results" / MK / "plots").rglob("*.svg"))
-        # E, G, G_ni × 1 catalyst = 3 (or 2 if G_ni skipped due to no NI trace)
+        # E, G, G_ni x 1 catalyst = 3 (or 2 if G_ni skipped due to no NI trace)
         assert len(svgs) >= 2
+
+    def test_unplottable_catalyst_not_counted(self, tmp_path: Path) -> None:
+        """A registry catalyst with no usable profile data plots nothing (plotted False)."""
+        registry = MagicMock()
+        registry.all_profiles = [_pspec("full_cat", "cat1")]
+        plot_all_profiles({}, registry, tmp_path)
+        assert list((tmp_path / "results").rglob("*.svg")) == []
 
 
 # ===================================================================
@@ -351,9 +368,7 @@ class TestLighten:
 
 class TestPlotSingle:
     def test_e_g_4bar(self, tmp_path: Path) -> None:
-        data = [
-            _dd("cat1", "E", dd_frz=-1.0, dd_pol=-2.0, dd_ct=-3.0, dd_complete=-6.0)
-        ]
+        data = [_dd("cat1", "E", dd_frz=-1.0, dd_pol=-2.0, dd_ct=-3.0, dd_complete=-6.0)]
         out = tmp_path / "test.svg"
         _plot_single(data, ["cat1"], "E", out)
         assert out.exists()
@@ -386,9 +401,7 @@ class TestPlotSingle:
 
     def test_missing_cat_in_data(self, tmp_path: Path) -> None:
         """ordered_cats includes a catalyst with no data → has_val stays False."""
-        data = [
-            _dd("cat1", "G", dd_frz=-1.0, dd_pol=-2.0, dd_ct=-3.0, dd_complete=-6.0)
-        ]
+        data = [_dd("cat1", "G", dd_frz=-1.0, dd_pol=-2.0, dd_ct=-3.0, dd_complete=-6.0)]
         out = tmp_path / "missing.svg"
         _plot_single(data, ["cat1", "cat_missing"], "G", out)
         assert out.exists()
@@ -416,6 +429,14 @@ class TestPlotDeltaDeltaBarplots:
         plot_delta_delta_barplots(dd_list, registry, tmp_path)
         svgs = list((tmp_path / "results" / MK / "plots").rglob("*.svg"))
         assert len(svgs) == 3
+
+    def test_handles_missing_contribution(self, tmp_path: Path) -> None:
+        """A delta-delta entry with a None component is skipped in the matrix."""
+        registry = MagicMock()
+        registry.catalyst_order = ["cat1"]
+        registry.method_keys = [MK]
+        dd_list = [_dd("cat1", "E", dd_frz=None, dd_pol=-2.0, dd_ct=-3.0, dd_complete=-5.0)]
+        plot_delta_delta_barplots(dd_list, registry, tmp_path)
 
     def test_empty_catalyst_order(self, tmp_path: Path) -> None:
         registry = MagicMock()

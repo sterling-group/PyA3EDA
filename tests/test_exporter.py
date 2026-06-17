@@ -161,6 +161,12 @@ class TestExportRawProfiles:
         count = _export_raw_profiles(profiles, "other_key", tmp_path)
         assert count == 0
 
+    def test_empty_stages_writes_nothing(self, tmp_path: Path) -> None:
+        """A matching profile with no stages yields no rows → nothing written."""
+        pid = _pid()
+        profiles = {pid: ProfileData(profile_id=pid, stages=())}
+        assert _export_raw_profiles(profiles, MK, tmp_path) == 0
+
 
 # ── _export_profiles ────────────────────────────────────────────────
 
@@ -178,12 +184,8 @@ class TestExportProfiles:
             _sd("products", label="p", _rel={"E": -5.0, "G": -3.0}),
         )
         full_stages = (
-            _sd(
-                "reactants", calc_type="full_cat", label="r", _rel={"E": 0.0, "G": 0.0}
-            ),
-            _sd(
-                "preTS", calc_type="full_cat", label="pre", _rel={"E": -2.0, "G": -1.0}
-            ),
+            _sd("reactants", calc_type="full_cat", label="r", _rel={"E": 0.0, "G": 0.0}),
+            _sd("preTS", calc_type="full_cat", label="pre", _rel={"E": -2.0, "G": -1.0}),
             _sd("ts", calc_type="full_cat", label="t", _rel={"E": 8.0, "G": 9.0}),
             _sd(
                 "postTS",
@@ -191,20 +193,14 @@ class TestExportProfiles:
                 label="post",
                 _rel={"E": -3.0, "G": -2.0},
             ),
-            _sd(
-                "products", calc_type="full_cat", label="p", _rel={"E": -6.0, "G": -4.0}
-            ),
+            _sd("products", calc_type="full_cat", label="p", _rel={"E": -6.0, "G": -4.0}),
         )
         frz_stages = (
             _sd("reactants", calc_type="frz_cat", label="r", _rel={"E": 0.0, "G": 0.0}),
             _sd("preTS", calc_type="frz_cat", label="pre", _rel={"E": -1.0, "G": -0.5}),
             _sd("ts", calc_type="frz_cat", label="t", _rel={"E": 9.0, "G": 10.0}),
-            _sd(
-                "postTS", calc_type="frz_cat", label="post", _rel={"E": -2.0, "G": -1.5}
-            ),
-            _sd(
-                "products", calc_type="frz_cat", label="p", _rel={"E": -5.0, "G": -3.5}
-            ),
+            _sd("postTS", calc_type="frz_cat", label="post", _rel={"E": -2.0, "G": -1.5}),
+            _sd("products", calc_type="frz_cat", label="p", _rel={"E": -5.0, "G": -3.5}),
         )
 
         return {
@@ -221,7 +217,7 @@ class TestExportProfiles:
         count = _export_profiles(profiles, MK, tmp_path)
         assert count == 1
 
-        csv = list(tmp_path.glob("*.csv"))[0]
+        csv = next(iter(tmp_path.glob("*.csv")))
         import pandas as pd
 
         df = pd.read_csv(csv)
@@ -248,7 +244,7 @@ class TestExportProfiles:
         """Catalytic traces skip reactants and products rows."""
         profiles = self._make_profiles()
         _export_profiles(profiles, MK, tmp_path)
-        csv = list(tmp_path.glob("*.csv"))[0]
+        csv = next(iter(tmp_path.glob("*.csv")))
         import pandas as pd
 
         df = pd.read_csv(csv)
@@ -262,13 +258,17 @@ class TestExportProfiles:
         count = _export_profiles({}, MK, tmp_path)
         assert count == 0
 
+    def test_available_but_no_rows(self, tmp_path: Path) -> None:
+        """A catalyzed trace with no stages is available but yields no rows → not written."""
+        pid = _pid(calc_type="full_cat", catalyst="cat1")
+        profiles = {pid: ProfileData(profile_id=pid, stages=())}
+        assert _export_profiles(profiles, MK, tmp_path) == 0
+
     def test_catalyst_with_no_matching_profiles(self, tmp_path: Path) -> None:
         """A catalyst appears in one mode but not another → empty available → skip."""
         # Create a profile that registers cat2 in catalysts and (opt, None) in mode_sps,
         # but cat2 has no matching trace profiles for any calc_type in TRACE_ORDER.
-        pid_cat2 = ProfileID(
-            method_key=MK, catalyst="cat2", calc_type="custom_type", mode="opt"
-        )
+        pid_cat2 = ProfileID(method_key=MK, catalyst="cat2", calc_type="custom_type", mode="opt")
         stages = (_sd("reactants", label="r", _rel={"E": 0.0}),)
         profiles = {pid_cat2: ProfileData(profile_id=pid_cat2, stages=stages)}
         count = _export_profiles(profiles, MK, tmp_path)
@@ -287,7 +287,7 @@ class TestExportDeltaDelta:
         count = _export_delta_delta(dd_list, MK, tmp_path)
         assert count == 2
         # Check E file has no barrier_ni column
-        e_csv = [f for f in tmp_path.glob("*_E_*.csv")][0]
+        e_csv = next(iter(tmp_path.glob("*_E_*.csv")))
         content = e_csv.read_text()
         assert "Barrier_ni" not in content
 
@@ -305,7 +305,7 @@ class TestExportDeltaDelta:
         ]
         count = _export_delta_delta(dd_list, MK, tmp_path)
         assert count == 1
-        csv = list(tmp_path.glob("*.csv"))[0]
+        csv = next(iter(tmp_path.glob("*.csv")))
         content = csv.read_text()
         assert "Barrier_ni" in content
         assert "DD_G_ni_ni" in content

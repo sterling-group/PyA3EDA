@@ -21,9 +21,7 @@ from tests.synthetic_outputs import OPT_OUTPUT, TS_OUTPUT
 
 class TestParseXYZ:
     def test_simple_water(self) -> None:
-        text = (
-            "3\n0 1\nO   0.0  0.0  0.0\nH   0.0  0.757  0.587\nH   0.0  -0.757  0.587\n"
-        )
+        text = "3\n0 1\nO   0.0  0.0  0.0\nH   0.0  0.757  0.587\nH   0.0  -0.757  0.587\n"
         result = parse_xyz(text)
         assert result is not None
         assert result.n_atoms == 3

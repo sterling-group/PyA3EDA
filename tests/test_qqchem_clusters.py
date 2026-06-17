@@ -41,34 +41,26 @@ class TestLoadClusterConfigs:
         assert "juno" in data
         assert data["juno"]["mem_per_cpu"] == 3000
 
-    def test_missing_file_exits(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_missing_file_exits(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("QQCHEM_CLUSTERS", str(tmp_path / "absent.yaml"))
         with pytest.raises(SystemExit):
             load_cluster_configs()
 
-    def test_non_mapping_exits(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_non_mapping_exits(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         cfg = tmp_path / "clusters.yaml"
         cfg.write_text("- just\n- a\n- list\n")
         monkeypatch.setenv("QQCHEM_CLUSTERS", str(cfg))
         with pytest.raises(SystemExit):
             load_cluster_configs()
 
-    def test_empty_mapping_exits(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_empty_mapping_exits(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         cfg = tmp_path / "clusters.yaml"
         cfg.write_text("")  # yaml.safe_load -> None
         monkeypatch.setenv("QQCHEM_CLUSTERS", str(cfg))
         with pytest.raises(SystemExit):
             load_cluster_configs()
 
-    def test_missing_yaml_dependency_exits(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_missing_yaml_dependency_exits(self, monkeypatch: pytest.MonkeyPatch) -> None:
         # Simulate pyyaml not being installed.
         monkeypatch.setattr(clusters, "yaml", None)
         with pytest.raises(SystemExit):

@@ -53,9 +53,7 @@ class TestDetectCluster:
         assert name == "juno"
         assert config is cfg
 
-    def test_env_no_match_falls_back(
-        self, monkeypatch: pytest.MonkeyPatch, cfg: dict
-    ) -> None:
+    def test_env_no_match_falls_back(self, monkeypatch: pytest.MonkeyPatch, cfg: dict) -> None:
         monkeypatch.setenv("CLUSTER_NAME", "ghost")
         with (
             patch.object(cli, "load_cluster_configs", return_value={"juno": cfg}),
@@ -75,9 +73,7 @@ class TestDetectCluster:
         assert name == "juno"
         assert config is cfg
 
-    def test_scontrol_name_not_in_configs(
-        self, monkeypatch: pytest.MonkeyPatch, cfg: dict
-    ) -> None:
+    def test_scontrol_name_not_in_configs(self, monkeypatch: pytest.MonkeyPatch, cfg: dict) -> None:
         monkeypatch.delenv("CLUSTER_NAME", raising=False)
         result = _scontrol_result("ClusterName = othercluster\n")
         with (
@@ -87,9 +83,18 @@ class TestDetectCluster:
             name, _ = cli.detect_cluster()
         assert name == "juno"  # fallback
 
-    def test_scontrol_index_error(
-        self, monkeypatch: pytest.MonkeyPatch, cfg: dict
-    ) -> None:
+    def test_scontrol_no_clustername_line(self, monkeypatch: pytest.MonkeyPatch, cfg: dict) -> None:
+        """scontrol output with no ClusterName line → fall back to first config."""
+        monkeypatch.delenv("CLUSTER_NAME", raising=False)
+        result = _scontrol_result("Foo = 1\nBar = 2\n")
+        with (
+            patch.object(cli, "load_cluster_configs", return_value={"juno": cfg}),
+            patch.object(cli.subprocess, "run", return_value=result),
+        ):
+            name, _ = cli.detect_cluster()
+        assert name == "juno"
+
+    def test_scontrol_index_error(self, monkeypatch: pytest.MonkeyPatch, cfg: dict) -> None:
         monkeypatch.delenv("CLUSTER_NAME", raising=False)
         result = _scontrol_result("ClusterName\n")  # no '=' -> IndexError
         with (
@@ -99,15 +104,11 @@ class TestDetectCluster:
             name, _ = cli.detect_cluster()
         assert name == "juno"
 
-    def test_scontrol_subprocess_error(
-        self, monkeypatch: pytest.MonkeyPatch, cfg: dict
-    ) -> None:
+    def test_scontrol_subprocess_error(self, monkeypatch: pytest.MonkeyPatch, cfg: dict) -> None:
         monkeypatch.delenv("CLUSTER_NAME", raising=False)
         with (
             patch.object(cli, "load_cluster_configs", return_value={"juno": cfg}),
-            patch.object(
-                cli.subprocess, "run", side_effect=cli.subprocess.SubprocessError()
-            ),
+            patch.object(cli.subprocess, "run", side_effect=cli.subprocess.SubprocessError()),
         ):
             name, _ = cli.detect_cluster()
         assert name == "juno"
@@ -176,9 +177,7 @@ class TestCheckMemory:
     def test_exceeds_limit_exits(self) -> None:
         args = argparse.Namespace(parallel_type="openmp")
         with pytest.raises(SystemExit):
-            cli._check_memory(
-                args, [9999], cpus=1, qchem_processors=1, mem_per_cpu=2000
-            )
+            cli._check_memory(args, [9999], cpus=1, qchem_processors=1, mem_per_cpu=2000)
 
 
 # ===================================================================
@@ -194,7 +193,7 @@ class TestProcessMemory:
         p = tmp_path / "job.in"
         p.write_text("$rem\nmem_total 1000\n$end\n")
         lines = p.read_text().splitlines(keepends=True)
-        values, new_lines = cli._process_memory(
+        values, _new_lines = cli._process_memory(
             self._args(4000),
             lines,
             cpus=4,
@@ -260,9 +259,7 @@ class TestResolveVersion:
             cli._resolve_version(self._args("modqchem"), "juno", cfg)
 
     def test_modqchem_with_qcsetup(self, cfg: dict) -> None:
-        result = cli._resolve_version(
-            self._args("modqchem", "/path/setup"), "juno", cfg
-        )
+        result = cli._resolve_version(self._args("modqchem", "/path/setup"), "juno", cfg)
         assert result == ([], "/path/setup", [], False, [])
 
     def test_unknown_version_exits(self, cfg: dict) -> None:
@@ -270,7 +267,7 @@ class TestResolveVersion:
             cli._resolve_version(self._args("9.9.9"), "juno", cfg)
 
     def test_valid_version(self, cfg: dict) -> None:
-        module_cmds, qcsetup, env, mpi, mpi_mods = cli._resolve_version(
+        module_cmds, _qcsetup, _env, mpi, mpi_mods = cli._resolve_version(
             self._args("6.2.1"), "juno", cfg
         )
         assert module_cmds == ["module load qchem/6.2.1"]
@@ -307,6 +304,19 @@ class TestRun:
         sub.assert_called_once()
         # config exclude_nodes for 'normal' partition is merged in
         assert gen.call_args.kwargs["exclude_nodes"] == "node99"
+
+    def test_run_partition_without_excludes(self, cfg: dict) -> None:
+        """A partition with no configured node exclusions skips the exclude merge."""
+        cfg2 = {**cfg, "exclude_nodes": {}}
+        args = self._args(cfg2, ["job.in"])
+        with (
+            patch.object(cli, "load_cluster_configs", return_value={"juno": cfg2}),
+            patch.object(cli, "read_input_file", return_value=["$rem\n", "$end\n"]),
+            patch.object(cli, "generate_slurm_script", return_value="job.slurm") as gen,
+            patch.object(cli, "submit_job"),
+        ):
+            cli.run(args, cluster_name="juno")
+        gen.assert_called_once()
 
     def test_run_detects_cluster_when_none(self, cfg: dict) -> None:
         args = self._args(cfg, ["job.in"])

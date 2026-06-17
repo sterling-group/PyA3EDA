@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import importlib
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from pya3eda.ids import CalcID, CalcSpec
+from pya3eda.status import checker as checker_module
 from pya3eda.status.checker import (
     Status,
     _interleave_opt_sp,
@@ -14,6 +16,14 @@ from pya3eda.status.checker import (
     get_status,
     should_process,
 )
+
+
+def test_report_logger_idempotent_on_reload() -> None:
+    """Re-importing the module leaves the report handler set up exactly once."""
+    before = len(checker_module._report.handlers)
+    importlib.reload(checker_module)
+    assert len(checker_module._report.handlers) == before
+
 
 # ===================================================================
 # Helpers
@@ -55,38 +65,26 @@ def _make_spec(
 
 class TestValidateOpt:
     def test_min_with_zero_imag_ok(self) -> None:
-        text = (
-            "**  OPTIMIZATION CONVERGED  **\n"
-            "This Molecule has  0 Imaginary Frequencies\n"
-        )
+        text = "**  OPTIMIZATION CONVERGED  **\nThis Molecule has  0 Imaginary Frequencies\n"
         spec = _make_spec(stage="reactants")
         status, _ = _validate_opt(text, spec)
         assert status is None  # No validation error
 
     def test_ts_with_one_imag_ok(self) -> None:
-        text = (
-            "** TRANSITION STATE CONVERGED  **\n"
-            "This Molecule has  1 Imaginary Frequencies\n"
-        )
+        text = "** TRANSITION STATE CONVERGED  **\nThis Molecule has  1 Imaginary Frequencies\n"
         spec = _make_spec(stage="ts")
         status, _ = _validate_opt(text, spec)
         assert status is None
 
     def test_min_with_imag_fails(self) -> None:
-        text = (
-            "**  OPTIMIZATION CONVERGED  **\n"
-            "This Molecule has  1 Imaginary Frequencies\n"
-        )
+        text = "**  OPTIMIZATION CONVERGED  **\nThis Molecule has  1 Imaginary Frequencies\n"
         spec = _make_spec(stage="reactants")
         status, detail = _validate_opt(text, spec)
         assert status == Status.VALIDATION
         assert "Imag: 1" in detail
 
     def test_ts_with_wrong_imag_fails(self) -> None:
-        text = (
-            "** TRANSITION STATE CONVERGED  **\n"
-            "This Molecule has  2 Imaginary Frequencies\n"
-        )
+        text = "** TRANSITION STATE CONVERGED  **\nThis Molecule has  2 Imaginary Frequencies\n"
         spec = _make_spec(stage="ts")
         status, detail = _validate_opt(text, spec)
         assert status == Status.VALIDATION
@@ -138,9 +136,7 @@ class TestShouldProcess:
         inp = tmp_path / "mol_opt.in"
         inp.touch()
         spec = _make_spec(input_path=inp)
-        with patch(
-            "pya3eda.status.checker.get_status", return_value=(Status.CRASH, "err")
-        ):
+        with patch("pya3eda.status.checker.get_status", return_value=(Status.CRASH, "err")):
             assert should_process(spec, "CRASH") is True
             assert should_process(spec, "SUCCESSFUL") is False
 
@@ -205,9 +201,7 @@ class TestGetStatus:
             "**  OPTIMIZATION CONVERGED  **\n"
             "This Molecule has  2 Imaginary Frequencies\n"
         )
-        spec = _make_spec(
-            input_path=inp, output_path=out, mode="opt", stage="reactants"
-        )
+        spec = _make_spec(input_path=inp, output_path=out, mode="opt", stage="reactants")
         status, _ = get_status(spec)
         assert status == Status.VALIDATION
 
@@ -336,10 +330,7 @@ class TestValidateOptExtra:
 
     def test_ts_with_no_imag(self) -> None:
         """TS with converged but imag=0 → VALIDATION (expects 1)."""
-        text = (
-            "** TRANSITION STATE CONVERGED  **\n"
-            "This Molecule has  0 Imaginary Frequencies\n"
-        )
+        text = "** TRANSITION STATE CONVERGED  **\nThis Molecule has  0 Imaginary Frequencies\n"
         spec = _make_spec(stage="ts")
         status, detail = _validate_opt(text, spec)
         assert status == Status.VALIDATION
@@ -347,10 +338,7 @@ class TestValidateOptExtra:
 
     def test_non_ts_with_no_imag_ok(self) -> None:
         """Non-TS converged with 0 imag → OK."""
-        text = (
-            "**  OPTIMIZATION CONVERGED  **\n"
-            "This Molecule has  0 Imaginary Frequencies\n"
-        )
+        text = "**  OPTIMIZATION CONVERGED  **\nThis Molecule has  0 Imaginary Frequencies\n"
         spec = _make_spec(stage="reactants")
         status, _ = _validate_opt(text, spec)
         assert status is None

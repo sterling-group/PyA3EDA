@@ -43,9 +43,7 @@ def _kwargs(tmp_path: Path, **overrides: object) -> dict:
     return base
 
 
-def _generate(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, **overrides: object
-) -> str:
+def _generate(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, **overrides: object) -> str:
     """Generate a script in an isolated cwd and return its text."""
     monkeypatch.chdir(tmp_path)
     name = generate_slurm_script(**_kwargs(tmp_path, **overrides))
@@ -67,9 +65,7 @@ class TestScratchCleanupGuard:
         assert 'if [ -n "$scrname" ]; then' in text
         assert 'rm -rf "$QCSCRATCH/$scrname"' in text
 
-    def test_no_unguarded_rm_rf(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_no_unguarded_rm_rf(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         # Every `rm -rf` of the scratch dir must be preceded by the guard.
         text = _generate(tmp_path, monkeypatch, scratch=None)
         for m in re.finditer(r'rm -rf "\$QCSCRATCH/\$scrname"', text):
@@ -111,31 +107,21 @@ class TestSbatchDirectives:
     ) -> None:
         # Intentional by design: Q-Chem writes the .out file itself via the
         # `qchem ... output_file` command; SLURM's own stdout/stderr go to .err.
-        text = _generate(
-            tmp_path, monkeypatch, output_file="job.out", error_file="job.err"
-        )
+        text = _generate(tmp_path, monkeypatch, output_file="job.out", error_file="job.err")
         assert "#SBATCH --output=job.err" in text
         assert "#SBATCH --error=job.err" in text
         # The output_file is still used for the qchem command itself.
         assert "job.out" in text.split("# Run Q-Chem job")[1]
 
-    def test_resources_written(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        text = _generate(
-            tmp_path, monkeypatch, cpus=4, mem_per_cpu=3000, partition="big"
-        )
+    def test_resources_written(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        text = _generate(tmp_path, monkeypatch, cpus=4, mem_per_cpu=3000, partition="big")
         assert "#SBATCH --cpus-per-task=4" in text
         assert "#SBATCH --mem-per-cpu=3000" in text
         assert "#SBATCH --partition=big" in text
         assert "export OMP_NUM_THREADS=4" in text
 
-    def test_node_and_exclude(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        text = _generate(
-            tmp_path, monkeypatch, nodename="node01", exclude_nodes="node02"
-        )
+    def test_node_and_exclude(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        text = _generate(tmp_path, monkeypatch, nodename="node01", exclude_nodes="node02")
         assert "#SBATCH --nodelist=node01" in text
         assert "#SBATCH --exclude=node02" in text
 
@@ -147,23 +133,17 @@ class TestScriptBody:
         text = _generate(tmp_path, monkeypatch, environment_vars=["export FOO=bar"])
         assert "export FOO=bar" in text
 
-    def test_qcsetup_sourced(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_qcsetup_sourced(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         text = _generate(tmp_path, monkeypatch, qcsetup_file="/opt/qcsetup")
         assert "source /opt/qcsetup" in text
 
-    def test_save_all_adds_save_flag(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_save_all_adds_save_flag(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         text = _generate(tmp_path, monkeypatch, save_all=True)
         assert "qchem -save " in text
 
 
 class TestOpenMPI:
-    def test_openmpi_emits_mpi_flags(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_openmpi_emits_mpi_flags(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         text = _generate(
             tmp_path,
             monkeypatch,
@@ -235,9 +215,20 @@ class TestSubmitJob:
             submit_job(str(script), dryrun=False, save_slurm=True)
         assert script.exists()
 
+    def test_submit_no_script_file_to_remove(self, tmp_path: Path) -> None:
+        """save_slurm=False but the script is already gone → no unlink, no error."""
+        missing = tmp_path / "gone.slurm"
+        mock_result = MagicMock()
+        mock_result.stdout = "Submitted batch job 7\n"
+        with patch("qqchem.slurm.subprocess.run", return_value=mock_result):
+            submit_job(str(missing), dryrun=False, save_slurm=False)
+        assert not missing.exists()
+
     def test_submit_exits_when_no_job_id(self, tmp_path: Path) -> None:
         mock_result = MagicMock()
         mock_result.stdout = "garbage output\n"
-        with patch("qqchem.slurm.subprocess.run", return_value=mock_result):
-            with pytest.raises(SystemExit):
-                submit_job("job.slurm", dryrun=False)
+        with (
+            patch("qqchem.slurm.subprocess.run", return_value=mock_result),
+            pytest.raises(SystemExit),
+        ):
+            submit_job("job.slurm", dryrun=False)

@@ -81,23 +81,15 @@ class TestRegistrySyntheticConfig:
 
     def test_uncatalyzed_ts(self, registry: CalcRegistry) -> None:
         mk = "wB97X-V_def2-SVP_smd"
-        cid = CalcID(
-            method_key=mk, catalyst=None, stage="ts", species="tscomplex", mode="opt"
-        )
+        cid = CalcID(method_key=mk, catalyst=None, stage="ts", species="tscomplex", mode="opt")
         spec = registry.get(cid)
         assert spec.method_name == "wB97X-V"
 
-    def test_catalyzed_calcs_have_three_calc_types(
-        self, registry: CalcRegistry
-    ) -> None:
+    def test_catalyzed_calcs_have_three_calc_types(self, registry: CalcRegistry) -> None:
         """Each catalyzed stage should have full_cat, pol_cat, frz_cat."""
         calc_types = set()
         for spec in registry.all_calcs:
-            if (
-                spec.id.catalyst == "lip"
-                and spec.id.stage == "preTS"
-                and spec.id.mode == "opt"
-            ):
+            if spec.id.catalyst == "lip" and spec.id.stage == "preTS" and spec.id.mode == "opt":
                 calc_types.add(spec.id.calc_type)
         assert calc_types == {"full_cat", "pol_cat", "frz_cat"}
 
@@ -148,9 +140,7 @@ class TestRegistryMinimal:
         names = {
             s.id.species
             for s in mini_registry.all_calcs
-            if s.id.stage == "reactants"
-            and s.id.catalyst is None
-            and s.id.mode == "opt"
+            if s.id.stage == "reactants" and s.id.catalyst is None and s.id.mode == "opt"
         }
         # Individual reactants + reactant combinations (both include=True by default)
         assert "A" in names
@@ -168,20 +158,16 @@ class TestRegistryMinimal:
         assert "cat1-A" in species_set
         assert "cat1-B" in species_set
         assert "cat1-A-B" in species_set
-        assert len(pre_ts) == 9  # 3 species × 3 calc_types
+        assert len(pre_ts) == 9  # 3 species x 3 calc_types
 
     def test_uncatalyzed_profile_stages(self, mini_registry: CalcRegistry) -> None:
-        pid = ProfileID(
-            method_key="HF_STO-3G", catalyst=None, calc_type=None, mode="opt"
-        )
+        pid = ProfileID(method_key="HF_STO-3G", catalyst=None, calc_type=None, mode="opt")
         pspec = mini_registry.get_profile(pid)
         stage_names = [s.name for s in pspec.stages]
         assert stage_names == ["reactants", "ts", "products"]
 
     def test_catalyzed_profile_stages(self, mini_registry: CalcRegistry) -> None:
-        pid = ProfileID(
-            method_key="HF_STO-3G", catalyst="cat1", calc_type="full_cat", mode="opt"
-        )
+        pid = ProfileID(method_key="HF_STO-3G", catalyst="cat1", calc_type="full_cat", mode="opt")
         pspec = mini_registry.get_profile(pid)
         stage_names = [s.name for s in pspec.stages]
         assert stage_names == ["reactants", "preTS", "ts", "postTS", "products"]
@@ -243,7 +229,7 @@ class TestRegistryProperties:
 
 class TestPostTSAlternatives:
     def test_multi_product_generates_alternatives(self, tmp_path: Path) -> None:
-        """Config with catalyst + 2 included products + 1 free → postTS alternatives + free_p loop."""
+        """Catalyst + 2 included products + 1 free: postTS alternatives + free_p loop."""
         cfg = Config(
             levels=[LevelConfig(opt=TheoryConfig(method="HF", basis="STO-3G"))],
             reactants=[SpeciesConfig(name="r1")],
@@ -256,11 +242,7 @@ class TestPostTSAlternatives:
         )
         reg = CalcRegistry(cfg, tmp_path)
         # Should have postTS calcs for both full combo and individual subsets
-        post_ts = [
-            c
-            for c in reg.all_calcs
-            if c.id.stage == "postTS" and c.id.catalyst == "cat1"
-        ]
+        post_ts = [c for c in reg.all_calcs if c.id.stage == "postTS" and c.id.catalyst == "cat1"]
         # At least the main postTS + alternatives
         assert len(post_ts) >= 2
 
@@ -286,9 +268,7 @@ class TestDuplicateDetection:
         cfg = Config(
             levels=[
                 LevelConfig(opt=same_opt),
-                LevelConfig(
-                    opt=same_opt, sp=[TheoryConfig(method="MP2", basis="cc-pVDZ")]
-                ),
+                LevelConfig(opt=same_opt, sp=[TheoryConfig(method="MP2", basis="cc-pVDZ")]),
             ],
             reactants=[SpeciesConfig(name="mol_a")],
             products=[SpeciesConfig(name="mol_p")],
@@ -298,3 +278,18 @@ class TestDuplicateDetection:
         opt_calcs = reg.by_mode("opt")
         cids = [c.id for c in opt_calcs]
         assert len(cids) == len(set(cids))
+
+
+class TestMethodKeyDeduplication:
+    def test_levels_differing_only_in_eda2_share_method_key(self, tmp_path: Path) -> None:
+        """Two unmerged levels whose OPT differs only in eda2 dedupe to one method_key."""
+        cfg = Config(
+            levels=[
+                LevelConfig(opt=TheoryConfig(method="HF", basis="STO-3G")),
+                LevelConfig(opt=TheoryConfig(method="HF", basis="STO-3G", eda2=0)),
+            ],
+            reactants=[SpeciesConfig(name="r1")],
+            products=[SpeciesConfig(name="p1")],
+        )
+        reg = CalcRegistry(cfg, tmp_path)
+        assert reg.method_keys == ["HF_STO-3G"]

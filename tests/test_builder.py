@@ -143,9 +143,7 @@ def _make_template_dir(tmp_path: Path) -> Path:
     return tpl
 
 
-def _write_xyz(
-    template_dir: Path, name: str, content: str, calc_type: str | None = None
-) -> None:
+def _write_xyz(template_dir: Path, name: str, content: str, calc_type: str | None = None) -> None:
     """Write an XYZ template into the molecule sub-directory."""
     mol_dir = template_dir / "molecule"
     mol_dir.mkdir(parents=True, exist_ok=True)
@@ -626,9 +624,7 @@ class TestBuildRemSection:
     def test_sp_cat_stage_eda2_zero(self, tmp_path: Path) -> None:
         """Catalyst standalone SP should have eda2=0."""
         tpl = _make_template_dir(tmp_path)
-        spec = _make_spec(
-            mode="sp", catalyst="cat1", stage="cat", species="cat1", eda2=1
-        )
+        spec = _make_spec(mode="sp", catalyst="cat1", stage="cat", species="cat1", eda2=1)
         result = _build_rem_section(spec, tpl)
         assert "eda2 = 0" in result
 
@@ -842,14 +838,14 @@ class TestBuildMoleculeSection:
 
     def test_uncatalyzed_reactant(self, registry_with_xyz: tuple) -> None:
         reg, tpl = registry_with_xyz
-        spec = [
+        spec = next(
             s
             for s in reg.all_calcs
             if s.id.stage == "reactants"
             and s.id.catalyst is None
             and s.id.species == "mol_a"
             and s.id.mode == "opt"
-        ][0]
+        )
         result = _build_molecule_section(spec, reg, tpl)
         assert result is not None
         text, n_atoms = result
@@ -858,16 +854,16 @@ class TestBuildMoleculeSection:
 
     def test_uncatalyzed_ts(self, registry_with_xyz: tuple) -> None:
         reg, tpl = registry_with_xyz
-        spec = [
+        spec = next(
             s
             for s in reg.all_calcs
             if s.id.stage == "ts" and s.id.catalyst is None and s.id.mode == "opt"
-        ][0]
+        )
         result = _build_molecule_section(spec, reg, tpl)
         assert result is not None
 
     def test_catalyzed_preTS_fragmented(self, registry_with_xyz: tuple) -> None:
-        reg, tpl = registry_with_xyz
+        reg, _tpl = registry_with_xyz
         specs = [
             s
             for s in reg.all_calcs
@@ -879,11 +875,11 @@ class TestBuildMoleculeSection:
 
     def test_catalyst_standalone(self, registry_with_xyz: tuple) -> None:
         reg, tpl = registry_with_xyz
-        spec = [
+        spec = next(
             s
             for s in reg.all_calcs
             if s.id.stage == "cat" and s.id.catalyst == "cat1" and s.id.mode == "opt"
-        ][0]
+        )
         result = _build_molecule_section(spec, reg, tpl)
         # cat stage is not fragmented
         assert result is not None
@@ -1060,18 +1056,12 @@ class TestPathConstruction:
                 mode="opt",
             )
         )
-        expected = (
-            tmp_path
-            / "HF_STO-3G_smd/cat1/ts/full_cat"
-            / "ts_cat1-tscomplex_full_cat_opt.in"
-        )
+        expected = tmp_path / "HF_STO-3G_smd/cat1/ts/full_cat" / "ts_cat1-tscomplex_full_cat_opt.in"
         assert spec.input_path == expected
 
     # -- Uncatalyzed SP ---
 
-    def test_uncatalyzed_reactant_sp(
-        self, sp_reg: CalcRegistry, tmp_path: Path
-    ) -> None:
+    def test_uncatalyzed_reactant_sp(self, sp_reg: CalcRegistry, tmp_path: Path) -> None:
         spec = sp_reg.get(
             CalcID(
                 method_key="HF_STO-3G_smd",
@@ -1083,9 +1073,7 @@ class TestPathConstruction:
             )
         )
         expected = (
-            tmp_path
-            / "HF_STO-3G_smd/no_cat/reactants/mol_a/MP2_cc-pVTZ_smd_sp"
-            / "mol_a_sp.in"
+            tmp_path / "HF_STO-3G_smd/no_cat/reactants/mol_a/MP2_cc-pVTZ_smd_sp" / "mol_a_sp.in"
         )
         assert spec.input_path == expected
 
@@ -1100,9 +1088,7 @@ class TestPathConstruction:
                 sp_subfolder="MP2_cc-pVTZ_smd_sp",
             )
         )
-        expected = (
-            tmp_path / "HF_STO-3G_smd/no_cat/ts/MP2_cc-pVTZ_smd_sp" / "tscomplex_sp.in"
-        )
+        expected = tmp_path / "HF_STO-3G_smd/no_cat/ts/MP2_cc-pVTZ_smd_sp" / "tscomplex_sp.in"
         assert spec.input_path == expected
 
     # -- Catalyzed SP ---
@@ -1539,9 +1525,7 @@ class TestBuildAll:
         build_all(reg, tpl, sp_strategy="never")
         sp_calcs = [s for s in reg.all_calcs if s.id.mode == "sp"]
         for spec in sp_calcs:
-            assert not spec.input_path.exists(), (
-                f"SP file should not exist: {spec.input_path}"
-            )
+            assert not spec.input_path.exists(), f"SP file should not exist: {spec.input_path}"
 
     def test_sp_strategy_smart(self, setup: tuple) -> None:
         """sp_strategy='smart' skips SP when OPT hasn't succeeded."""
@@ -1611,9 +1595,7 @@ class TestBuildAll:
         """Catalyzed preTS input file should contain '---' fragment separator."""
         reg, tpl = setup
         build_all(reg, tpl)
-        spec = [
-            s for s in reg.all_calcs if s.id.stage == "preTS" and s.id.mode == "opt"
-        ][0]
+        spec = next(s for s in reg.all_calcs if s.id.stage == "preTS" and s.id.mode == "opt")
         content = spec.input_path.read_text()
         assert "---" in content
 
@@ -1642,9 +1624,7 @@ class TestBuildAll:
         build_all(reg, tpl)
         for spec in reg.all_calcs:
             if spec.input_path.exists():
-                assert spec.input_path.read_text().strip(), (
-                    f"Empty file: {spec.input_path}"
-                )
+                assert spec.input_path.read_text().strip(), f"Empty file: {spec.input_path}"
 
 
 # ===================================================================
@@ -1768,13 +1748,29 @@ class TestBuildOneEdgeCases:
         from unittest.mock import patch
 
         with (
-            patch(
-                "pya3eda.builder.inputs._build_molecule_section", return_value=("  ", 2)
-            ),
+            patch("pya3eda.builder.inputs._build_molecule_section", return_value=("  ", 2)),
             patch("pya3eda.builder.inputs._build_rem_section", return_value="  "),
         ):
             _build_one(spec, reg, tpl, empty_template, None, "always")
         assert not spec.input_path.exists()
+
+    def test_opt_empty_geom_and_solvent_templates(self, tmp_path: Path) -> None:
+        """Opt build where geom_opt.rem and solvent rem are empty → blocks omitted."""
+        tpl = _make_template_dir(tmp_path)
+        (tpl / "rem" / "geom_opt.rem").write_text("")
+        (tpl / "rem" / "solvent_smd.rem").write_text("")
+        base_template = (tpl / "base_template.in").read_text()
+        _write_xyz(tpl, "mol_a", _XYZ_SUB)
+        spec = _make_spec(
+            stage="reactants",
+            species="mol_a",
+            mode="opt",
+            solvent="smd",
+            input_path=tmp_path / "out" / "mol_opt.in",
+        )
+        reg = CalcRegistry(_simple_config(), tmp_path / "data")
+        _build_one(spec, reg, tpl, base_template, None, "always")
+        assert spec.input_path.exists()
 
     def test_build_standard_invalid_xyz(self, tmp_path: Path) -> None:
         """XYZ with invalid content → parse_xyz returns None → _build_standard returns None."""
@@ -1801,9 +1797,7 @@ class TestBuildOneEdgeCases:
         _write_xyz(tpl, "mol_a", _XYZ_SUB)
         from unittest.mock import patch
 
-        with patch(
-            "pya3eda.builder.inputs.build_fragmented_molecule", return_value=None
-        ):
+        with patch("pya3eda.builder.inputs.build_fragmented_molecule", return_value=None):
             result = _build_fragmented(
                 tpl,
                 "cat1-mol_a",
