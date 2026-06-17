@@ -1,0 +1,3 @@
+THRESH            = 14
+SCF_CONVERGENCE   = 8
+SCFMI_MODE        = 1

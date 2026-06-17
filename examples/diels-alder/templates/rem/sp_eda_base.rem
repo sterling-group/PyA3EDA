@@ -1,0 +1,12 @@
+METHOD            = {method}
+BASIS             = {basis}
+JOBTYPE           = sp
+DFT_D             = {dispersion}
+SOLVENT_METHOD    = {solvent}
+SCF_CONVERGENCE   = 8
+MAX_SCF_CYCLES    = 200
+SYM_IGNORE        = true
+EDA2              = {eda2}
+SCFMI_MODE        = 1
+SCFMI_FREEZE_SS   = {scfmi_freeze_ss}
+EDA_BSSE          = {eda_bsse}
