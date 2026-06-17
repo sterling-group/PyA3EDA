@@ -159,6 +159,13 @@ def _extract_sp(
     h_corr = s_corr = s_trans = temperature = zpve = None
     pressure: float | None = None
 
+    if not opt_content:
+        # No fallback: without the OPT thermo block, H/G are genuinely
+        # underivable for this SP. Log so the resulting None is not silent.
+        log.warning(
+            "SP %s: no OPT thermo available (%s); H/G left as None.", cid, opt_id
+        )
+
     if opt_content:
         h_corr = qchem.parse_enthalpy(opt_content)
         s_corr = qchem.parse_entropy(opt_content)

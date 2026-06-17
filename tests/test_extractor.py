@@ -716,6 +716,26 @@ class TestBuildStageBest:
         assert sd_fol.E == pytest.approx(5.0)
         assert sd_fol.G == pytest.approx(100.0)
 
+    def test_follower_missing_data_logs_warning(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Follower reusing a leader index with no data → None + warning (no fallback)."""
+        import logging
+
+        stage_spec, pspec, extracted = self._make_specs()
+        selections: dict = {}
+        _build_stage_best(stage_spec, pspec, extracted, selections)  # leader records
+
+        pid_fol = ProfileID(method_key="m", catalyst="cat", calc_type="frz_cat")
+        pspec_fol = ProfileSpec(
+            id=pid_fol, stages=(stage_spec,), selection_leader=False
+        )
+        with caplog.at_level(logging.WARNING):
+            sd_fol = _build_stage_best(stage_spec, pspec_fol, {}, selections)
+        assert sd_fol.E is None
+        assert sd_fol.G is None
+        assert "left as None" in caplog.text
+
     def test_is_ni_overrides_G(self) -> None:
         """When is_ni=True and g_ni_ref is present, G is overridden."""
         c_prim = CalcID(
@@ -1215,3 +1235,38 @@ class TestExtractOneEdgeCases:
         ):
             result = _extract_one(spec, "all", {})
         assert result is None
+
+    def test_sp_without_opt_thermo_logs_and_leaves_HG_none(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """SP with a parseable energy but no OPT thermo → warning, H/G None (no fallback)."""
+        import logging
+        from unittest.mock import patch
+
+        from pya3eda.extractor.data import _extract_one
+        from pya3eda.status.checker import Status
+
+        cid = CalcID(method_key="m", stage="reactants", species="mol", mode="sp")
+        spec = type(
+            "Spec",
+            (),
+            {
+                "id": cid,
+                "output_path": tmp_path / "mol.out",
+                "input_path": tmp_path / "mol.in",
+                "solvent": "false",
+                "is_fragmented": False,
+            },
+        )()
+        (tmp_path / "mol.in").touch()
+        (tmp_path / "mol.out").write_text("Final energy is -100.5 Ha\n")
+        with patch(
+            "pya3eda.extractor.data.get_status", return_value=(Status.SUCCESSFUL, "ok")
+        ):
+            with caplog.at_level(logging.WARNING):
+                result = _extract_one(spec, "all", {})  # empty opt_cache
+        assert result is not None
+        assert result.sp_energy is not None
+        assert result.H is None
+        assert result.G is None
+        assert "no OPT thermo" in caplog.text

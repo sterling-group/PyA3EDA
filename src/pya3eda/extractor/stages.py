@@ -84,6 +84,9 @@ def _sum_energies(
     for cid in calc_ids:
         data = extracted.get(cid)
         if data is None:
+            # No fallback: a stage sum that references missing data is genuinely
+            # underivable. Log so the resulting None is not silent.
+            log.debug("Stage energy sum incomplete: no extracted data for %s", cid)
             return (None, None)
 
         e_val = data.energy if data.energy is not None else data.sp_energy
@@ -195,6 +198,20 @@ def _build_stage_best(
     E_val = evals[e_idx][0]
     G_val = evals[g_idx][1]
     _, g_label, g_ni_ref = candidates[g_idx]
+
+    # Followers reuse the leader's candidate index for geometry consistency.
+    # If that candidate lacks data for this calc_type the value stays None by
+    # design (no fallback) — log so the gap is visible rather than silent.
+    if not pspec.selection_leader and (E_val is None or G_val is None):
+        log.warning(
+            "Profile %s stage '%s': leader-selected candidate has no %s data "
+            "(E=%s, G=%s); left as None (no fallback).",
+            pspec.id,
+            stage_spec.name,
+            pspec.id.calc_type,
+            E_val,
+            G_val,
+        )
 
     if is_ni and g_ni_ref is not None:
         G_val = _g_ni_for_stage(g_ni_ref, extracted)
