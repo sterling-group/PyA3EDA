@@ -165,7 +165,7 @@ def _plot_single(
 
     labels_obj = ax.set_xticklabels(labels, fontsize=24, fontweight="bold")
     color_list = [_BASE_COLORS[ct] for ct in ctypes]
-    for lbl, clr in zip(labels_obj, color_list):
+    for lbl, clr in zip(labels_obj, color_list, strict=True):
         lbl.set_color(clr)
 
     ax.set_yticks([])

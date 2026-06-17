@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+from pydantic import ValidationError
 
 from pya3eda.ids import CalcID, ExtractedData, ProfileID
 
@@ -33,7 +34,7 @@ class TestCalcID:
 
     def test_frozen(self) -> None:
         cid = CalcID(method_key="mk", stage="r", species="s")
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             cid.species = "new"
 
 

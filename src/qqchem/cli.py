@@ -48,8 +48,7 @@ def detect_cluster() -> tuple[str, dict]:
     try:
         result = subprocess.run(
             ["scontrol", "show", "config"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             text=True,
             check=True,
             timeout=5,

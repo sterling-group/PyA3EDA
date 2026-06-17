@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 
 from pya3eda.ids import CalcSpec
@@ -28,7 +28,7 @@ if not _report.handlers:
 # ---------------------------------------------------------------------------
 
 
-class Status(str, Enum):
+class Status(StrEnum):
     """Possible states of a Q-Chem calculation."""
 
     SUCCESSFUL = "SUCCESSFUL"

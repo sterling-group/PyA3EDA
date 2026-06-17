@@ -231,15 +231,15 @@ class TestExportProfiles:
         stages = df["Stage"].tolist()
 
         # First rows are reactants — only uncat
-        r_traces = [t for t, s in zip(traces, stages) if s == "reactants"]
+        r_traces = [t for t, s in zip(traces, stages, strict=True) if s == "reactants"]
         assert r_traces == ["uncat"]
 
         # Products — only uncat
-        p_traces = [t for t, s in zip(traces, stages) if s == "products"]
+        p_traces = [t for t, s in zip(traces, stages, strict=True) if s == "products"]
         assert p_traces == ["uncat"]
 
         # preTS: FULL and FRZ but NOT uncat
-        pre_traces = [t for t, s in zip(traces, stages) if s == "preTS"]
+        pre_traces = [t for t, s in zip(traces, stages, strict=True) if s == "preTS"]
         assert "uncat" not in pre_traces
         assert "FULL" in pre_traces
         assert "FRZ" in pre_traces

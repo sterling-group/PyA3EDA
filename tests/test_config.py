@@ -8,6 +8,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from pya3eda.config import (
     Config,
@@ -43,7 +44,7 @@ class TestTheoryConfig:
 
     def test_frozen(self) -> None:
         tc = TheoryConfig(method="m", basis="b")
-        with pytest.raises(Exception):  # ValidationError for frozen
+        with pytest.raises(ValidationError):  # frozen model
             tc.method = "other"
 
     def test_dispersion_bool_false(self) -> None:

@@ -503,7 +503,7 @@ class TestBuildOptRem:
 
     def test_all_calc_types(self, tmp_path: Path) -> None:
         tpl = _make_template_dir(tmp_path)
-        for ct, fname in _CALC_TYPE_FILES.items():
+        for ct in _CALC_TYPE_FILES:
             result = build_opt_rem(
                 tpl,
                 method="X",

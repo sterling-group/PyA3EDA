@@ -21,6 +21,14 @@ dependencies = [
 
 [project.optional-dependencies]
 test = ["pytest>=7.0", "pytest-cov"]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov",
+    "ruff",
+    "mypy",
+    "interrogate",
+    "pre-commit",
+]
 docs = [
     "mkdocs-material>=9.5",
     "mkdocstrings[python]>=0.24",
@@ -34,7 +42,8 @@ testpaths = ["tests"]
 pythonpath = ["src"]
 
 [tool.ruff.lint]
-extend-select = ["I"]
+# I = isort, B = flake8-bugbear (real-bug checks), UP = pyupgrade (modernization)
+extend-select = ["I", "B", "UP"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["E402"]

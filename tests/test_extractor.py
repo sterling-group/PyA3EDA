@@ -57,7 +57,7 @@ class TestProfileIDTraceOrder:
         assert len(ProfileID.TRACE_ORDER) == 5
 
     def test_trace_order_types(self) -> None:
-        for ct, label in ProfileID.TRACE_ORDER:
+        for _ct, label in ProfileID.TRACE_ORDER:
             assert isinstance(label, str)
 
     def test_method_label_opt(self) -> None:
