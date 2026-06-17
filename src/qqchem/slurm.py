@@ -133,7 +133,9 @@ def generate_slurm_script(
 
         if save or save_all:
             f.write("# Copy saved files back to original directory\n")
-            f.write('if [ -d "$QCSCRATCH/$scrname" ]; then\n')
+            # Guard on a non-empty $scrname: a custom --scratch leaves it unset,
+            # and "$QCSCRATCH/" would otherwise expand to the whole scratch dir.
+            f.write('if [ -n "$scrname" ] && [ -d "$QCSCRATCH/$scrname" ]; then\n')
             f.write(
                 f'  cp -r "$QCSCRATCH/$scrname" "$ORIG/{job_name}_scratch" || '
                 '{ echo "Error: Failed to copy saved files"; exit 1; }\n'
@@ -145,9 +147,13 @@ def generate_slurm_script(
 
         if not save_scratch:
             f.write("\n# Clean up scratch directory\n")
+            # Guard on a non-empty $scrname so a user-supplied --scratch directory
+            # (which leaves $scrname unset) is never wiped by `rm -rf "$QCSCRATCH/"`.
             f.write(
-                'rm -rf "$QCSCRATCH/$scrname" || '
+                'if [ -n "$scrname" ]; then\n'
+                '  rm -rf "$QCSCRATCH/$scrname" || '
                 '{ echo "Warning: Failed to remove scratch directory"; }\n'
+                "fi\n"
             )
         else:
             f.write(
