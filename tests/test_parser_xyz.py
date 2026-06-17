@@ -49,6 +49,11 @@ class TestParseXYZ:
         assert result.n_atoms == 1
         assert len(result.atoms) == 1
 
+    def test_returns_none_for_truncated_atoms(self) -> None:
+        # Declares 3 atoms but only 2 coordinate lines are present.
+        text = "3\n0 1\nO   0.0  0.0  0.0\nH   0.0  0.757  0.587\n"
+        assert parse_xyz(text) is None
+
 
 # ===================================================================
 # format_coord_line

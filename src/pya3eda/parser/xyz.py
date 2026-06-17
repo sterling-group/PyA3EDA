@@ -64,6 +64,11 @@ def parse_xyz(text: str) -> XYZData | None:
         return None
 
     atoms = lines[2 : 2 + n_atoms]
+    # Reject truncated files: a declared count larger than the available
+    # coordinate lines would otherwise yield an XYZData whose header count
+    # disagrees with its body (and a malformed $molecule block downstream).
+    if len(atoms) != n_atoms:
+        return None
     return XYZData(
         n_atoms=n_atoms, charge=charge, multiplicity=multiplicity, atoms=atoms
     )
