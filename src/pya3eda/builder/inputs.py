@@ -244,7 +244,7 @@ def _build_standard(
 def _build_fragmented(
     template_dir: Path,
     template_name: str,
-    catalyst: str,
+    catalyst: str | None,
     species: str,
     calc_type: str | None,
     opt_output_text: str | None,

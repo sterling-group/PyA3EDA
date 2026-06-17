@@ -28,7 +28,7 @@ class TheoryConfig(BaseModel, frozen=True):
 
     @field_validator("dispersion", "solvent", mode="before")
     @classmethod
-    def _coerce_bool_to_str(cls, v: object) -> str | None:
+    def _coerce_bool_to_str(cls, v: str | bool | None) -> str | None:
         """Accept YAML bare ``false`` / ``true`` and coerce to string."""
         if isinstance(v, bool):
             return str(v).lower()

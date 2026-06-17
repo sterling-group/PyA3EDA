@@ -123,7 +123,7 @@ def build_fragmented_molecule(
     catalyst = parse_xyz(catalyst_xyz_text)
     substrate = parse_xyz(substrate_xyz_text)
 
-    if not all((composite, catalyst, substrate)):
+    if composite is None or catalyst is None or substrate is None:
         log.error("Failed to parse one or more XYZ templates for fragmented molecule")
         return None
 

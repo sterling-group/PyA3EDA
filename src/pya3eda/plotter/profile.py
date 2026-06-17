@@ -197,7 +197,7 @@ def _rel_trace(
     etype: str,
 ) -> list[tuple[str, float]] | None:
     """Read pre-computed relative energies for plotting."""
-    vals = [(s.name, s.rel(etype)) for s in pdata.stages if s.rel(etype) is not None]
+    vals = [(s.name, v) for s in pdata.stages if (v := s.rel(etype)) is not None]
     return vals or None
 
 
