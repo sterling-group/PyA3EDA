@@ -140,6 +140,26 @@ class TestSbatchDirectives:
         assert "#SBATCH --exclude=node02" in text
 
 
+class TestScriptBody:
+    def test_environment_vars_written(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        text = _generate(tmp_path, monkeypatch, environment_vars=["export FOO=bar"])
+        assert "export FOO=bar" in text
+
+    def test_qcsetup_sourced(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        text = _generate(tmp_path, monkeypatch, qcsetup_file="/opt/qcsetup")
+        assert "source /opt/qcsetup" in text
+
+    def test_save_all_adds_save_flag(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        text = _generate(tmp_path, monkeypatch, save_all=True)
+        assert "qchem -save " in text
+
+
 class TestOpenMPI:
     def test_openmpi_emits_mpi_flags(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch

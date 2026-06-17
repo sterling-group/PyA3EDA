@@ -34,6 +34,7 @@ def adjust_mem_total(lines: list[str], mem_total_value: int) -> tuple[list[str],
     original = text
 
     def _adjust(match: re.Match) -> str:
+        """Replace or insert ``mem_total`` within a single ``$rem`` block."""
         block = match.group(0)
         if re.search(r"\bmem_total\s*=?\s*\d+", block, re.IGNORECASE):
             return re.sub(
