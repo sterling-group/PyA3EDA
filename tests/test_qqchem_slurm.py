@@ -43,7 +43,9 @@ def _kwargs(tmp_path: Path, **overrides: object) -> dict:
     return base
 
 
-def _generate(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, **overrides: object) -> str:
+def _generate(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, **overrides: object
+) -> str:
     """Generate a script in an isolated cwd and return its text."""
     monkeypatch.chdir(tmp_path)
     name = generate_slurm_script(**_kwargs(tmp_path, **overrides))
@@ -109,7 +111,9 @@ class TestSbatchDirectives:
     ) -> None:
         # Intentional by design: Q-Chem writes the .out file itself via the
         # `qchem ... output_file` command; SLURM's own stdout/stderr go to .err.
-        text = _generate(tmp_path, monkeypatch, output_file="job.out", error_file="job.err")
+        text = _generate(
+            tmp_path, monkeypatch, output_file="job.out", error_file="job.err"
+        )
         assert "#SBATCH --output=job.err" in text
         assert "#SBATCH --error=job.err" in text
         # The output_file is still used for the qchem command itself.
@@ -118,7 +122,9 @@ class TestSbatchDirectives:
     def test_resources_written(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        text = _generate(tmp_path, monkeypatch, cpus=4, mem_per_cpu=3000, partition="big")
+        text = _generate(
+            tmp_path, monkeypatch, cpus=4, mem_per_cpu=3000, partition="big"
+        )
         assert "#SBATCH --cpus-per-task=4" in text
         assert "#SBATCH --mem-per-cpu=3000" in text
         assert "#SBATCH --partition=big" in text
@@ -127,7 +133,9 @@ class TestSbatchDirectives:
     def test_node_and_exclude(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        text = _generate(tmp_path, monkeypatch, nodename="node01", exclude_nodes="node02")
+        text = _generate(
+            tmp_path, monkeypatch, nodename="node01", exclude_nodes="node02"
+        )
         assert "#SBATCH --nodelist=node01" in text
         assert "#SBATCH --exclude=node02" in text
 

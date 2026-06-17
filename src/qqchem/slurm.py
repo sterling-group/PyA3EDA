@@ -120,7 +120,7 @@ def generate_slurm_script(
         if not scratch:
             qchem_cmd += "$scrname"
 
-        f.write(f"echo $PWD\n\n")
+        f.write("echo $PWD\n\n")
         f.write(
             f'{qchem_cmd} || {{ echo "Warning: Q-Chem execution might have failed."; }}\n'
         )

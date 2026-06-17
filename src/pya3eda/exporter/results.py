@@ -295,7 +295,11 @@ def _export_xyz(
 
         out_dir.mkdir(parents=True, exist_ok=True)
         # Catalyzed stages need stage prefix (species is clean, no baked-in prefix)
-        prefix = f"{cid.stage}_" if cid.stage in ("preTS", "postTS", "ts") and cid.catalyst else ""
+        prefix = (
+            f"{cid.stage}_"
+            if cid.stage in ("preTS", "postTS", "ts") and cid.catalyst
+            else ""
+        )
         if cid.calc_type:
             out_path = out_dir / f"{prefix}{cid.species}_{cid.calc_type}.xyz"
         else:

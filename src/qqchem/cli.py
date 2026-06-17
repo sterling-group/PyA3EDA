@@ -21,7 +21,6 @@ from qqchem.clusters import load_cluster_configs
 from qqchem.qchem_input import adjust_mem_total, parse_mem_total, read_input_file
 from qqchem.slurm import generate_slurm_script, submit_job
 
-
 # ------------------------------------------------------------------
 # Cluster detection
 # ------------------------------------------------------------------
