@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240">
+  <!-- Background circle -->
+  <circle cx="120" cy="120" r="110" fill="#3f51b5" opacity="0.9"/>
+  <!-- Inner ring -->
+  <circle cx="120" cy="120" r="90" fill="none" stroke="#fff" stroke-width="3" opacity="0.3"/>
+  <!-- Text: Py -->
+  <text x="120" y="100" text-anchor="middle" font-family="Helvetica,Arial,sans-serif"
+        font-size="42" font-weight="700" fill="#ffc107">Py</text>
+  <!-- Text: A3EDA -->
+  <text x="120" y="150" text-anchor="middle" font-family="Helvetica,Arial,sans-serif"
+        font-size="42" font-weight="700" fill="#fff">A3EDA</text>
+</svg>
