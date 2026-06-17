@@ -1,16 +1,19 @@
+# Weekly dependency-freshness PRs. The pip ecosystem watches pyproject.toml
+# floors; github-actions watches the action tags in .github/workflows/.
 version: 2
 updates:
   - package-ecosystem: pip
-    directory: "/"
+    directory: /
     schedule:
       interval: weekly
-    labels:
-      - dependencies
-    open-pull-requests-limit: 10
+    groups:
+      python-deps:
+        patterns: ["*"]
 
   - package-ecosystem: github-actions
-    directory: "/"
+    directory: /
     schedule:
       interval: weekly
-    labels:
-      - ci
+    groups:
+      actions:
+        patterns: ["*"]

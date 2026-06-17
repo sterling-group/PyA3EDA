@@ -7,9 +7,10 @@ on:
     types: [published]
   workflow_dispatch:
 
+# Least privilege at the workflow level; the release/publish jobs declare the
+# write permissions they actually need themselves.
 permissions:
-  contents: write
-  id-token: write
+  contents: read
 
 jobs:
   build-package:
@@ -54,15 +55,31 @@ jobs:
           name: Packages
           path: dist
 
+      - name: Check tag matches package version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          version="$(basename dist/*.tar.gz .tar.gz)"
+          version="${version#*-}"
+          if [ "$version" != "$tag" ]; then
+            echo "::error::tag ${GITHUB_REF_NAME} does not match the built version ${version}; bump pyproject.toml first"
+            exit 1
+          fi
+
       - name: Upload package to Test PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
 
-  # Publish to real PyPI on GitHub Release
+  # Publish to real PyPI on a non-dev tag push, or on a manually published
+  # Release. The tag-push condition is load-bearing: the Release that
+  # `create-release` makes is authored by GITHUB_TOKEN, and events created by
+  # GITHUB_TOKEN never trigger workflows — so `release: published` alone would
+  # mean automated releases silently never reach PyPI.
   release-pypi:
     name: Publish to pypi.org
-    if: github.event.action == 'published'
+    if: >-
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, 'dev'))
+      || github.event.action == 'published'
     runs-on: ubuntu-latest
     needs: build-package
     permissions:
@@ -74,6 +91,19 @@ jobs:
         with:
           name: Packages
           path: dist
+
+      # GITHUB_REF_NAME is the tag on both trigger paths (tag push and
+      # release-published both run at the tag ref), so a v0.2.0 tag can never
+      # publish a wheel whose pyproject.toml still says 0.1.0.
+      - name: Check tag matches package version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          version="$(basename dist/*.tar.gz .tar.gz)"
+          version="${version#*-}"
+          if [ "$version" != "$tag" ]; then
+            echo "::error::tag ${GITHUB_REF_NAME} does not match the built version ${version}; bump pyproject.toml first"
+            exit 1
+          fi
 
       - name: Upload package to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
