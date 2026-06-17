@@ -5,8 +5,8 @@ Contains modules to extract data from Q-Chem output files and generate energy pr
 """
 
 from .data_extractor import extract_all_data
-from .profile_extractor_functional import process_all_profiles, extract_profiles
 from .delta_delta_extractor import extract_all_delta_delta, extract_catalyst_delta_delta
+from .profile_extractor_functional import extract_profiles, process_all_profiles
 
 __all__ = [
     "extract_all_data",

@@ -1,28 +1,29 @@
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 # Cache for parsed XYZ data keyed by identifier.
 _xyz_cache: dict[str, Dict[str, Any]] = {}
 
+
 def parse_xyz(xyz_text: str, identifier: str) -> Optional[Dict[str, Any]]:
     """
     Parse an XYZ file text and cache the result.
-    
+
     Expects:
       - First line: total number of atoms (integer)
       - Second line: two numbers: charge and multiplicity
       - Subsequent lines: atom information (element and xyz coordinates)
-    
+
     Returns a dictionary with keys:
       'n_atoms': int,
       'charge': int,
       'multiplicity': int,
       'atoms': list[str]  (atom lines)
-    
+
     The result is cached using the provided identifier.
     """
     if identifier in _xyz_cache:
         return _xyz_cache[identifier]
-    
+
     lines = xyz_text.splitlines()
     if len(lines) < 2:
         return None
@@ -39,12 +40,12 @@ def parse_xyz(xyz_text: str, identifier: str) -> Optional[Dict[str, Any]]:
     except Exception:
         return None
     # Use exactly the next n_atoms lines as the atoms
-    atoms = lines[2:2+n_atoms]
+    atoms = lines[2 : 2 + n_atoms]
     result = {
-        'n_atoms': n_atoms,
-        'charge': charge,
-        'multiplicity': multiplicity,
-        'atoms': atoms
+        "n_atoms": n_atoms,
+        "charge": charge,
+        "multiplicity": multiplicity,
+        "atoms": atoms,
     }
     _xyz_cache[identifier] = result
     return result

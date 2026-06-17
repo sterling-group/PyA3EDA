@@ -6,8 +6,10 @@ Provides basic file I/O operations and a helper function to sanitize strings for
 
 import logging
 from pathlib import Path
+
 # import re
 from PyA3EDA.core.constants import Constants
+
 
 def read_text(file_path: Path) -> str:
     """
@@ -18,6 +20,7 @@ def read_text(file_path: Path) -> str:
     except Exception as e:
         logging.error(f"Error reading file '{file_path}': {e}")
         return ""
+
 
 def write_text(file_path: Path, content: str) -> bool:
     """
@@ -30,6 +33,7 @@ def write_text(file_path: Path, content: str) -> bool:
         logging.error(f"Error writing file '{file_path}': {e}")
         return False
 
+
 def sanitize_filename(name: str) -> str:
     """
     Sanitizes a string to be safe for use as a filename.
@@ -39,4 +43,4 @@ def sanitize_filename(name: str) -> str:
         name = name.replace(old, new)
     # Optionally, remove any remaining non-alphanumeric characters.
     # name = re.sub(r'[^A-Za-z0-9\-_]+', '_', name)
-    return name.strip('_')
+    return name.strip("_")
