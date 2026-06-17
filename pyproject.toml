@@ -41,6 +41,18 @@ docs = [
 testpaths = ["tests"]
 pythonpath = ["src"]
 
+[tool.coverage.run]
+# Both first-party packages are gated. Branch coverage is a tracked
+# follow-up (it surfaces ~24 additional partial branches in pya3eda).
+source = ["pya3eda", "qqchem"]
+
+[tool.coverage.report]
+show_missing = true
+
+[tool.interrogate]
+# Docstring-coverage gate for both packages (matches the CI docs job).
+fail-under = 100
+
 [tool.ruff.lint]
 # I = isort, B = flake8-bugbear (real-bug checks), UP = pyupgrade (modernization)
 extend-select = ["I", "B", "UP"]

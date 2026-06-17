@@ -12,6 +12,5 @@ repos:
     rev: 1.7.0
     hooks:
       - id: interrogate
-        args: [src/pya3eda/, -v, --fail-under=100]
-        #args: [-v, --fail-under=100]
+        args: [src/, -v, --fail-under=100]
         pass_filenames: false

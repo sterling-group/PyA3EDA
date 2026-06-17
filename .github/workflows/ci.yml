@@ -42,7 +42,7 @@ jobs:
         run: pip install -e ".[test]"
 
       - name: Run tests with coverage
-        run: pytest --cov=pya3eda --cov-report=term-missing --cov-fail-under=100 -q
+        run: pytest --cov=pya3eda --cov=qqchem --cov-report=term-missing --cov-fail-under=100 -q
 
   docs-check:
     runs-on: ubuntu-latest
@@ -58,7 +58,7 @@ jobs:
         run: pip install -e ".[docs]" interrogate
 
       - name: Docstring coverage
-        run: interrogate src/pya3eda/ -v --fail-under=100
+        run: interrogate src/ -v --fail-under=100
 
       - name: Build docs
         run: mkdocs build --strict
