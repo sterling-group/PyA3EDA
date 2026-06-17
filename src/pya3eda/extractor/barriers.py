@@ -13,7 +13,7 @@ def compute_delta_delta(
     profiles: dict[ProfileID, ProfileData],
     catalyst_order: list[str],
 ) -> list[DeltaDeltaData]:
-    """Compute ΔΔ‡ for every method_key × catalyst × energy_type.
+    """Compute ΔΔ‡ for every method_key x catalyst x energy_type.
 
     Baseline logic (for each catalyst):
       • Evaluate on the **full_cat** profile first.
@@ -45,7 +45,7 @@ def _compute_for_catalyst(
     sp_subfolder: str | None,
     profiles: dict[ProfileID, ProfileData],
 ) -> list[DeltaDeltaData]:
-    """Compute ΔΔ‡ for one method_key × one catalyst × one mode, across energy types."""
+    """Compute ΔΔ‡ for one method_key x one catalyst x one mode, across energy types."""
 
     # Gather relevant profiles → stage maps (dict lookup, no linear search)
     def _find(calc_type: str) -> dict[str, StageData] | None:
@@ -131,7 +131,7 @@ def _stage_value(stage: StageData, etype: str) -> float | None:
 
 
 def _diff(a: float | None, b: float | None) -> float | None:
-    """a − b, or None if either operand is missing."""
+    """a - b, or None if either operand is missing."""
     return (a - b) if a is not None and b is not None else None
 
 
@@ -158,7 +158,7 @@ def _barrier(
     etype: str,
     use_preTS: bool,
 ) -> float | None:
-    """barrier = TS − baseline."""
+    """barrier = TS - baseline."""
     if stages is None:
         return None
     ts = stages.get("ts")

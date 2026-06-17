@@ -42,7 +42,7 @@ class QQChemBackend:
         cluster_name, cluster_config = detect_cluster()
         parser = build_parser(cluster_config)
 
-        argv = list(extra_argv or []) + [input_path.name]
+        argv = [*(extra_argv or []), input_path.name]
         args = parser.parse_args(argv)
 
         orig = os.getcwd()
@@ -62,7 +62,7 @@ class QQChemBackend:
 # ------------------------------------------------------------------
 
 BACKENDS: dict[str, type[SubmissionBackend]] = {
-    "qqchem": QQChemBackend,  # type: ignore[dict-item]
+    "qqchem": QQChemBackend,
 }
 
 

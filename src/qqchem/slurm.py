@@ -121,9 +121,7 @@ def generate_slurm_script(
             qchem_cmd += "$scrname"
 
         f.write("echo $PWD\n\n")
-        f.write(
-            f'{qchem_cmd} || {{ echo "Warning: Q-Chem execution might have failed."; }}\n'
-        )
+        f.write(f'{qchem_cmd} || {{ echo "Warning: Q-Chem execution might have failed."; }}\n')
 
         f.write("\n# Record end time\n")
         f.write("end_time=$(date +%s)\n")
@@ -140,9 +138,7 @@ def generate_slurm_script(
                 f'  cp -r "$QCSCRATCH/$scrname" "$ORIG/{job_name}_scratch" || '
                 '{ echo "Error: Failed to copy saved files"; exit 1; }\n'
             )
-            f.write(
-                f'  echo "Copied $QCSCRATCH/$scrname to $ORIG/{job_name}_scratch"\n'
-            )
+            f.write(f'  echo "Copied $QCSCRATCH/$scrname to $ORIG/{job_name}_scratch"\n')
             f.write("fi\n")
 
         if not save_scratch:
@@ -156,16 +152,12 @@ def generate_slurm_script(
                 "fi\n"
             )
         else:
-            f.write(
-                'echo "Not deleting scratch directory due to --save-scratch option"\n'
-            )
+            f.write('echo "Not deleting scratch directory due to --save-scratch option"\n')
 
     return slurm_script
 
 
-def submit_job(
-    slurm_script: str, *, dryrun: bool = False, save_slurm: bool = False
-) -> None:
+def submit_job(slurm_script: str, *, dryrun: bool = False, save_slurm: bool = False) -> None:
     """Submit the SLURM script via ``sbatch``, or print it for dry runs."""
     if dryrun:
         print(f"Dry run: SLURM script written to {slurm_script}")

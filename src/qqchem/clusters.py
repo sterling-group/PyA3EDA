@@ -79,8 +79,7 @@ def load_cluster_configs() -> dict[str, dict]:
     """
     if yaml is None:
         print(
-            "Error: pyyaml is required by qqchem.  Install it with:\n"
-            "  pip install pyyaml",
+            "Error: pyyaml is required by qqchem.  Install it with:\n  pip install pyyaml",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -97,9 +96,7 @@ def load_cluster_configs() -> dict[str, dict]:
 
     data = yaml.safe_load(path.read_text())
     if not isinstance(data, dict) or not data:
-        print(
-            f"Error: {path} must be a YAML mapping of cluster names.", file=sys.stderr
-        )
+        print(f"Error: {path} must be a YAML mapping of cluster names.", file=sys.stderr)
         sys.exit(1)
 
     return data

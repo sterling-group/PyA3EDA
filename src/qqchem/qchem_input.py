@@ -18,10 +18,7 @@ def parse_mem_total(lines: list[str]) -> list[int]:
     text = "".join(lines)
     values: list[int] = []
     for block in re.findall(r"\$rem(.*?)\$end", text, re.DOTALL | re.IGNORECASE):
-        values.extend(
-            int(v)
-            for v in re.findall(r"\bmem_total\s*=?\s*(\d+)", block, re.IGNORECASE)
-        )
+        values.extend(int(v) for v in re.findall(r"\bmem_total\s*=?\s*(\d+)", block, re.IGNORECASE))
     return values
 
 
@@ -45,7 +42,5 @@ def adjust_mem_total(lines: list[str], mem_total_value: int) -> tuple[list[str],
             )
         return block.replace("$rem", f"$rem\n   mem_total {mem_total_value}", 1)
 
-    adjusted = re.sub(
-        r"\$rem(.*?)\$end", _adjust, text, flags=re.DOTALL | re.IGNORECASE
-    )
+    adjusted = re.sub(r"\$rem(.*?)\$end", _adjust, text, flags=re.DOTALL | re.IGNORECASE)
     return adjusted.splitlines(keepends=True), adjusted != original

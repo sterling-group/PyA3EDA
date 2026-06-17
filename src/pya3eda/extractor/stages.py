@@ -52,15 +52,12 @@ def build_profiles(
     followers = [p for p in registry.all_profiles if not p.selection_leader]
 
     for pspec in leaders + followers:
-        pdata = _build_one(pspec, extracted, selections)
-        if pdata is not None:
-            results[pspec.id] = pdata
+        results[pspec.id] = _build_one(pspec, extracted, selections)
 
     # Build NI profiles from full_cat specs (same assembly, G from ni_ref)
     for pspec in leaders:
         ni_pd = _build_one(pspec, extracted, selections, is_ni=True)
-        if ni_pd is not None:
-            results[ni_pd.profile_id] = ni_pd
+        results[ni_pd.profile_id] = ni_pd
 
     log.info("Built %d profiles", len(results))
     return results
@@ -130,7 +127,7 @@ def _build_one(
     selections: dict[tuple, tuple[int, int]],
     *,
     is_ni: bool = False,
-) -> ProfileData | None:
+) -> ProfileData:
     """Assemble a single profile from its spec and extracted energies.
 
     When *is_ni* is True the profile carries ``calc_type="ni"``:
@@ -142,9 +139,7 @@ def _build_one(
 
     for stage_spec in pspec.stages:
         if stage_spec.alternatives:
-            sd = _build_stage_best(
-                stage_spec, pspec, extracted, selections, is_ni=is_ni
-            )
+            sd = _build_stage_best(stage_spec, pspec, extracted, selections, is_ni=is_ni)
         else:
             E, G = _sum_energies(stage_spec.calc_ids, extracted)
             if is_ni and stage_spec.ni_ref is not None:
@@ -255,31 +250,36 @@ def _g_ni_for_stage(
     *ni.trans_cids* provide translational entropy only.
     *ni.apply_ssc_to_g_ni*  whether to add standard-state correction to G_ni (solvent).
 
-    G_ni = Σ_ref(H − H_trans) + m·H_trans
-           − T·[Σ_ref(S_tot − S_trans) + Σ_trans(S_trans)]
+    G_ni = Σ_ref(H - H_trans) + m·H_trans
+           - T·[Σ_ref(S_tot - S_trans) + Σ_trans(S_trans)]
            + m · ssc
 
     where m = len(trans_cids).
     """
     ref = [extracted.get(c) for c in ni.ref_cids]
     if not all(
-        d and d.H is not None and d.s_corr is not None and d.s_trans is not None
-        for d in ref
+        d and d.H is not None and d.s_corr is not None and d.s_trans is not None for d in ref
     ):
         return None
     trans = [extracted.get(c) for c in ni.trans_cids]
     if not all(d and d.s_trans is not None for d in trans):
         return None
-    temp = next((d.temperature for d in ref if d.temperature), None)
+    # Both guards above proved every entry is present with the fields used
+    # below; rebuild as non-optional lists so the arithmetic type-checks.
+    ref_data = [d for d in ref if d is not None]
+    trans_data = [d for d in trans if d is not None]
+    temp = next((d.temperature for d in ref_data if d.temperature), None)
     if not temp:
         return None
 
     h_trans = convert_unit(2.5 * C.MOLAR_GAS_CONSTANT * temp, "J/mol", "kcal/mol")
-    m = len(trans)
+    m = len(trans_data)
 
-    h_nontrans = sum(d.H - h_trans for d in ref)
-    s_nontrans = sum(d.s_corr - d.s_trans for d in ref)
-    s_trans_sum = sum(d.s_trans for d in trans)
+    h_nontrans = sum(d.H - h_trans for d in ref_data if d.H is not None)
+    s_nontrans = sum(
+        d.s_corr - d.s_trans for d in ref_data if d.s_corr is not None and d.s_trans is not None
+    )
+    s_trans_sum = sum(d.s_trans for d in trans_data if d.s_trans is not None)
     g_ni = h_nontrans + m * h_trans - temp * (s_nontrans + s_trans_sum)
 
     if ni.apply_ssc_to_g_ni:

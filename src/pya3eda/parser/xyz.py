@@ -69,9 +69,7 @@ def parse_xyz(text: str) -> XYZData | None:
     # disagrees with its body (and a malformed $molecule block downstream).
     if len(atoms) != n_atoms:
         return None
-    return XYZData(
-        n_atoms=n_atoms, charge=charge, multiplicity=multiplicity, atoms=atoms
-    )
+    return XYZData(n_atoms=n_atoms, charge=charge, multiplicity=multiplicity, atoms=atoms)
 
 
 # ---------------------------------------------------------------------------

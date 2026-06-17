@@ -164,7 +164,7 @@ class ExtractedData(BaseModel):
 
     # Derived (computed after parsing)
     H: float | None = None  # E + h_corr
-    G: float | None = None  # H − T·S
+    G: float | None = None  # H - T·S
 
     # Geometry
     xyz_text: str | None = None  # formatted XYZ file content
@@ -209,7 +209,7 @@ class ProfileData(BaseModel, frozen=True):
 
 
 class DeltaDeltaData(BaseModel, frozen=True):
-    """Barrier decomposition for one catalyst × method × energy type."""
+    """Barrier decomposition for one catalyst x method x energy type."""
 
     method_key: str
     catalyst: str
@@ -224,8 +224,8 @@ class DeltaDeltaData(BaseModel, frozen=True):
 
     barrier_ni: float | None = None
 
-    dd_ni: float | None = None  # ni − uncat
-    dd_frz: float | None = None  # frz − uncat (or frz − ni for G_ni)
-    dd_pol: float | None = None  # pol − frz
-    dd_ct: float | None = None  # full − pol
-    dd_complete: float | None = None  # full − uncat
+    dd_ni: float | None = None  # ni - uncat
+    dd_frz: float | None = None  # frz - uncat (or frz - ni for G_ni)
+    dd_pol: float | None = None  # pol - frz
+    dd_ct: float | None = None  # full - pol
+    dd_complete: float | None = None  # full - uncat

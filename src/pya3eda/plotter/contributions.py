@@ -43,7 +43,7 @@ def plot_delta_delta_barplots(
     registry: CalcRegistry,
     base_dir: Path,
 ) -> None:
-    """Generate barplots for every method_key × energy_type."""
+    """Generate barplots for every method_key x energy_type."""
     catalyst_order = registry.catalyst_order
     if not catalyst_order:
         return
@@ -59,17 +59,13 @@ def plot_delta_delta_barplots(
         mode_sps = sorted({(dd.mode, dd.sp_subfolder) for dd in mk_data})
 
         for mode, sp_sub in mode_sps:
-            subset = [
-                dd for dd in mk_data if dd.mode == mode and dd.sp_subfolder == sp_sub
-            ]
+            subset = [dd for dd in mk_data if dd.mode == mode and dd.sp_subfolder == sp_sub]
 
             for etype in sorted({dd.energy_type for dd in subset}):
                 et_data = [dd for dd in subset if dd.energy_type == etype]
 
                 ordered_cats = [
-                    cat
-                    for cat in catalyst_order
-                    if any(dd.catalyst == cat for dd in et_data)
+                    cat for cat in catalyst_order if any(dd.catalyst == cat for dd in et_data)
                 ]
                 if not ordered_cats:
                     continue
@@ -158,9 +154,7 @@ def _plot_single(
 
     for spine in ax.spines.values():
         spine.set_visible(False)
-    ax.tick_params(
-        bottom=False, left=False, top=False, labelbottom=False, labeltop=True
-    )
+    ax.tick_params(bottom=False, left=False, top=False, labelbottom=False, labeltop=True)
     ax.set_xticks(group_pos)
 
     labels_obj = ax.set_xticklabels(labels, fontsize=24, fontweight="bold")
@@ -206,7 +200,7 @@ def _plot_single(
 
 
 def _lighten(color: str, amount: float) -> tuple[float, float, float]:
-    """Lighten *color* by mixing towards white by *amount* (0–1)."""
+    """Lighten *color* by mixing towards white by *amount* (0-1)."""
     try:
         c = mc.cnames[color]
     except KeyError:

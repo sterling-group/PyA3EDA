@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from itertools import combinations
 from pathlib import Path
+from typing import TypedDict
 
 from pya3eda.config import Config, LevelConfig, TheoryConfig
 from pya3eda.ids import (
@@ -21,6 +22,21 @@ from pya3eda.ids import (
     StageSpec,
 )
 from pya3eda.sanitize import sanitize
+
+
+class _CommonCalcKwargs(TypedDict):
+    """Theory/context kwargs shared by every ``_add_calc`` call in a level."""
+
+    method_name: str
+    basis_set: str
+    dispersion: str
+    solvent: str
+    eda2: int | None
+    sp_subfolder: str | None
+    all_reactants: tuple[str, ...]
+    all_products: tuple[str, ...]
+    all_catalysts: tuple[str, ...]
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -144,7 +160,7 @@ class CalcRegistry:
     # -- private: enumeration -----------------------------------------------
 
     def _enumerate_calcs(self) -> None:
-        """Populate ``self._calcs`` by iterating config levels × species."""
+        """Populate ``self._calcs`` by iterating config levels x species."""
         seen_method_keys: list[str] = []
 
         for level in self._config.levels:
@@ -184,17 +200,17 @@ class CalcRegistry:
         incl_r = [r for r in cfg.reactants if r.include]
         incl_p = [p for p in cfg.products if p.include]
 
-        common = dict(
-            method_name=theory.method,
-            basis_set=theory.basis,
-            dispersion=theory.dispersion or "False",
-            solvent=theory.solvent or "false",
-            eda2=theory.eda2 if mode == "sp" else None,
-            sp_subfolder=sp_subfolder,
-            all_reactants=all_r,
-            all_products=all_p,
-            all_catalysts=all_c,
-        )
+        common: _CommonCalcKwargs = {
+            "method_name": theory.method,
+            "basis_set": theory.basis,
+            "dispersion": theory.dispersion or "False",
+            "solvent": theory.solvent or "false",
+            "eda2": theory.eda2 if mode == "sp" else None,
+            "sp_subfolder": sp_subfolder,
+            "all_reactants": all_r,
+            "all_products": all_p,
+            "all_catalysts": all_c,
+        }
 
         # ── uncatalyzed ────────────────────────────────────────────────
         # Individual reactants
@@ -435,9 +451,7 @@ class CalcRegistry:
                 parts = Path(cat_dir) / "ts"
                 filename = f"{_TS_SPECIES}{suffix}"
             else:
-                raise ValueError(
-                    f"Unknown uncatalyzed stage: {stage}"
-                )  # pragma: no cover
+                raise ValueError(f"Unknown uncatalyzed stage: {stage}")  # pragma: no cover
 
             if mode == "sp" and sp_subfolder:
                 parts = parts / sp_subfolder
@@ -452,6 +466,7 @@ class CalcRegistry:
             return base / parts / filename
 
         if stage in ("preTS", "postTS"):
+            assert calc_type is not None  # preTS/postTS calcs always carry a calc_type
             prefix = stage  # "preTS" or "postTS"
             parts = Path(cat_dir) / stage / species / calc_type
             filename = f"{prefix}_{species}_{calc_type}{suffix}"
@@ -460,6 +475,7 @@ class CalcRegistry:
             return base / parts / filename
 
         if stage == "ts":
+            assert calc_type is not None  # TS calcs always carry a calc_type
             parts = Path(cat_dir) / "ts" / calc_type
             filename = f"ts_{species}_{calc_type}{suffix}"
             if mode == "sp" and sp_subfolder:
@@ -489,9 +505,7 @@ class CalcRegistry:
             ]
             if level.sp:
                 for sp_theory in level.sp:
-                    mode_sps.append(
-                        ("sp", _sp_subfolder(sp_theory), _has_solvent(sp_theory))
-                    )
+                    mode_sps.append(("sp", _sp_subfolder(sp_theory), _has_solvent(sp_theory)))
 
             for mode, sp_sub, apply_ssc in mode_sps:
                 self._build_uncatalyzed_profile(
@@ -674,9 +688,7 @@ class CalcRegistry:
             + [cat_standalone]
         )
 
-        reactant_label = " + ".join(
-            [r.name for r in self._config.reactants] + [cat_name]
-        )
+        reactant_label = " + ".join([r.name for r in self._config.reactants] + [cat_name])
         product_label = " + ".join([p.name for p in self._config.products] + [cat_name])
 
         stages = (
@@ -745,9 +757,7 @@ class CalcRegistry:
             sp_subfolder=sp_subfolder,
         )
         reactant_ids.append(cat_standalone)
-        reactant_label = " + ".join(
-            [r.name for r in self._config.reactants] + [cat_name]
-        )
+        reactant_label = " + ".join([r.name for r in self._config.reactants] + [cat_name])
 
         # --- preTS stage ---
         # Complex of catalyst + included reactants, plus free reactants standalone
@@ -866,7 +876,7 @@ class CalcRegistry:
                     remaining = [p for p in incl_p if p not in combo]
                     combo_name = "-".join(sanitize(p.name) for p in combo)
                     alt_species = f"{cat_s}-{combo_name}"
-                    alt_ids: list[CalcID] = [
+                    alt_ids = [
                         CalcID(
                             method_key=method_key,
                             catalyst=cat_s,
@@ -911,15 +921,11 @@ class CalcRegistry:
         r_ids = tuple(reactant_ids)
         p_ids = tuple(product_ids)
 
-        def _ni(
-            ref: tuple[CalcID, ...], trans: tuple[CalcID, ...]
-        ) -> NiStageRef | None:
+        def _ni(ref: tuple[CalcID, ...], trans: tuple[CalcID, ...]) -> NiStageRef | None:
             """Build NI reference for full_cat profiles, None otherwise."""
             if calc_type != _FULL_CAT:
                 return None
-            return NiStageRef(
-                ref_cids=ref, trans_cids=trans, apply_ssc_to_g_ni=apply_ssc
-            )
+            return NiStageRef(ref_cids=ref, trans_cids=trans, apply_ssc_to_g_ni=apply_ssc)
 
         # Build StageAlt objects now that _ni is available
         pre_alts = tuple(

@@ -128,14 +128,10 @@ class Config(BaseModel, frozen=True):
             else:
                 for sp in level.sp:
                     if sp in seen[level.opt]:
-                        raise ValueError(
-                            f"Duplicate SP entry {sp!r} under OPT {level.opt!r}"
-                        )
+                        raise ValueError(f"Duplicate SP entry {sp!r} under OPT {level.opt!r}")
                     seen[level.opt].append(sp)
 
-        merged = [
-            LevelConfig(opt=opt_theory, sp=seen[opt_theory]) for opt_theory in order
-        ]
+        merged = [LevelConfig(opt=opt_theory, sp=seen[opt_theory]) for opt_theory in order]
 
         # Pydantic frozen models need object.__setattr__ to mutate
         object.__setattr__(self, "levels", merged)

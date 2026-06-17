@@ -107,9 +107,7 @@ def build_parser(
     )
     parser.add_argument("input_file", help="Q-Chem input file")
 
-    parser.add_argument(
-        "-c", "--cpus", type=int, help="Number of CPUs per task (threads)"
-    )
+    parser.add_argument("-c", "--cpus", type=int, help="Number of CPUs per task (threads)")
     parser.add_argument("-p", "--parallel", type=int, help="Number of MPI processes")
     parser.add_argument(
         "-m",
@@ -142,9 +140,7 @@ def build_parser(
         default=False,
         help="Create script without submitting",
     )
-    parser.add_argument(
-        "--save-scratch", action="store_true", help="Keep scratch directory"
-    )
+    parser.add_argument("--save-scratch", action="store_true", help="Keep scratch directory")
     parser.add_argument("--node", "-N", dest="nodename", help="Target node")
     parser.add_argument("--exclude", "-x", help="Nodes to exclude (comma-separated)")
     parser.add_argument(
@@ -169,15 +165,9 @@ def build_parser(
         default="openmp",
         help="Parallelism mode (default: openmp)",
     )
-    parser.add_argument(
-        "--save", action="store_true", help="Save essential scratch files"
-    )
-    parser.add_argument(
-        "--save-all", "-f", action="store_true", help="Save all scratch files"
-    )
-    parser.add_argument(
-        "--save-slurm", "-k", action="store_true", help="Keep SLURM script"
-    )
+    parser.add_argument("--save", action="store_true", help="Save essential scratch files")
+    parser.add_argument("--save-all", "-f", action="store_true", help="Save all scratch files")
+    parser.add_argument("--save-slurm", "-k", action="store_true", help="Keep SLURM script")
 
     return parser
 
@@ -263,14 +253,12 @@ def _resolve_version(
 
     if args.version == "modqchem":
         if not args.qcsetup:
-            print(
-                "Error: --qcsetup is required with version 'modqchem'.", file=sys.stderr
-            )
+            print("Error: --qcsetup is required with version 'modqchem'.", file=sys.stderr)
             sys.exit(1)
         return [], args.qcsetup, [], False, []
 
     if args.version not in versions:
-        available = list(versions) + ["modqchem"]
+        available = [*versions, "modqchem"]
         print(
             f"Error: Q-Chem version '{args.version}' unknown for '{cluster_name}'. "
             f"Available: {', '.join(available)}.",

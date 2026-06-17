@@ -56,9 +56,7 @@ def _coords_from_output(output_text: str | None, template: XYZData) -> list[str]
     return template.atoms
 
 
-def _load_xyz(
-    templates_dir: Path, name: str, calc_type: str | None = None
-) -> str | None:
+def _load_xyz(templates_dir: Path, name: str, calc_type: str | None = None) -> str | None:
     """Load an XYZ template file, trying calc-type-specific variant first."""
     mol_dir = templates_dir / "molecule"
     if calc_type:

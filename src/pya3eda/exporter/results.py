@@ -182,9 +182,7 @@ def _export_profiles(
                 )
                 pdata = profiles.get(pid)
                 if pdata is not None:
-                    available.append(
-                        (calc_type, label, {s.name: s for s in pdata.stages})
-                    )
+                    available.append((calc_type, label, {s.name: s for s in pdata.stages}))
 
             if not available:
                 continue
@@ -209,9 +207,7 @@ def _export_profiles(
 
             if rows:
                 mlabel = ProfileID.method_label(method_key, sp_sub)
-                count += _write_csv(
-                    rows, out_dir / f"{mode}_profile_{cat}_{mlabel}.csv"
-                )
+                count += _write_csv(rows, out_dir / f"{mode}_profile_{cat}_{mlabel}.csv")
 
     return count
 
@@ -268,9 +264,9 @@ def _export_delta_delta(
                     }
                 )
                 rows.append(row)
-            if rows:
-                fname = f"{mode}_delta_delta_{etype}_{mlabel}.csv"
-                count += _write_csv(rows, out_dir / fname)
+            # etype is drawn from subset, so rows always has at least one entry.
+            fname = f"{mode}_delta_delta_{etype}_{mlabel}.csv"
+            count += _write_csv(rows, out_dir / fname)
 
     return count
 
@@ -295,11 +291,7 @@ def _export_xyz(
 
         out_dir.mkdir(parents=True, exist_ok=True)
         # Catalyzed stages need stage prefix (species is clean, no baked-in prefix)
-        prefix = (
-            f"{cid.stage}_"
-            if cid.stage in ("preTS", "postTS", "ts") and cid.catalyst
-            else ""
-        )
+        prefix = f"{cid.stage}_" if cid.stage in ("preTS", "postTS", "ts") and cid.catalyst else ""
         if cid.calc_type:
             out_path = out_dir / f"{prefix}{cid.species}_{cid.calc_type}.xyz"
         else:

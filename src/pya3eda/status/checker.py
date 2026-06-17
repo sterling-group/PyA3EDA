@@ -62,9 +62,9 @@ def get_status(spec: CalcSpec) -> tuple[Status, str]:
 
     # Check for running job based on submission sentinel files
     stem = input_path.stem
-    submission_exists = bool(
-        list(input_path.parent.glob(f"{stem}.in_[0-9]*.[0-9]*"))
-    ) or bool(list(input_path.parent.glob(f".{stem}.in.[0-9]*.qcin.[0-9]*")))
+    submission_exists = bool(list(input_path.parent.glob(f"{stem}.in_[0-9]*.[0-9]*"))) or bool(
+        list(input_path.parent.glob(f".{stem}.in.[0-9]*.qcin.[0-9]*"))
+    )
 
     raw_status, detail = parse_status(out_text, err_text, submission_exists)
     try:

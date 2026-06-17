@@ -130,9 +130,7 @@ def _last_value_unit(
     if m is None:
         return None
     val = float(m.group(1))
-    unit = (
-        m.group(2) if m.lastindex and m.lastindex >= 2 and m.group(2) else default_unit
-    )
+    unit = m.group(2) if m.lastindex and m.lastindex >= 2 and m.group(2) else default_unit
     if unit == "a.u.":
         unit = "Ha"
     return val, unit
@@ -244,9 +242,7 @@ def parse_smd(text: str) -> SMDData | None:
     r = _last_value_unit(_SMD_GS, text)
     if r:
         g_s = r[0]
-    r = _last_value_unit(
-        _SMD_CDS_DETAIL, text, _SMD_CDS_SUMMARY, default_unit="kcal/mol"
-    )
+    r = _last_value_unit(_SMD_CDS_DETAIL, text, _SMD_CDS_SUMMARY, default_unit="kcal/mol")
     if r:
         cds = r[0]
 

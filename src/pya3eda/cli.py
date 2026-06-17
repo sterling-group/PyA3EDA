@@ -2,10 +2,10 @@
 
 Subcommands
 -----------
-build   – generate Q-Chem input files
-run     – submit calculations
-status  – check calculation status
-extract – extract data, build profiles, export CSVs, generate plots
+build   - generate Q-Chem input files
+run     - submit calculations
+status  - check calculation status
+extract - extract data, build profiles, export CSVs, generate plots
 """
 
 from __future__ import annotations
@@ -24,26 +24,20 @@ def main(argv: list[str] | None = None) -> None:
         prog="pya3eda",
         description="PyA3EDA — Python automation for Asymmetrically-constrained Adiabatic ALMO-EDA",
     )
-    parser.add_argument(
-        "--log", default="INFO", help="Logging level (DEBUG, INFO, WARNING, ERROR)"
-    )
+    parser.add_argument("--log", default="INFO", help="Logging level (DEBUG, INFO, WARNING, ERROR)")
     parser.add_argument("config", help="Path to YAML config file")
     sub = parser.add_subparsers(dest="command")
 
     # build
     p_build = sub.add_parser("build", help="Generate Q-Chem input files")
-    p_build.add_argument(
-        "--overwrite", action="store_true", help="Overwrite existing inputs"
-    )
+    p_build.add_argument("--overwrite", action="store_true", help="Overwrite existing inputs")
     p_build.add_argument(
         "--sp-strategy",
         default="smart",
         choices=["always", "smart", "never"],
         help="When to write SP inputs (default: smart)",
     )
-    p_build.add_argument(
-        "--template-dir", default="templates", help="Template directory"
-    )
+    p_build.add_argument("--template-dir", default="templates", help="Template directory")
 
     # run — accepts all backend-specific flags after pya3eda's own flags
     p_run = sub.add_parser(
@@ -56,9 +50,7 @@ def main(argv: list[str] | None = None) -> None:
         default="NOFILE",
         help="Status filter for submission (default: NOFILE)",
     )
-    p_run.add_argument(
-        "--backend", default="qqchem", help="Submission backend (default: qqchem)"
-    )
+    p_run.add_argument("--backend", default="qqchem", help="Submission backend (default: qqchem)")
 
     # status
     sub.add_parser("status", help="Check calculation status")
@@ -66,9 +58,7 @@ def main(argv: list[str] | None = None) -> None:
     # extract
     p_extract = sub.add_parser("extract", help="Extract data, profiles, plots")
     p_extract.add_argument("--criteria", default="SUCCESSFUL", help="Status filter")
-    p_extract.add_argument(
-        "--no-plots", action="store_true", help="Skip plot generation"
-    )
+    p_extract.add_argument("--no-plots", action="store_true", help="Skip plot generation")
 
     args, remaining = parser.parse_known_args(argv)
 
@@ -95,7 +85,7 @@ def main(argv: list[str] | None = None) -> None:
         _cmd_run(registry, args)
     elif args.command == "status":
         _cmd_status(registry)
-    elif args.command == "extract":
+    else:  # "extract" — the only remaining valid subcommand
         _cmd_extract(registry, base_dir, args)
 
 
@@ -135,9 +125,7 @@ def _cmd_status(registry: CalcRegistry) -> None:
     check_all(registry)
 
 
-def _cmd_extract(
-    registry: CalcRegistry, base_dir: Path, args: argparse.Namespace
-) -> None:
+def _cmd_extract(registry: CalcRegistry, base_dir: Path, args: argparse.Namespace) -> None:
     """Extract data, assemble profiles, export CSVs, and generate plots."""
     from pya3eda.exporter.results import export_all
     from pya3eda.extractor.barriers import compute_delta_delta

@@ -68,7 +68,7 @@ def plot_all_profiles(
     registry: CalcRegistry,
     base_dir: Path,
 ) -> None:
-    """Generate profile SVGs for every catalyst × method_key."""
+    """Generate profile SVGs for every catalyst x method_key."""
     total = 0
 
     # Derive plot groupings from registry-known profile IDs
