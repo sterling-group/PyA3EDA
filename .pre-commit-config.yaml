@@ -14,3 +14,13 @@ repos:
       - id: interrogate
         args: [src/, -v, --fail-under=100]
         pass_filenames: false
+
+  # mypy runs against the project's own env (config in pyproject [tool.mypy]).
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        entry: mypy
+        language: system
+        types: [python]
+        pass_filenames: false
