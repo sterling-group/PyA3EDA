@@ -3,22 +3,45 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "PyA3EDA"
-version = "0.0.1"
-description = "Python Automatization of Automated Analysis of Electronic Structure Data"
+name = "pya3eda"
+version = "0.1.0"
+description = "Python automation for Asymmetrically-constrained Adiabatic ALMO-EDA (A3EDA)"
 authors = [
     { name = "Markus-G-S-Weiss", email = "markus.guenter.weiss@rwth-aachen.de" },
 ]
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 dependencies = [
+    "pydantic>=2.0",
     "pandas",
     "pyyaml",
     "matplotlib",
+    "numpy",
 ]
 
+[project.optional-dependencies]
+test = ["pytest>=7.0", "pytest-cov"]
+docs = [
+    "mkdocs-material>=9.5",
+    "mkdocstrings[python]>=0.24",
+    "mkdocs-gen-files>=0.5",
+    "mkdocs-literate-nav>=0.6",
+    "mkdocs-section-index>=0.3",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff.lint]
+extend-select = ["I"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["E402"]
+
 [project.scripts]
-pya3eda = "PyA3EDA.cli:main"
+pya3eda = "pya3eda.cli:main"
+qqchem = "qqchem.cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/PyA3EDA"]
+packages = ["src/pya3eda", "src/qqchem"]

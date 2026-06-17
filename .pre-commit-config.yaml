@@ -1,0 +1,17 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.10
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+        #files: ^(src/pya3eda/|tests/)
+      - id: ruff-format
+        #files: ^(src/pya3eda/|tests/)
+
+  - repo: https://github.com/econchick/interrogate
+    rev: 1.7.0
+    hooks:
+      - id: interrogate
+        args: [src/pya3eda/, -v, --fail-under=100]
+        #args: [-v, --fail-under=100]
+        pass_filenames: false
