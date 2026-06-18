@@ -253,6 +253,8 @@ def _export_delta_delta(
                         f"Barrier_full ({etype})": dd.barrier_full,
                     }
                 )
+                if dd.dd_dissoc is not None:
+                    row[f"DD_{etype}_dissoc"] = dd.dd_dissoc
                 if etype == "G_ni":
                     row[f"DD_{etype}_ni"] = dd.dd_ni
                 row.update(

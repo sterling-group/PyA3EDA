@@ -19,6 +19,7 @@ log = logging.getLogger(__name__)
 
 # Colours keyed by contribution type
 _BASE_COLORS: dict[str, str] = {
+    "dissoc": "purple",
     "ni": "darkorange",
     "frz": "firebrick",
     "pol": "forestgreen",
@@ -94,8 +95,16 @@ def _plot_single(
     cat_lookup = {dd.catalyst: dd for dd in data}
     unit = StageData.UNIT
 
-    ctypes = _NI_CONTRIBUTION_TYPES if energy_type == "G_ni" else _CONTRIBUTION_TYPES
-    labels = _NI_DISPLAY_LABELS if energy_type == "G_ni" else _DISPLAY_LABELS
+    if energy_type == "G_ni":
+        ctypes, labels = list(_NI_CONTRIBUTION_TYPES), list(_NI_DISPLAY_LABELS)
+    else:
+        ctypes, labels = list(_CONTRIBUTION_TYPES), list(_DISPLAY_LABELS)
+
+    # Optional leading dissociation correction (e.g. catalyst dimer); only shown
+    # when a post-extraction script has populated dd_dissoc.
+    if any(dd.dd_dissoc is not None for dd in data):
+        ctypes = ["dissoc", *ctypes]
+        labels = ["DISS", *labels]
 
     n_groups = len(ctypes)
     n_cats = len(ordered_cats)

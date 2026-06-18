@@ -374,6 +374,33 @@ class TestPlotSingle:
         assert out.exists()
         assert out.stat().st_size > 0
 
+    def test_dissoc_leading_bar(self, tmp_path: Path) -> None:
+        # dd_dissoc set → a leading DISS bar is added (FULL already grown by it)
+        data = [
+            _dd("cat1", "E", dd_dissoc=2.0, dd_frz=-1.0, dd_pol=-2.0, dd_ct=-3.0, dd_complete=-4.0)
+        ]
+        out = tmp_path / "dissoc.svg"
+        _plot_single(data, ["cat1"], "E", out)
+        assert out.exists()
+        assert out.stat().st_size > 0
+
+    def test_dissoc_on_g_ni(self, tmp_path: Path) -> None:
+        data = [
+            _dd(
+                "cat1",
+                "G_ni",
+                dd_dissoc=1.5,
+                dd_ni=-0.5,
+                dd_frz=-1.0,
+                dd_pol=-2.0,
+                dd_ct=-3.0,
+                dd_complete=-5.0,
+            )
+        ]
+        out = tmp_path / "dissoc_gni.svg"
+        _plot_single(data, ["cat1"], "G_ni", out)
+        assert out.exists()
+
     def test_g_ni_5bar(self, tmp_path: Path) -> None:
         data = [
             _dd(

@@ -229,3 +229,8 @@ class DeltaDeltaData(BaseModel, frozen=True):
     dd_pol: float | None = None  # pol - frz
     dd_ct: float | None = None  # full - pol
     dd_complete: float | None = None  # full - uncat
+
+    # Optional pre-equilibrium correction (e.g. catalyst dimer dissociation),
+    # applied by a post-extraction script; shown as a leading bar with FULL grown
+    # by it. None for the normal pipeline.
+    dd_dissoc: float | None = None

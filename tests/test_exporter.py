@@ -314,6 +314,16 @@ class TestExportDeltaDelta:
         count = _export_delta_delta([], MK, tmp_path)
         assert count == 0
 
+    def test_dissoc_column(self, tmp_path: Path) -> None:
+        dd_list = [
+            _dd(
+                "cat1", "E", barrier_uncat=50.0, barrier_full=42.0, dd_complete=-8.0, dd_dissoc=2.0
+            ),
+        ]
+        _export_delta_delta(dd_list, MK, tmp_path)
+        content = next(iter(tmp_path.glob("*_E_*.csv"))).read_text()
+        assert "DD_E_dissoc" in content
+
     def test_method_key_filter(self, tmp_path: Path) -> None:
         dd_list = [_dd("cat1", "E", barrier_uncat=50.0)]
         count = _export_delta_delta(dd_list, "other", tmp_path)

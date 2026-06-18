@@ -1217,3 +1217,37 @@ class TestComputeForCatalystBranches:
 
         result = _compute_for_catalyst("m", "cat", "opt", None, {})
         assert isinstance(result, list)
+
+
+# ===================================================================
+# Standalone extract-from-text helpers (extract_opt_energies / extract_sp_energies)
+# ===================================================================
+
+
+class TestStandaloneEnergyHelpers:
+    def test_extract_opt_energies(self) -> None:
+        from pya3eda.extractor.data import extract_opt_energies
+        from tests.synthetic_outputs import OPT_OUTPUT
+
+        e, g = extract_opt_energies(OPT_OUTPUT, "smd")
+        assert e is not None
+        assert g is not None
+
+    def test_extract_opt_energies_no_energy(self) -> None:
+        from pya3eda.extractor.data import extract_opt_energies
+
+        assert extract_opt_energies("no energy here", "false") == (None, None)
+
+    def test_extract_sp_energies(self) -> None:
+        from pya3eda.extractor.data import extract_sp_energies
+        from tests.synthetic_outputs import OPT_OUTPUT, SP_OUTPUT
+
+        e, g = extract_sp_energies(SP_OUTPUT, OPT_OUTPUT, "smd", None)
+        assert e is not None
+        assert g is not None
+
+    def test_extract_sp_energies_no_energy(self) -> None:
+        from pya3eda.extractor.data import extract_sp_energies
+        from tests.synthetic_outputs import OPT_OUTPUT
+
+        assert extract_sp_energies("nothing here", OPT_OUTPUT, "smd", None) == (None, None)
