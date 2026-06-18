@@ -73,15 +73,13 @@ Issues = "https://github.com/sterling-group/PyA3EDA/issues"
 
 [project.scripts]
 pya3eda = "pya3eda.cli:main"
-qqchem = "qqchem.cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/pya3eda", "src/qqchem"]
+packages = ["src/pya3eda"]
 
 [tool.hatch.build.targets.sdist]
 include = [
     "src/pya3eda",
-    "src/qqchem",
     "README.md",
     "LICENSE",
     "pyproject.toml",
@@ -97,8 +95,8 @@ markers = [
 ]
 
 [tool.coverage.run]
-# Both first-party packages are gated on line *and* branch coverage.
-source = ["pya3eda", "qqchem"]
+# Line *and* branch coverage gate.
+source = ["pya3eda"]
 branch = true
 
 [tool.coverage.report]

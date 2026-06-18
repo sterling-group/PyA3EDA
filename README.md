@@ -32,7 +32,7 @@ surface — revealing *how* a catalyst lowers (or raises) a reaction barrier.
 | **Non-interacting reference** | Separates the confinement cost of bringing fragments together from genuine catalyst–substrate interactions via a reconstructed non-interacting surface. |
 | **Configuration-driven** | One YAML file defines theory levels, basis sets, catalysts, and species. Everything else is derived automatically. |
 | **Candidate selection** | Automatically picks the lowest-energy preTS / postTS complex when multiple compositions exist. |
-| **Pluggable HPC backends** | Ships with SLURM support via [qqchem](https://github.com/sterling-group/qqchem); custom backends are easy to add. |
+| **Local & SLURM execution** | Runs Q-Chem jobs on a laptop (background `bash`) or an HPC cluster (`sbatch`), auto-detected, throttled by a `--max-cores` budget; new backends slot in behind the `ExecutionBackend` protocol. |
 | **Publication-ready plots** | Energy-profile diagrams and grouped ΔΔ‡ barplots exported as SVG. |
 
 ## Workflow

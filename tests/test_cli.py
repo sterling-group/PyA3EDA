@@ -50,18 +50,27 @@ class TestCLIParsing:
         with patch("pya3eda.cli._cmd_run") as mock_run:
             from pya3eda.cli import main
 
-            main([str(config_path), "run", "--backend", "qqchem"])
+            main([str(config_path), "run", "--backend", "local"])
             mock_run.assert_called_once()
             args = mock_run.call_args[0][1]
-            assert args.backend == "qqchem"
+            assert args.backend == "local"
 
-    def test_run_forwards_extra_argv(self, config_path: Path) -> None:
+    def test_run_parses_options(self, config_path: Path) -> None:
         with patch("pya3eda.cli._cmd_run") as mock_run:
             from pya3eda.cli import main
 
-            main([str(config_path), "run", "--extra-flag", "val"])
+            main([str(config_path), "run", "CRASH", "--cpus", "4", "--wait", "--max-cores", "8"])
             args = mock_run.call_args[0][1]
-            assert "--extra-flag" in args.extra_argv or "val" in args.extra_argv
+            assert args.criteria == "CRASH"
+            assert args.cpus == 4
+            assert args.wait is True
+            assert args.max_cores == 8
+
+    def test_run_unknown_flag_raises(self, config_path: Path) -> None:
+        from pya3eda.cli import main
+
+        with pytest.raises(SystemExit):
+            main([str(config_path), "run", "--extra-flag", "val"])
 
     def test_unknown_args_non_run_raises(self, config_path: Path) -> None:
         """Unrecognised args for non-run subcommand → SystemExit."""
@@ -110,11 +119,14 @@ class TestCmdRun:
         with patch("pya3eda.runner.executor.run_all") as mock_ra:
             from pya3eda.cli import main
 
-            main([str(config_path), "run", "--criteria", "CRASH"])
+            main([str(config_path), "run", "CRASH"])
             mock_ra.assert_called_once()
             _, kwargs = mock_ra.call_args
             assert kwargs["criteria"] == "CRASH"
-            assert kwargs["backend"] == "qqchem"
+            assert kwargs["backend"] == "auto"
+            assert kwargs["wait"] is False
+            assert kwargs["max_cores"] is None
+            assert kwargs["options"].cpus == 1
 
 
 class TestCmdExtract:

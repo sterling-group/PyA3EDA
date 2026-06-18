@@ -30,18 +30,27 @@ pya3eda config.yaml build [--overwrite MODE] [--sp-strategy STRATEGY] [--templat
 
 ## `run` — Submit Calculations
 
-Submit Q-Chem jobs via a pluggable backend.
+Submit Q-Chem jobs locally (background `bash`) or to SLURM (`sbatch`).
 
 ```bash
-pya3eda config.yaml run [--backend BACKEND] [--criteria CRITERIA] [EXTRA_FLAGS...]
+pya3eda config.yaml run [CRITERIA] [--backend auto|local|slurm] [--max-cores N] [--wait] [JOB OPTIONS...]
 ```
 
-| Option       | Default      | Description                              |
-|-------------|-------------|------------------------------------------|
-| `--backend`  | `qqchem`    | Submission backend (`qqchem` for SLURM)  |
-| `--criteria` | `all`       | Status filter for which jobs to submit    |
+| Option         | Default  | Description                                                        |
+|----------------|----------|--------------------------------------------------------------------|
+| `CRITERIA`     | `NOFILE` | Status filter for which jobs to submit (positional)                |
+| `--backend`    | `auto`   | `auto` (SLURM if `sbatch` is present, else `local`), `local`, `slurm` |
+| `--max-cores`  | CPU count | Core budget for throttled submission                              |
+| `--wait`       | off      | Block until all jobs finish (implied for the `local` backend)      |
 
-Extra flags after `--` are forwarded to the backend.
+Job options (passed to the Q-Chem SLURM/bash script): `-c/--cpus`, `-p/--parallel`,
+`-P/--parallel-type`, `-m/--memory`, `-M/--mem-per-cpu`, `-t/--time`, `-q/--partition`,
+`-v/--version`, `--qcsetup`, `-s/--scratch`, `-N/--node`, `-x/--exclude`, `--save`,
+`-f/--save-all`, `--save-scratch`, `-F/--force`.
+
+The default SLURM path submits and returns; `--wait` (and the local backend) throttle
+submissions to `--max-cores` and block until completion. Cluster settings are read from
+`$QQCHEM_CLUSTERS` or `~/.config/qqchem/clusters.yaml`.
 
 ---
 

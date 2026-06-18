@@ -39,18 +39,58 @@ def main(argv: list[str] | None = None) -> None:
     )
     p_build.add_argument("--template-dir", default="templates", help="Template directory")
 
-    # run — accepts all backend-specific flags after pya3eda's own flags
-    p_run = sub.add_parser(
-        "run",
-        help="Submit calculations (extra flags forwarded to backend)",
-    )
+    # run — submit Q-Chem jobs (local bash or SLURM)
+    p_run = sub.add_parser("run", help="Submit calculations (local or SLURM)")
     p_run.add_argument(
         "criteria",
         nargs="?",
         default="NOFILE",
         help="Status filter for submission (default: NOFILE)",
     )
-    p_run.add_argument("--backend", default="qqchem", help="Submission backend (default: qqchem)")
+    p_run.add_argument(
+        "--backend",
+        default="auto",
+        choices=["auto", "local", "slurm"],
+        help="Execution backend (default: auto — SLURM if sbatch is present, else local)",
+    )
+    p_run.add_argument(
+        "--max-cores",
+        type=int,
+        default=None,
+        help="Core budget for throttled submission (default: local CPU count)",
+    )
+    p_run.add_argument(
+        "--wait",
+        action="store_true",
+        help="Block until all jobs finish (implied for the local backend)",
+    )
+    # Q-Chem / SLURM job options
+    p_run.add_argument("-c", "--cpus", type=int, default=1, help="CPUs per task (threads)")
+    p_run.add_argument("-p", "--parallel", type=int, default=None, help="MPI processes")
+    p_run.add_argument(
+        "-P",
+        "--parallel-type",
+        choices=["openmp", "openmpi"],
+        default="openmp",
+        help="Parallelism mode (default: openmp)",
+    )
+    p_run.add_argument(
+        "-m", "--memory", type=int, default=None, help="Set mem_total (MB) in inputs"
+    )
+    p_run.add_argument("-M", "--mem-per-cpu", type=int, default=None, help="Memory per CPU (MB)")
+    p_run.add_argument(
+        "-t", "--time", dest="walltime", default=None, help="Wall time (SLURM format)"
+    )
+    p_run.add_argument("-q", "--partition", default=None, help="Partition name")
+    p_run.add_argument("-v", "--version", default="6.2.1", help="Q-Chem version (default: 6.2.1)")
+    p_run.add_argument("--qcsetup", default=None, help="Path to a custom qcsetup file")
+    p_run.add_argument("-s", "--scratch", default=None, help="Scratch directory")
+    p_run.add_argument("-N", "--node", dest="nodename", default=None, help="Target node")
+    p_run.add_argument("-x", "--exclude", default=None, help="Nodes to exclude (comma-separated)")
+    p_run.add_argument("--save", action="store_true", help="Save essential scratch files")
+    p_run.add_argument("-f", "--save-all", action="store_true", help="Save all scratch files")
+    p_run.add_argument("--save-scratch", action="store_true", help="Keep the scratch directory")
+    p_run.add_argument("-F", "--force", action="store_true", help="Proceed despite mismatches")
 
     # status
     sub.add_parser("status", help="Check calculation status")
@@ -60,7 +100,7 @@ def main(argv: list[str] | None = None) -> None:
     p_extract.add_argument("--criteria", default="SUCCESSFUL", help="Status filter")
     p_extract.add_argument("--no-plots", action="store_true", help="Skip plot generation")
 
-    args, remaining = parser.parse_known_args(argv)
+    args = parser.parse_args(argv)
 
     logging.basicConfig(
         level=getattr(logging, args.log.upper(), logging.INFO),
@@ -69,11 +109,6 @@ def main(argv: list[str] | None = None) -> None:
 
     if not args.command:
         args.command = "status"
-
-    # Stash extra args so the run subcommand can forward them to the backend
-    args.extra_argv = remaining if args.command == "run" else []
-    if remaining and args.command != "run":
-        parser.error(f"unrecognized arguments: {' '.join(remaining)}")
 
     config = load_config(args.config)
     base_dir = Path(args.config).resolve().parent
@@ -107,14 +142,34 @@ def _cmd_build(registry: CalcRegistry, args: argparse.Namespace) -> None:
 
 
 def _cmd_run(registry: CalcRegistry, args: argparse.Namespace) -> None:
-    """Submit calculations to the configured HPC backend."""
-    from pya3eda.runner.executor import run_all
+    """Submit calculations via the local or SLURM backend."""
+    from pya3eda.runner.executor import RunOptions, run_all
 
+    options = RunOptions(
+        cpus=args.cpus,
+        parallel=args.parallel,
+        parallel_type=args.parallel_type,
+        memory=args.memory,
+        mem_per_cpu=args.mem_per_cpu,
+        walltime=args.walltime,
+        partition=args.partition,
+        version=args.version,
+        qcsetup=args.qcsetup,
+        scratch=args.scratch,
+        nodename=args.nodename,
+        exclude=args.exclude,
+        save=args.save,
+        save_all=args.save_all,
+        save_scratch=args.save_scratch,
+        force=args.force,
+    )
     run_all(
         registry,
         criteria=args.criteria,
         backend=args.backend,
-        extra_argv=args.extra_argv,
+        max_cores=args.max_cores,
+        wait=args.wait,
+        options=options,
     )
 
 
