@@ -220,6 +220,23 @@ CRASH for every registered calculation.
 
 All output lands in `results/{method_key}/`.
 
+### One command: `pipeline`
+
+The four steps above can also run as a single dependency-aware pass.
+`pipeline` builds the OPT inputs, submits them under a `--max-cores`
+budget, builds and submits each single-point as soon as its OPT
+converges, extracts results as jobs finish, and produces the final
+CSVs and plots once everything completes:
+
+```bash
+pya3eda config.yaml pipeline --max-cores 16
+```
+
+Use the staged `build` / `run` / `status` / `extract` commands when you
+want manual control between steps; use `pipeline` for an unattended
+end-to-end run. It is resumable — already-converged OPTs skip straight
+to their single-points.
+
 ---
 
 ## 5 — Interpret the output
