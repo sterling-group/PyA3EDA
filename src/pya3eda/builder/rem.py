@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from pya3eda.errors import TemplateNotFoundError
 from pya3eda.utils import read_text
 
 # ---------------------------------------------------------------------------
@@ -26,7 +27,7 @@ def _load_rem(rem_dir: Path, filename: str) -> str:
     """Read a REM template file, raising if missing."""
     content = read_text(rem_dir / filename)
     if content is None:
-        raise FileNotFoundError(f"REM template not found: {rem_dir / filename}")
+        raise TemplateNotFoundError(f"REM template not found: {rem_dir / filename}")
     return content.strip("\n")
 
 

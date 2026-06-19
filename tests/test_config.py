@@ -17,6 +17,7 @@ from pya3eda.config import (
     TheoryConfig,
     load_config,
 )
+from pya3eda.errors import ConfigError
 from tests.synthetic_outputs import SAMPLE_CONFIG_YAML
 
 # ===================================================================
@@ -172,11 +173,18 @@ class TestLoadConfig:
         assert cfg.products[0].name == "cyclohex3ene1carbaldehyde"
 
     def test_missing_file(self, tmp_path: Path) -> None:
-        with pytest.raises(FileNotFoundError):
+        with pytest.raises(ConfigError):
             load_config(tmp_path / "nonexistent.yaml")
 
     def test_invalid_yaml(self, tmp_path: Path) -> None:
         bad_file = tmp_path / "bad.yaml"
         bad_file.write_text("- just a list\n")
-        with pytest.raises(ValueError, match="YAML mapping"):
+        with pytest.raises(ConfigError, match="YAML mapping"):
+            load_config(bad_file)
+
+    def test_schema_violation_wrapped(self, tmp_path: Path) -> None:
+        """A Pydantic validation failure surfaces as ConfigError."""
+        bad_file = tmp_path / "bad.yaml"
+        bad_file.write_text("levels: []\nreactants: []\nproducts: []\n")
+        with pytest.raises(ConfigError, match="Invalid configuration"):
             load_config(bad_file)

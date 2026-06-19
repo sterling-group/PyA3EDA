@@ -9,6 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from pya3eda.errors import BackendError
 from pya3eda.runner import backend
 from pya3eda.runner.backend import (
     JobSubmissionError,
@@ -63,7 +64,7 @@ class TestGetBackend:
         assert isinstance(get_backend("slurm"), SlurmBackend)
 
     def test_invalid(self) -> None:
-        with pytest.raises(ValueError, match="Unknown backend"):
+        with pytest.raises(BackendError, match="Unknown backend"):
             get_backend("nope")
 
 

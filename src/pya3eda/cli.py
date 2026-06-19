@@ -12,14 +12,18 @@ from __future__ import annotations
 
 import argparse
 import logging
+import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from pya3eda.config import load_config
+from pya3eda.errors import PyA3EDAError
 from pya3eda.registry import CalcRegistry
 
 if TYPE_CHECKING:
     from pya3eda.runner.executor import RunOptions
+
+log = logging.getLogger(__name__)
 
 
 def _add_job_options(p: argparse.ArgumentParser) -> None:
@@ -148,20 +152,26 @@ def main(argv: list[str] | None = None) -> None:
     if not args.command:
         args.command = "status"
 
-    config = load_config(args.config)
-    base_dir = Path(args.config).resolve().parent
-    registry = CalcRegistry(config, base_dir)
+    try:
+        config = load_config(args.config)
+        base_dir = Path(args.config).resolve().parent
+        registry = CalcRegistry(config, base_dir)
 
-    if args.command == "build":
-        _cmd_build(registry, args)
-    elif args.command == "run":
-        _cmd_run(registry, args)
-    elif args.command == "pipeline":
-        _cmd_pipeline(registry, base_dir, args)
-    elif args.command == "status":
-        _cmd_status(registry)
-    else:  # "extract" — the only remaining valid subcommand
-        _cmd_extract(registry, base_dir, args)
+        if args.command == "build":
+            _cmd_build(registry, args)
+        elif args.command == "run":
+            _cmd_run(registry, args)
+        elif args.command == "pipeline":
+            _cmd_pipeline(registry, base_dir, args)
+        elif args.command == "status":
+            _cmd_status(registry)
+        else:  # "extract" — the only remaining valid subcommand
+            _cmd_extract(registry, base_dir, args)
+    except PyA3EDAError as exc:
+        # One catch point translates every domain failure into a deterministic
+        # exit code (see pya3eda.errors); the message is already user-facing.
+        log.error("%s", exc)
+        sys.exit(exc.exit_code)
 
 
 # ---------------------------------------------------------------------------

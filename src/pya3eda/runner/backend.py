@@ -27,13 +27,15 @@ import subprocess
 from pathlib import Path
 from typing import IO, Protocol
 
+from pya3eda.errors import BackendError
+
 log = logging.getLogger(__name__)
 
 _JOB_ID_RE = re.compile(r"\b(\d+)\b")
 _LOCAL_PREFIX = "local-"
 
 
-class JobSubmissionError(RuntimeError):
+class JobSubmissionError(BackendError):
     """Raised when a backend fails to submit a job."""
 
 
@@ -206,12 +208,12 @@ def get_backend(name: str = "auto") -> ExecutionBackend:
     """Return an execution backend by name.
 
     ``"auto"`` (default) selects :class:`SlurmBackend` when ``sbatch`` is on
-    ``PATH``, else :class:`LocalBackend`. Raise ``ValueError`` for unknown names.
+    ``PATH``, else :class:`LocalBackend`. Raise :class:`BackendError` for unknown names.
     """
     if name == "auto":
         return SlurmBackend() if sbatch_available() else LocalBackend()
     cls = BACKENDS.get(name)
     if cls is None:
         available = ", ".join(["auto", *sorted(BACKENDS)])
-        raise ValueError(f"Unknown backend '{name}'. Available: {available}")
+        raise BackendError(f"Unknown backend '{name}'. Available: {available}")
     return cls()

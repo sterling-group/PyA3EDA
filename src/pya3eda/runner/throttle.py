@@ -16,13 +16,11 @@ import logging
 import time
 from collections.abc import Callable
 
+from pya3eda.errors import RunOptionError, ThrottleTimeoutError
+
 log = logging.getLogger(__name__)
 
 IsFinishedFn = Callable[[str], bool]
-
-
-class ThrottleTimeoutError(RuntimeError):
-    """Raised when the core budget does not free up within a deadline."""
 
 
 class Throttler:
@@ -31,7 +29,7 @@ class Throttler:
     def __init__(self, *, max_cores: int, poll_interval: float = 10.0) -> None:
         """Create a throttler with a ``max_cores`` budget and poll cadence."""
         if max_cores < 1:
-            raise ValueError(f"max_cores must be >= 1; got {max_cores}")
+            raise RunOptionError(f"max_cores must be >= 1; got {max_cores}")
         self.max_cores = max_cores
         self.poll_interval = poll_interval
         self._active: dict[str, int] = {}  # job_id -> cores
@@ -49,7 +47,7 @@ class Throttler:
     def register(self, job_id: str, cores: int) -> None:
         """Mark a newly-submitted job as active, charging ``cores``."""
         if cores < 1:
-            raise ValueError(f"cores must be >= 1; got {cores}")
+            raise RunOptionError(f"cores must be >= 1; got {cores}")
         self._active[job_id] = cores
 
     def wait_for_room(
@@ -66,7 +64,7 @@ class Throttler:
         if ``max_wait_seconds`` elapses first.
         """
         if cores_needed > self.max_cores:
-            raise ValueError(
+            raise RunOptionError(
                 f"requested {cores_needed} cores exceeds the total budget {self.max_cores}"
             )
         deadline = time.monotonic() + max_wait_seconds if max_wait_seconds is not None else None
