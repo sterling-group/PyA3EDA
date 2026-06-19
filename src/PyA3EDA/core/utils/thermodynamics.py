@@ -7,6 +7,7 @@ References:
     Ben-Naim, A. (2007) J. Phys. Chem. B, 111(11), 2896-2902.
     Ribeiro, R. F., et al. (2011) J. Phys. Chem. B, 115(49), 14556-14562.
 """
+
 import math
 
 from PyA3EDA.core.constants import Constants
@@ -30,6 +31,8 @@ def calculate_standard_state_correction(temperature: float, pressure: float) -> 
 
     """
     pressure_pa = convert_unit(pressure, "atm", "Pa")
-    ratio = (Constants.MOLAR_GAS_CONSTANT * temperature * Constants.M3_TO_L) / pressure_pa
+    ratio = (
+        Constants.MOLAR_GAS_CONSTANT * temperature * Constants.M3_TO_L
+    ) / pressure_pa
     correction_j_mol = Constants.MOLAR_GAS_CONSTANT * temperature * math.log(ratio)
     return convert_unit(correction_j_mol, "J/mol", "kcal/mol")
