@@ -17,6 +17,10 @@ concurrency:
 
 jobs:
   analyze:
+    # Code scanning needs GitHub Advanced Security, which is only free on public
+    # repos; skip cleanly while the repo is private so CI stays green. Activates
+    # automatically if the repo is made public.
+    if: github.event.repository.visibility == 'public'
     runs-on: ubuntu-latest
     permissions:
       contents: read
