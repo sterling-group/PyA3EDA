@@ -129,6 +129,19 @@ class TestCmdRun:
             assert kwargs["options"].cpus == 1
 
 
+class TestCmdPipeline:
+    def test_pipeline_calls_run_pipeline(self, config_path: Path) -> None:
+        with patch("pya3eda.pipeline.run_pipeline") as mock_rp:
+            from pya3eda.cli import main
+
+            main([str(config_path), "pipeline", "--max-cores", "2", "--cpus", "4", "--no-plots"])
+            mock_rp.assert_called_once()
+            _, kwargs = mock_rp.call_args
+            assert kwargs["max_cores"] == 2
+            assert kwargs["plots"] is False
+            assert kwargs["options"].cpus == 4
+
+
 class TestCmdExtract:
     def test_extract_full_pipeline(self, config_path: Path) -> None:
         with (

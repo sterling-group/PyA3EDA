@@ -63,6 +63,21 @@ def build_all(
         _build_one(spec, registry, template_dir, base_template, overwrite, sp_strategy)
 
 
+def build_calc(
+    spec: CalcSpec,
+    registry: CalcRegistry,
+    template_dir: Path,
+    *,
+    overwrite: str | None = None,
+    sp_strategy: str = "smart",
+) -> None:
+    """Build the input file for a single calculation (e.g. an SP once its OPT is done)."""
+    base_template = read_text(template_dir / "base_template.in")
+    if base_template is None:
+        raise FileNotFoundError(f"Base template not found: {template_dir / 'base_template.in'}")
+    _build_one(spec, registry, template_dir, base_template, overwrite, sp_strategy)
+
+
 # ---------------------------------------------------------------------------
 # Internals
 # ---------------------------------------------------------------------------
@@ -136,18 +151,8 @@ def _build_one(
 
 def _opt_successful(sp_spec: CalcSpec, registry: CalcRegistry) -> bool:
     """Check whether the corresponding OPT calculation completed successfully."""
-    from pya3eda.ids import CalcID
-
-    opt_id = CalcID(
-        method_key=sp_spec.id.method_key,
-        catalyst=sp_spec.id.catalyst,
-        stage=sp_spec.id.stage,
-        species=sp_spec.id.species,
-        calc_type=sp_spec.id.calc_type,
-        mode="opt",
-    )
     try:
-        opt_spec = registry.get(opt_id)
+        opt_spec = registry.get(sp_spec.id.to_opt())
     except KeyError:
         return False
 
@@ -186,18 +191,8 @@ def _build_molecule_section(
     # For SP: read the OPT output to use optimised coordinates
     opt_output_text: str | None = None
     if cid.mode == "sp":
-        from pya3eda.ids import CalcID
-
-        opt_id = CalcID(
-            method_key=cid.method_key,
-            catalyst=cid.catalyst,
-            stage=cid.stage,
-            species=cid.species,
-            calc_type=cid.calc_type,
-            mode="opt",
-        )
         try:
-            opt_spec = registry.get(opt_id)
+            opt_spec = registry.get(cid.to_opt())
             opt_output_text = read_text(opt_spec.output_path)
         except KeyError:
             pass

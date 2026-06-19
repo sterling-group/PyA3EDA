@@ -28,6 +28,10 @@ class CalcID(BaseModel, frozen=True):
     mode: str = "opt"  # opt | sp
     sp_subfolder: str | None = None  # e.g. "wB97M-V_def2-TZVPPD_smd_sp"
 
+    def to_opt(self) -> CalcID:
+        """The OPT calculation this id derives from (``mode='opt'``, no SP subfolder)."""
+        return self.model_copy(update={"mode": "opt", "sp_subfolder": None})
+
 
 class CalcSpec(BaseModel, frozen=True):
     """Full specification of a calculation, including path and metadata."""

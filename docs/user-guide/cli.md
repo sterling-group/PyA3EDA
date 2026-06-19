@@ -1,6 +1,8 @@
 # CLI Reference
 
-PyA3EDA provides the `pya3eda` command with four subcommands.
+PyA3EDA provides the `pya3eda` command with the subcommands below. The staged
+commands (`build` → `run` → `status` → `extract`) can be run individually, or the
+`pipeline` subcommand chains them into one dependency-aware run.
 
 ## General Usage
 
@@ -51,6 +53,32 @@ Job options (passed to the Q-Chem SLURM/bash script): `-c/--cpus`, `-p/--paralle
 The default SLURM path submits and returns; `--wait` (and the local backend) throttle
 submissions to `--max-cores` and block until completion. Cluster settings are read from
 `$QQCHEM_CLUSTERS` or `~/.config/qqchem/clusters.yaml`.
+
+---
+
+## `pipeline` — Full Dependency-Aware Run
+
+One command that chains the whole workflow: build OPT inputs → submit them under
+the `--max-cores` budget → as each OPT *succeeds*, build its single-point input(s)
+from the optimised geometry and submit them as cores free → extract each result
+live → assemble profiles / ΔΔ‡ / CSVs / plots when all finish. Resumable —
+calculations already SUCCESSFUL are skipped (an already-done OPT goes straight to
+its SPs).
+
+```bash
+pya3eda config.yaml pipeline [--max-cores N] [--template-dir DIR] [--overwrite] [--no-plots] [JOB OPTIONS...]
+```
+
+| Option           | Default     | Description                                  |
+|------------------|-------------|----------------------------------------------|
+| `--max-cores`    | CPU count   | Core budget for throttled submission         |
+| `--template-dir` | `templates` | Template directory (OPT/SP inputs are built) |
+| `--overwrite`    | off         | Rebuild existing input files                 |
+| `--no-plots`     | off         | Skip plot generation in the final extract    |
+
+Accepts the same backend (`--backend`) and job options as `run`. The local backend
+runs jobs in the background under the core budget; SLURM submits via `sbatch` and
+polls `squeue`.
 
 ---
 

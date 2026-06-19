@@ -107,6 +107,7 @@ nav:
           - Molecule Section: api/builder/molecule.md
           - REM Section: api/builder/rem.md
       - Runner: api/runner.md
+      - Pipeline: api/pipeline.md
       - Status: api/status.md
       - Parser:
           - Q-Chem Output: api/parser/qchem.md

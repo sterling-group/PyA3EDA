@@ -16,7 +16,7 @@ from dataclasses import dataclass
 
 from pya3eda.ids import CalcSpec
 from pya3eda.registry import CalcRegistry
-from pya3eda.runner.backend import get_backend
+from pya3eda.runner.backend import ExecutionBackend, get_backend
 from pya3eda.runner.clusters import ClusterConfig, detect_cluster
 from pya3eda.runner.engine import JobSpec
 from pya3eda.runner.script import (
@@ -97,15 +97,9 @@ def run_all(
             continue
         cores = _cores(job)
 
-        text = local_script_text(job) if be.name == "local" else slurm_script_text(job)
-        script_path = spec.input_path.with_suffix(".slurm")
-        write_text(script_path, text)
-
         if throttler is not None:
             throttler.wait_for_room(cores, is_finished=be.is_finished)
-        log.info("Submitting: %s", spec.input_path)
-        job_id = be.submit(script_path)
-        log.info("Submitted %s as %s", spec.input_path, job_id)
+        job_id = _write_and_submit(spec, job, be)
         if throttler is not None:
             throttler.register(job_id, cores)
         count += 1
@@ -115,6 +109,21 @@ def run_all(
 
     log.info("Total jobs submitted: %d", count)
     return count
+
+
+def _write_and_submit(spec: CalcSpec, job: JobSpec, be: ExecutionBackend) -> str:
+    """Write *spec*'s script (local or SLURM) and submit it; return the job id.
+
+    Shared by ``run_all`` and the dependency-aware pipeline; the caller owns the
+    core-budget accounting (``Throttler``) around it.
+    """
+    text = local_script_text(job) if be.name == "local" else slurm_script_text(job)
+    script_path = spec.input_path.with_suffix(".slurm")
+    write_text(script_path, text)
+    log.info("Submitting: %s", spec.input_path)
+    job_id = be.submit(script_path)
+    log.info("Submitted %s as %s", spec.input_path, job_id)
+    return job_id
 
 
 # ---------------------------------------------------------------------------

@@ -138,14 +138,7 @@ def _extract_sp(
         return None
 
     # Get OPT content for thermo corrections
-    opt_id = CalcID(
-        method_key=cid.method_key,
-        catalyst=cid.catalyst,
-        stage=cid.stage,
-        species=cid.species,
-        calc_type=cid.calc_type,
-        mode="opt",
-    )
+    opt_id = cid.to_opt()
     opt_content = opt_cache.get(opt_id)
     if not opt_content:
         # No fallback: without the OPT thermo block, H/G are genuinely

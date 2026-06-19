@@ -71,7 +71,7 @@ class Throttler:
             )
         deadline = time.monotonic() + max_wait_seconds if max_wait_seconds is not None else None
         while True:
-            self._reap(is_finished)
+            self.poll(is_finished)
             if self.cores_in_use + cores_needed <= self.max_cores:
                 return
             if deadline is not None and time.monotonic() >= deadline:
@@ -92,7 +92,7 @@ class Throttler:
         """Block until every active job has finished."""
         deadline = time.monotonic() + max_wait_seconds if max_wait_seconds is not None else None
         while self._active:
-            self._reap(is_finished)
+            self.poll(is_finished)
             if not self._active:
                 return
             if deadline is not None and time.monotonic() >= deadline:
@@ -101,9 +101,16 @@ class Throttler:
                 )
             time.sleep(self.poll_interval)
 
-    def _reap(self, is_finished: IsFinishedFn) -> None:
-        """Drop every active job that ``is_finished`` reports done."""
+    def poll(self, is_finished: IsFinishedFn) -> list[str]:
+        """Reap every active job that ``is_finished`` reports done; return their ids.
+
+        Frees each finished job's cores. Used by the dependency-aware pipeline to
+        react to completions; ``wait_for_room`` / ``wait_all`` call it internally.
+        """
+        finished: list[str] = []
         for jid in list(self._active):
             if is_finished(jid):
                 cores = self._active.pop(jid)
+                finished.append(jid)
                 log.info("job %s finished, freed %d cores", jid, cores)
+        return finished

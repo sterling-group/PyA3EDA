@@ -24,6 +24,7 @@ from pya3eda.builder.inputs import (
     _opt_successful,
     _should_overwrite,
     build_all,
+    build_calc,
 )
 from pya3eda.builder.molecule import (
     _coords_from_output,
@@ -1823,3 +1824,20 @@ class TestBuildOneEdgeCases:
             opt_output_text=None,
         )
         assert result is None
+
+
+class TestBuildCalc:
+    def test_builds_single_input(self, tmp_path: Path) -> None:
+        tpl = _make_template_dir(tmp_path)
+        _write_xyz(tpl, "mol_a", _XYZ_3ATOM)
+        reg = CalcRegistry(_simple_config(), tmp_path)
+        spec = next(s for s in reg.all_calcs if s.id.species == "mol_a" and s.id.mode == "opt")
+        build_calc(spec, reg, tpl)
+        assert spec.input_path.exists()
+
+    def test_missing_base_template_raises(self, tmp_path: Path) -> None:
+        (tmp_path / "templates").mkdir()
+        reg = CalcRegistry(_simple_config(), tmp_path)
+        spec = next(s for s in reg.all_calcs if s.id.mode == "opt")
+        with pytest.raises(FileNotFoundError, match="Base template"):
+            build_calc(spec, reg, tmp_path / "templates")
