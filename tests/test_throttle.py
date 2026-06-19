@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import pytest
 
+from pya3eda.errors import RunOptionError
 from pya3eda.runner.throttle import Throttler, ThrottleTimeoutError
 
 
 class TestConstruction:
     def test_rejects_zero_cores(self) -> None:
-        with pytest.raises(ValueError, match="max_cores must be"):
+        with pytest.raises(RunOptionError, match="max_cores must be"):
             Throttler(max_cores=0)
 
 
@@ -22,7 +23,7 @@ class TestRegisterAndState:
 
     def test_register_rejects_zero(self) -> None:
         t = Throttler(max_cores=8)
-        with pytest.raises(ValueError, match="cores must be"):
+        with pytest.raises(RunOptionError, match="cores must be"):
             t.register("j1", 0)
 
 
@@ -34,7 +35,7 @@ class TestWaitForRoom:
 
     def test_rejects_request_over_budget(self) -> None:
         t = Throttler(max_cores=4)
-        with pytest.raises(ValueError, match="exceeds the total budget"):
+        with pytest.raises(RunOptionError, match="exceeds the total budget"):
             t.wait_for_room(8, is_finished=lambda _j: True)
 
     def test_reaps_then_admits(self, monkeypatch: pytest.MonkeyPatch) -> None:

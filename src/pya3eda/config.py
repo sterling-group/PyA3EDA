@@ -71,6 +71,7 @@ class CatalystConfig(BaseModel, frozen=True):
     """A catalyst."""
 
     name: str
+    dimer: bool = False  # True → also run a `dimer` stage and add a DISS dissociation bar
 
 
 # ---------------------------------------------------------------------------
@@ -146,13 +147,22 @@ class Config(BaseModel, frozen=True):
 def load_config(path: str | Path) -> Config:
     """Load and validate a YAML configuration file.
 
-    Returns a fully validated, immutable ``Config`` instance.
+    Returns a fully validated, immutable ``Config`` instance. Every failure mode
+    (missing file, non-mapping YAML, schema violation) surfaces as
+    :class:`~pya3eda.errors.ConfigError` so the CLI maps it to one exit code.
     """
+    from pydantic import ValidationError
+
+    from pya3eda.errors import ConfigError
+
     path = Path(path)
     if not path.is_file():
-        raise FileNotFoundError(f"Configuration file not found: {path}")
+        raise ConfigError(f"Configuration file not found: {path}")
     with path.open(encoding="utf-8") as f:
         raw = yaml.safe_load(f)
     if not isinstance(raw, dict):
-        raise ValueError(f"Expected a YAML mapping, got {type(raw).__name__}")
-    return Config(**raw)
+        raise ConfigError(f"Expected a YAML mapping, got {type(raw).__name__}")
+    try:
+        return Config(**raw)
+    except ValidationError as exc:
+        raise ConfigError(f"Invalid configuration in {path}:\n{exc}") from exc

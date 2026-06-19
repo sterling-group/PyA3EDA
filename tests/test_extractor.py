@@ -1155,13 +1155,11 @@ class TestExtractOneEdgeCases:
             result = _extract_one(spec, "all", {})
         assert result is None
 
-    def test_sp_without_opt_thermo_logs_and_leaves_HG_none(
-        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
-    ) -> None:
-        """SP with a parseable energy but no OPT thermo → warning, H/G None (no fallback)."""
-        import logging
+    def test_sp_without_opt_thermo_fails_loud(self, tmp_path: Path) -> None:
+        """SP with a parseable energy but no OPT thermo → loud IncompleteDataError."""
         from unittest.mock import patch
 
+        from pya3eda.errors import IncompleteDataError
         from pya3eda.extractor.data import _extract_one
         from pya3eda.status.checker import Status
 
@@ -1181,14 +1179,38 @@ class TestExtractOneEdgeCases:
         (tmp_path / "mol.out").write_text("Final energy is -100.5 Ha\n")
         with (
             patch("pya3eda.extractor.data.get_status", return_value=(Status.SUCCESSFUL, "ok")),
-            caplog.at_level(logging.WARNING),
+            pytest.raises(IncompleteDataError, match="OPT thermo"),
         ):
-            result = _extract_one(spec, "all", {})  # empty opt_cache
-        assert result is not None
-        assert result.sp_energy is not None
-        assert result.H is None
-        assert result.G is None
-        assert "no OPT thermo" in caplog.text
+            _extract_one(spec, "all", {})  # empty opt_cache
+
+    def test_extract_all_aggregates_incomplete_errors(self, tmp_path: Path) -> None:
+        """An OPT that parsed an energy but no thermo makes extract_all fail loud."""
+        from unittest.mock import MagicMock, patch
+
+        from pya3eda.errors import IncompleteDataError
+        from pya3eda.extractor.data import extract_all
+        from pya3eda.status.checker import Status
+
+        cid = CalcID(method_key="m", stage="reactants", species="mol", mode="opt")
+        out = tmp_path / "mol.out"
+        out.write_text("Total energy = -100.500000\n")  # parses as energy; no thermo
+        spec = type(
+            "Spec",
+            (),
+            {
+                "id": cid,
+                "output_path": out,
+                "input_path": tmp_path / "mol.in",
+                "solvent": "false",
+                "is_fragmented": False,
+            },
+        )()
+        reg = MagicMock(all_calcs=[spec])
+        with (
+            patch("pya3eda.extractor.data.get_status", return_value=(Status.SUCCESSFUL, "ok")),
+            pytest.raises(IncompleteDataError, match="Incomplete data for 1 computation"),
+        ):
+            extract_all(reg, criteria="all")
 
 
 class TestParseSpEnergyBranches:
@@ -1201,13 +1223,42 @@ class TestParseSpEnergyBranches:
         assert _parse_sp_energy(content, spec) is not None
 
 
-class TestComputeGBranches:
-    def test_gas_phase_skips_ssc(self) -> None:
-        """Gas-phase G omits the standard-state correction."""
-        from pya3eda.extractor.data import _compute_G
+class TestDeriveHG:
+    """Fail-loud derivation of H/G from a present electronic energy."""
 
-        g = _compute_G(10.0, 298.0, 0.01, "false", None)
-        assert g == pytest.approx(10.0 - 298.0 * 0.01)
+    _CID = CalcID(method_key="m", stage="reactants", species="mol", mode="opt")
+
+    def test_gas_phase_skips_ssc(self) -> None:
+        """Gas-phase H/G omit the standard-state correction."""
+        from pya3eda.extractor.data import _derive_hg
+
+        H, G = _derive_hg(self._CID, 10.0, 2.0, 0.01, 298.0, None, "false")
+        assert pytest.approx(12.0) == H
+        assert pytest.approx(12.0 - 298.0 * 0.01) == G
+
+    def test_solvent_adds_ssc(self) -> None:
+        """Solvent phase with a pressure adds the standard-state correction."""
+        from pya3eda.extractor.data import _derive_hg
+        from pya3eda.utils import standard_state_correction
+
+        _H, G = _derive_hg(self._CID, 10.0, 2.0, 0.01, 298.0, 1.0, "smd")
+        assert pytest.approx(12.0 - 298.0 * 0.01 + standard_state_correction(298.0, 1.0)) == G
+
+    def test_missing_thermo_raises(self) -> None:
+        """Energy present but h_corr/temperature missing → loud error naming them."""
+        from pya3eda.errors import IncompleteDataError
+        from pya3eda.extractor.data import _derive_hg
+
+        with pytest.raises(IncompleteDataError, match=r"h_corr.*temperature"):
+            _derive_hg(self._CID, 10.0, None, 0.01, None, None, "false")
+
+    def test_solvent_missing_pressure_raises(self) -> None:
+        """Solvent phase without a pressure → loud error (SSC cannot be applied)."""
+        from pya3eda.errors import IncompleteDataError
+        from pya3eda.extractor.data import _derive_hg
+
+        with pytest.raises(IncompleteDataError, match="pressure"):
+            _derive_hg(self._CID, 10.0, 2.0, 0.01, 298.0, None, "smd")
 
 
 class TestComputeForCatalystBranches:
@@ -1217,37 +1268,3 @@ class TestComputeForCatalystBranches:
 
         result = _compute_for_catalyst("m", "cat", "opt", None, {})
         assert isinstance(result, list)
-
-
-# ===================================================================
-# Standalone extract-from-text helpers (extract_opt_energies / extract_sp_energies)
-# ===================================================================
-
-
-class TestStandaloneEnergyHelpers:
-    def test_extract_opt_energies(self) -> None:
-        from pya3eda.extractor.data import extract_opt_energies
-        from tests.synthetic_outputs import OPT_OUTPUT
-
-        e, g = extract_opt_energies(OPT_OUTPUT, "smd")
-        assert e is not None
-        assert g is not None
-
-    def test_extract_opt_energies_no_energy(self) -> None:
-        from pya3eda.extractor.data import extract_opt_energies
-
-        assert extract_opt_energies("no energy here", "false") == (None, None)
-
-    def test_extract_sp_energies(self) -> None:
-        from pya3eda.extractor.data import extract_sp_energies
-        from tests.synthetic_outputs import OPT_OUTPUT, SP_OUTPUT
-
-        e, g = extract_sp_energies(SP_OUTPUT, OPT_OUTPUT, "smd", None)
-        assert e is not None
-        assert g is not None
-
-    def test_extract_sp_energies_no_energy(self) -> None:
-        from pya3eda.extractor.data import extract_sp_energies
-        from tests.synthetic_outputs import OPT_OUTPUT
-
-        assert extract_sp_energies("nothing here", OPT_OUTPUT, "smd", None) == (None, None)

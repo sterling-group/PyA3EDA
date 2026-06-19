@@ -11,6 +11,7 @@ from typing import Any
 
 import pytest
 
+from pya3eda.errors import TemplateNotFoundError
 from pya3eda.runner import script
 from pya3eda.runner.engine import JobSpec
 
@@ -61,7 +62,7 @@ class TestHeaderAndAssembly:
 
 class TestMemHelpers:
     def test_read_input_file_missing(self, tmp_path: Path) -> None:
-        with pytest.raises(FileNotFoundError):
+        with pytest.raises(TemplateNotFoundError):
             script.read_input_file(tmp_path / "nope.in")
 
     def test_read_input_file(self, tmp_path: Path) -> None:

@@ -14,6 +14,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from pya3eda.errors import TemplateNotFoundError
 from pya3eda.runner.engine import ENGINES, Engine, JobSpec
 
 # ---------------------------------------------------------------------------
@@ -75,7 +76,7 @@ def generate_slurm_script(**kwargs: Any) -> str:
 def read_input_file(input_path: Path) -> list[str]:
     """Read a Q-Chem input file and return its lines."""
     if not input_path.is_file():
-        raise FileNotFoundError(f"Input file '{input_path}' does not exist.")
+        raise TemplateNotFoundError(f"Input file '{input_path}' does not exist.")
     return input_path.read_text().splitlines(keepends=True)
 
 

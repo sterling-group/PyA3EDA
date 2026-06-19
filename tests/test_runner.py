@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from pya3eda.errors import RunOptionError
 from pya3eda.ids import CalcID, CalcSpec
 from pya3eda.runner import executor
 from pya3eda.runner.clusters import ClusterConfig, QChemVersion
@@ -183,7 +184,7 @@ class TestResolveParallel:
         assert _resolve_parallel(RunOptions(parallel_type="openmpi", cpus=2, parallel=3)) == (2, 3)
 
     def test_openmpi_requires_parallel(self) -> None:
-        with pytest.raises(ValueError, match="--parallel is required"):
+        with pytest.raises(RunOptionError, match="--parallel is required"):
             _resolve_parallel(RunOptions(parallel_type="openmpi"))
 
 
@@ -241,11 +242,11 @@ class TestResolveVersion:
         assert env == []
 
     def test_unknown_version(self) -> None:
-        with pytest.raises(ValueError, match="unknown for"):
+        with pytest.raises(RunOptionError, match="unknown for"):
             _resolve_version(RunOptions(version="9.9.9"), "g2", _cluster())
 
     def test_modqchem_requires_qcsetup(self) -> None:
-        with pytest.raises(ValueError, match="--qcsetup is required"):
+        with pytest.raises(RunOptionError, match="--qcsetup is required"):
             _resolve_version(RunOptions(version="modqchem"), "g2", _cluster())
 
     def test_modqchem_with_qcsetup(self) -> None:

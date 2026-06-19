@@ -14,6 +14,7 @@ import logging
 import os
 from dataclasses import dataclass
 
+from pya3eda.errors import RunOptionError
 from pya3eda.ids import CalcSpec
 from pya3eda.registry import CalcRegistry
 from pya3eda.runner.backend import ExecutionBackend, get_backend
@@ -184,7 +185,7 @@ def _resolve_parallel(opts: RunOptions) -> tuple[int, int]:
     """Return ``(cpus, qchem_processors)`` for the parallel mode."""
     if opts.parallel_type == "openmpi":
         if opts.parallel is None:
-            raise ValueError("--parallel is required with --parallel-type openmpi")
+            raise RunOptionError("--parallel is required with --parallel-type openmpi")
         return (opts.cpus or 1), opts.parallel
     return (opts.cpus or 1), 1
 
@@ -239,13 +240,13 @@ def _resolve_version(
     """Return ``(module_cmds, qcsetup, env_vars, mpi_support, mpi_modules)``."""
     if opts.version == "modqchem":
         if not opts.qcsetup:
-            raise ValueError("--qcsetup is required with version 'modqchem'")
+            raise RunOptionError("--qcsetup is required with version 'modqchem'")
         return [], opts.qcsetup, [], False, []
 
     versions = cluster.qchem_versions
     if opts.version not in versions:
         available = ", ".join([*versions, "modqchem"])
-        raise ValueError(
+        raise RunOptionError(
             f"Q-Chem version '{opts.version}' unknown for '{cluster_name}'. Available: {available}"
         )
 

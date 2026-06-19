@@ -51,13 +51,23 @@ Each level defines an optimisation theory and optional single-point theories.
 
 ### `catalysts`
 
-List of catalysts. Each entry needs only `name`:
+List of catalysts. Each entry needs a `name`; set `dimer: true` for a catalyst
+whose resting state is a dimer:
 
 ```yaml
 catalysts:
   - name: lip
-  - name: nap
+    dimer: true     # also run a `dimer` calc and add a DISS dissociation bar
+  - name: nap       # dimer defaults to false
 ```
+
+When `dimer: true`, PyA3EDA enumerates a `dimer` stage **alongside `cat`** at
+`<method_key>/<catalyst>/dimer/` — built, run, and extracted by the normal
+`build`/`run`/`extract` like any other calculation. It needs an initial geometry
+template `templates/molecule/<catalyst>-dimer.xyz`. The barplot then gains a
+leading **DISS** term (`correction = 2·E_cat − E_dimer`) so `FULL` includes the
+cost of freeing one active monomer from the dimer. Catalysts without the flag are
+untouched.
 
 ### `reactants` and `products`
 

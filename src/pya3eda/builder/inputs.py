@@ -16,6 +16,7 @@ from pya3eda.builder.molecule import (
     build_standard_molecule,
 )
 from pya3eda.builder.rem import build_opt_rem, build_sp_rem
+from pya3eda.errors import TemplateNotFoundError
 from pya3eda.ids import CalcSpec
 from pya3eda.parser.qchem import parse_status
 from pya3eda.parser.xyz import parse_xyz
@@ -57,7 +58,7 @@ def build_all(
     base_template_path = template_dir / "base_template.in"
     base_template = read_text(base_template_path)
     if base_template is None:
-        raise FileNotFoundError(f"Base template not found: {base_template_path}")
+        raise TemplateNotFoundError(f"Base template not found: {base_template_path}")
 
     for spec in registry.all_calcs:
         _build_one(spec, registry, template_dir, base_template, overwrite, sp_strategy)
@@ -74,7 +75,7 @@ def build_calc(
     """Build the input file for a single calculation (e.g. an SP once its OPT is done)."""
     base_template = read_text(template_dir / "base_template.in")
     if base_template is None:
-        raise FileNotFoundError(f"Base template not found: {template_dir / 'base_template.in'}")
+        raise TemplateNotFoundError(f"Base template not found: {template_dir / 'base_template.in'}")
     _build_one(spec, registry, template_dir, base_template, overwrite, sp_strategy)
 
 

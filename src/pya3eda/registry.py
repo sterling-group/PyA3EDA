@@ -101,6 +101,7 @@ class CalcRegistry:
         # Derived ordering helpers
         self._method_keys: list[str] = []
         self._catalyst_order: list[str] = [c.name for c in config.catalysts]
+        self._dimer_catalysts: set[str] = {sanitize(c.name) for c in config.catalysts if c.dimer}
 
         self._enumerate_calcs()
         self._enumerate_profiles()
@@ -156,6 +157,11 @@ class CalcRegistry:
     def catalyst_order(self) -> list[str]:
         """Ordered list of catalyst names from config."""
         return list(self._catalyst_order)
+
+    @property
+    def dimer_catalysts(self) -> set[str]:
+        """Sanitised names of catalysts declared with ``dimer: true``."""
+        return set(self._dimer_catalysts)
 
     # -- private: enumeration -----------------------------------------------
 
@@ -297,6 +303,23 @@ class CalcRegistry:
                 present_catalysts=(cat.name,),
                 **common,
             )
+
+            # Catalyst dimer (optional) — a standalone calc alongside `cat`, used
+            # only for the dissociation (DISS) correction on the ΔΔ‡ barplot.
+            if cat.dimer:
+                self._add_calc(
+                    method_key=method_key,
+                    catalyst=cat_s,
+                    stage="dimer",
+                    species=f"{cat_s}-dimer",
+                    calc_type=None,
+                    mode=mode,
+                    is_fragmented=False,
+                    present_reactants=(),
+                    present_products=(),
+                    present_catalysts=(cat.name,),
+                    **common,
+                )
 
             # preTS: catalyst-reactant complexes (include=True combos, ≥1)
             for size in range(1, len(incl_r) + 1):
@@ -461,6 +484,13 @@ class CalcRegistry:
         if stage == "cat":
             parts = Path(cat_dir) / "cat"
             filename = f"{cat_dir}{suffix}"
+            if mode == "sp" and sp_subfolder:
+                parts = parts / sp_subfolder
+            return base / parts / filename
+
+        if stage == "dimer":
+            parts = Path(cat_dir) / "dimer"
+            filename = f"{cat_dir}-dimer{suffix}"
             if mode == "sp" and sp_subfolder:
                 parts = parts / sp_subfolder
             return base / parts / filename

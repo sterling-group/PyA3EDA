@@ -225,6 +225,21 @@ Energy prior to optimization (guess energy) = -1814.157030967601
     Total:               -2.414
  ----------------------------------
 
+ STANDARD THERMODYNAMIC QUANTITIES AT   298.15 K  AND     1.00 ATM
+
+   This Molecule has  0 Imaginary Frequencies
+   Zero point vibrational energy:       40.500 kcal/mol
+
+   Translational Entropy:        38.500  cal/mol.K
+   Rotational Entropy:           24.500  cal/mol.K
+   Vibrational Entropy:           6.500  cal/mol.K
+
+   Total Enthalpy:               44.500 kcal/mol
+   Total Entropy:                70.500  cal/mol.K
+
+   QRRHO-Total Enthalpy:         44.400 kcal/mol
+   QRRHO-Total Entropy:          70.400  cal/mol.K
+
  Total job time:  500.00s(wall), 12000.00s(cpu)
 
         *************************************************************
@@ -255,6 +270,21 @@ Running on host compute03
 
     Total:               -2.200
  ----------------------------------
+
+ STANDARD THERMODYNAMIC QUANTITIES AT   298.15 K  AND     1.00 ATM
+
+   This Molecule has  0 Imaginary Frequencies
+   Zero point vibrational energy:       39.500 kcal/mol
+
+   Translational Entropy:        37.500  cal/mol.K
+   Rotational Entropy:           23.500  cal/mol.K
+   Vibrational Entropy:           5.500  cal/mol.K
+
+   Total Enthalpy:               43.500 kcal/mol
+   Total Entropy:                69.500  cal/mol.K
+
+   QRRHO-Total Enthalpy:         43.400 kcal/mol
+   QRRHO-Total Entropy:          69.400  cal/mol.K
 
  Total job time:  400.00s(wall), 9600.00s(cpu)
 

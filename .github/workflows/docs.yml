@@ -5,17 +5,20 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Least privilege for the GitHub Actions Pages deployment: read the repo,
+# write the Pages artifact, and mint the OIDC token `deploy-pages` needs.
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
 
-# Serialise deploys (two concurrent `gh-deploy --force` runs race on the
-# gh-pages branch); don't cancel one mid-push.
+# Allow one concurrent deployment; don't cancel an in-progress one mid-publish.
 concurrency:
-  group: docs-deploy
+  group: pages
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -28,5 +31,21 @@ jobs:
       - name: Install dependencies
         run: pip install -e ".[docs]"
 
-      - name: Deploy to GitHub Pages
-        run: mkdocs gh-deploy --force
+      - name: Build site
+        run: mkdocs build --strict
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

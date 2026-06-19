@@ -1,10 +1,18 @@
-"""Data extraction — reads Q-Chem outputs and produces ExtractedData per CalcID."""
+"""Data extraction — reads Q-Chem outputs and produces ExtractedData per CalcID.
+
+Fail-loud policy: once a calculation's *primary* electronic energy is parsed (the
+calc ran), every value derived from it — ``H``, ``G`` — must be computable. A
+missing thermal/entropy/temperature input raises :class:`IncompleteDataError`
+rather than silently yielding ``None`` (a free energy with a missing correction
+"is not true"). A calc that did not run at all (no electronic energy) is simply
+absent. ``extract_all`` aggregates these so one error lists every gap.
+"""
 
 from __future__ import annotations
 
 import logging
-from typing import NamedTuple
 
+from pya3eda.errors import IncompleteDataError
 from pya3eda.ids import CalcID, CalcSpec, ExtractedData
 from pya3eda.parser import qchem
 from pya3eda.parser.xyz import format_xyz, parse_output_xyz
@@ -36,27 +44,35 @@ def extract_all(
     Returns
     -------
     dict[CalcID, ExtractedData]
-        Keyed by ``CalcID``.  Failed / skipped calcs are omitted.
+        Keyed by ``CalcID``.  Calcs that did not run are omitted.
+
+    Raises
+    ------
+    IncompleteDataError
+        If any calc ran but a value derived from its energy could not be
+        computed (missing thermal correction, entropy, temperature, …). All such
+        gaps are collected and reported together.
     """
     results: dict[CalcID, ExtractedData] = {}
+    errors: list[str] = []
 
     # Process OPT first (SP needs OPT content for thermo corrections)
     opt_content_cache: dict[CalcID, str] = {}
 
-    for spec in registry.all_calcs:
-        if spec.id.mode != "opt":
-            continue
-        data = _extract_one(spec, criteria, opt_content_cache)
-        if data is not None:
-            results[spec.id] = data
+    for mode in ("opt", "sp"):
+        for spec in registry.all_calcs:
+            if spec.id.mode != mode:
+                continue
+            try:
+                data = _extract_one(spec, criteria, opt_content_cache)
+            except IncompleteDataError as exc:
+                errors.append(str(exc))
+                continue
+            if data is not None:
+                results[spec.id] = data
 
-    # Then SP
-    for spec in registry.all_calcs:
-        if spec.id.mode != "sp":
-            continue
-        data = _extract_one(spec, criteria, opt_content_cache)
-        if data is not None:
-            results[spec.id] = data
+    if errors:
+        raise IncompleteDataError.combine(errors)
 
     log.info("Extracted %d calculations", len(results))
     return results
@@ -87,8 +103,7 @@ def _extract_one(
     if cid.mode == "opt":
         opt_cache[cid] = content
         return _extract_opt(cid, spec, content)
-    else:
-        return _extract_sp(cid, spec, content, opt_cache)
+    return _extract_sp(cid, spec, content, opt_cache)
 
 
 def _extract_opt(
@@ -96,16 +111,22 @@ def _extract_opt(
     spec: CalcSpec,
     content: str,
 ) -> ExtractedData | None:
-    """Parse an OPT output and compute derived H/G."""
-    core = _opt_energy_h_g(content, spec.solvent)
-    if core is None:
-        return None
-    E, H, G, h_corr, s_corr, temperature, _pressure = core
+    """Parse an OPT output and compute derived H/G (fail-loud on missing thermo)."""
+    energy_result = qchem.parse_energy(content)
+    if energy_result is None:
+        return None  # primary energy absent → calc did not run / unparseable
+    E = energy_result.value_kcal
+
+    h_corr = qchem.parse_enthalpy(content)
+    s_corr = qchem.parse_entropy(content)
+    thermo = qchem.parse_thermo_conditions(content)
+    temperature = thermo.temperature if thermo else None
+    pressure = thermo.pressure if thermo else None
+    H, G = _derive_hg(cid, E, h_corr, s_corr, temperature, pressure, spec.solvent)
 
     s_trans = qchem.parse_translational_entropy(content)
     zpve = qchem.parse_zpve(content)
     imag = qchem.parse_imaginary_freq(content)
-
     xyz_data = parse_output_xyz(content)
     xyz_text = format_xyz(xyz_data) if xyz_data is not None else None
 
@@ -131,24 +152,23 @@ def _extract_sp(
     content: str,
     opt_cache: dict[CalcID, str],
 ) -> ExtractedData | None:
-    """Parse an SP output and compute derived H/G using OPT thermo corrections."""
-    # Determine SP energy based on calc_type
+    """Parse an SP output; compute H/G from the OPT thermo (fail-loud)."""
     sp_energy_kcal = _parse_sp_energy(content, spec.id.calc_type)
     if sp_energy_kcal is None:
-        return None
+        return None  # primary energy absent → calc did not run / unparseable
 
-    # Get OPT content for thermo corrections
     opt_id = cid.to_opt()
     opt_content = opt_cache.get(opt_id)
     if not opt_content:
-        # No fallback: without the OPT thermo block, H/G are genuinely
-        # underivable for this SP. Log so the resulting None is not silent.
-        log.warning("SP %s: no OPT thermo available (%s); H/G left as None.", cid, opt_id)
+        # The SP ran (has an electronic energy) but the OPT it depends on was not
+        # extracted — H/G would be untrue. Fail loud rather than emit None.
+        raise IncompleteDataError(
+            f"{cid}: SP electronic energy present but its OPT thermo "
+            f"({opt_id}) was not extracted — cannot compute H/G"
+        )
 
-    h_corr, s_corr, s_trans, temperature, zpve, pressure = _opt_thermo(opt_content or "")
-
-    H = (sp_energy_kcal + h_corr) if h_corr is not None else None
-    G = _compute_G(H, temperature, s_corr, spec.solvent, pressure)
+    h_corr, s_corr, s_trans, temperature, zpve, pressure = _opt_thermo(opt_content)
+    H, G = _derive_hg(cid, sp_energy_kcal, h_corr, s_corr, temperature, pressure, spec.solvent)
 
     return ExtractedData(
         calc_id=cid,
@@ -196,55 +216,52 @@ def _parse_sp_energy(content: str, calc_type: str | None) -> float | None:
 # ---------------------------------------------------------------------------
 
 
-def _compute_G(
-    H: float | None,
-    temperature: float | None,
+def _solvent_active(solvent: str) -> bool:
+    """True if *solvent* denotes an actual solvent (not gas phase)."""
+    return bool(solvent) and solvent.lower() not in ("false", "gas")
+
+
+def _derive_hg(
+    cid: CalcID,
+    energy: float,
+    h_corr: float | None,
     s_corr: float | None,
-    solvent: str,
+    temperature: float | None,
     pressure: float | None,
-) -> float | None:
-    """G = H - T·S [+ standard-state correction if solvent]."""
-    if H is None or temperature is None or s_corr is None:
-        return None
+    solvent: str,
+) -> tuple[float, float]:
+    """Compute ``(H, G)`` from a present electronic *energy* + thermo inputs.
+
+    Raises :class:`IncompleteDataError` naming any input that is missing — the
+    energy is present, so a silently-``None`` H/G "is not true".
+    """
+    if h_corr is None or s_corr is None or temperature is None:
+        missing = [
+            name
+            for name, value in (
+                ("h_corr (enthalpy correction)", h_corr),
+                ("s_corr (entropy)", s_corr),
+                ("temperature", temperature),
+            )
+            if value is None
+        ]
+        raise IncompleteDataError(
+            f"{cid}: electronic energy present but cannot compute H/G — "
+            f"missing {', '.join(missing)}"
+        )
+
+    H = energy + h_corr
     G = H - temperature * s_corr
 
-    if solvent and solvent.lower() not in ("false", "gas") and pressure is not None:
+    if _solvent_active(solvent):
+        if pressure is None:
+            raise IncompleteDataError(
+                f"{cid}: electronic energy present but cannot apply the solvent "
+                f"standard-state correction to G — missing pressure"
+            )
         G += standard_state_correction(temperature, pressure)
 
-    return G
-
-
-# ---------------------------------------------------------------------------
-# Shared parsing cores (used by the extract path and the public helpers below)
-# ---------------------------------------------------------------------------
-
-
-class _OptEHG(NamedTuple):
-    """Derived OPT quantities: energy + enthalpy/free energy + their inputs."""
-
-    E: float
-    H: float | None
-    G: float | None
-    h_corr: float | None
-    s_corr: float | None
-    temperature: float | None
-    pressure: float | None
-
-
-def _opt_energy_h_g(content: str, solvent: str) -> _OptEHG | None:
-    """Compute ``E``/``H``/``G`` (and inputs) for an OPT output; ``None`` if no energy."""
-    energy_result = qchem.parse_energy(content)
-    if energy_result is None:
-        return None
-    h_corr = qchem.parse_enthalpy(content)
-    s_corr = qchem.parse_entropy(content)
-    thermo = qchem.parse_thermo_conditions(content)
-    temperature = thermo.temperature if thermo else None
-    pressure = thermo.pressure if thermo else None
-    E = energy_result.value_kcal
-    H = (E + h_corr) if h_corr is not None else None
-    G = _compute_G(H, temperature, s_corr, solvent, pressure)
-    return _OptEHG(E, H, G, h_corr, s_corr, temperature, pressure)
+    return H, G
 
 
 def _opt_thermo(
@@ -259,42 +276,3 @@ def _opt_thermo(
     temperature = thermo.temperature if thermo else None
     pressure = thermo.pressure if thermo else None
     return h_corr, s_corr, s_trans, temperature, zpve, pressure
-
-
-# ---------------------------------------------------------------------------
-# Public: extract E/G for a standalone species from raw output text
-# ---------------------------------------------------------------------------
-
-
-def extract_opt_energies(
-    opt_text: str, solvent: str = "false"
-) -> tuple[float | None, float | None]:
-    """Return ``(E, G)`` (kcal/mol) for a standalone OPT output, or ``(None, None)``.
-
-    Registry-free counterpart of the OPT extraction path, for scripts that need a
-    species' energies from an arbitrary output file (e.g. a catalyst dimer).
-    """
-    core = _opt_energy_h_g(opt_text, solvent)
-    if core is None:
-        return (None, None)
-    return (core.E, core.G)
-
-
-def extract_sp_energies(
-    sp_text: str,
-    opt_text: str,
-    solvent: str = "false",
-    calc_type: str | None = None,
-) -> tuple[float | None, float | None]:
-    """Return ``(E, G)`` for a standalone SP output, using *opt_text* for thermo.
-
-    ``E`` is the SP electronic energy (with EDA/BSSE/CDS handling per *calc_type*);
-    ``G`` combines it with the OPT enthalpy/entropy corrections.
-    """
-    sp_energy = _parse_sp_energy(sp_text, calc_type)
-    if sp_energy is None:
-        return (None, None)
-    h_corr, s_corr, _s_trans, temperature, _zpve, pressure = _opt_thermo(opt_text)
-    H = (sp_energy + h_corr) if h_corr is not None else None
-    G = _compute_G(H, temperature, s_corr, solvent, pressure)
-    return (sp_energy, G)

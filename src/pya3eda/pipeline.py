@@ -210,10 +210,12 @@ def finalize_extraction(
     """
     from pya3eda.exporter.results import export_all
     from pya3eda.extractor.barriers import compute_delta_delta
+    from pya3eda.extractor.dimer import apply_dimer_corrections
     from pya3eda.extractor.stages import build_profiles
 
     profiles = build_profiles(registry, extracted)
     dd = compute_delta_delta(profiles, registry.catalyst_order)
+    dd = apply_dimer_corrections(dd, registry, extracted)
     export_all(registry, extracted, profiles, dd, base_dir)
 
     if plots:

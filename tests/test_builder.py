@@ -47,6 +47,7 @@ from pya3eda.config import (
     SpeciesConfig,
     TheoryConfig,
 )
+from pya3eda.errors import TemplateNotFoundError
 from pya3eda.ids import CalcID, CalcSpec
 from pya3eda.parser.xyz import XYZData
 from pya3eda.registry import CalcRegistry
@@ -451,7 +452,7 @@ class TestLoadRem:
     def test_missing_raises(self, tmp_path: Path) -> None:
         rem_dir = tmp_path / "rem"
         rem_dir.mkdir()
-        with pytest.raises(FileNotFoundError, match="REM template not found"):
+        with pytest.raises(TemplateNotFoundError, match="REM template not found"):
             _load_rem(rem_dir, "missing.rem")
 
 
@@ -1589,7 +1590,7 @@ class TestBuildAll:
         reg = CalcRegistry(cfg, tmp_path / "data")
         empty_tpl = tmp_path / "tpl"
         empty_tpl.mkdir()
-        with pytest.raises(FileNotFoundError, match="Base template not found"):
+        with pytest.raises(TemplateNotFoundError, match="Base template not found"):
             build_all(reg, empty_tpl)
 
     def test_fragmented_in_file_content(self, setup: tuple) -> None:
@@ -1839,5 +1840,5 @@ class TestBuildCalc:
         (tmp_path / "templates").mkdir()
         reg = CalcRegistry(_simple_config(), tmp_path)
         spec = next(s for s in reg.all_calcs if s.id.mode == "opt")
-        with pytest.raises(FileNotFoundError, match="Base template"):
+        with pytest.raises(TemplateNotFoundError, match="Base template"):
             build_calc(spec, reg, tmp_path / "templates")
