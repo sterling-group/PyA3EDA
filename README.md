@@ -32,6 +32,7 @@ surface — revealing *how* a catalyst lowers (or raises) a reaction barrier.
 | **Non-interacting reference** | Separates the confinement cost of bringing fragments together from genuine catalyst–substrate interactions via a reconstructed non-interacting surface. |
 | **Configuration-driven** | One YAML file defines theory levels, basis sets, catalysts, and species. Everything else is derived automatically. |
 | **Candidate selection** | Automatically picks the lowest-energy preTS / postTS complex when multiple compositions exist. |
+| **Catalyst-dimer correction** | Mark a catalyst `dimer: true` to add a `dimer` calculation alongside `cat` and a leading **DISS** dissociation bar on the ΔΔ‡ barplot — fully integrated into the normal build/run/extract. |
 | **Local & SLURM execution** | Runs Q-Chem jobs on a laptop (background `bash`) or an HPC cluster (`sbatch`), auto-detected, throttled by a `--max-cores` budget; new backends slot in behind the `ExecutionBackend` protocol. |
 | **Publication-ready plots** | Energy-profile diagrams and grouped ΔΔ‡ barplots exported as SVG. |
 
@@ -47,6 +48,9 @@ config.yaml
 └────────┘    └────────┘    └────────┘    └──────────┘
   Q-Chem        SLURM        progress      CSVs, SVGs,
   .in files     submit       report        profiles
+
+         └──────────── pipeline ────────────┘
+        one command: build → OPT → SP → extract
 ```
 
 ## Installation
@@ -82,7 +86,13 @@ pya3eda config.yaml extract
 ```
 
 Each subcommand is incremental — you can re-run `extract` after new jobs
-finish without repeating earlier steps.
+finish without repeating earlier steps. Or run the whole thing as one
+dependency-aware pass under a core budget:
+
+```bash
+# build → submit OPTs → submit each SP as its OPT converges → extract + plot
+pya3eda config.yaml pipeline --max-cores 16
+```
 
 See [`examples/diels-alder/`](examples/diels-alder/) for a complete
 worked example (Lewis-acid catalysed Diels–Alder reaction with BF₃).

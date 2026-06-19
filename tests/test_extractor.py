@@ -1268,5 +1268,3 @@ class TestComputeForCatalystBranches:
 
         result = _compute_for_catalyst("m", "cat", "opt", None, {})
         assert isinstance(result, list)
-
-

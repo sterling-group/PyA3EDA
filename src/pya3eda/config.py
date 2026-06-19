@@ -71,6 +71,7 @@ class CatalystConfig(BaseModel, frozen=True):
     """A catalyst."""
 
     name: str
+    dimer: bool = False  # True → also run a `dimer` stage and add a DISS dissociation bar
 
 
 # ---------------------------------------------------------------------------
