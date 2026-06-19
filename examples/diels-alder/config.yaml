@@ -1,0 +1,38 @@
+# ==========================================================================
+# PyA3EDA example — Lewis-acid catalysed Diels–Alder reaction
+# ==========================================================================
+#
+# Reaction:  acrolein (prop2enal)  +  1,3-butadiene  →  cyclohex-3-ene-1-carbaldehyde
+# Catalyst:  BF3 (boron trifluoride)
+#
+# This configuration runs:
+#   • OPT at ωB97X-V/def2-SVP with SMD solvation
+#   • SP  at ωB97M-V/def2-TZVPPD with EDA2 = 1
+#
+# Butadiene is marked include: false because only the dienophile
+# (acrolein) coordinates to the Lewis-acid catalyst.
+# --------------------------------------------------------------------------
+
+levels:
+  - opt:
+      method: wB97X-V
+      basis: def2-SVP
+      solvent: smd
+    sp:
+      - method: wB97M-V
+        basis: def2-TZVPPD
+        solvent: smd
+        eda2: 1
+
+catalysts:
+  - name: bf3
+
+reactants:
+  - name: prop2enal
+    include: true
+  - name: buta13diene
+    include: false
+
+products:
+  - name: cyclohex3ene1carbaldehyde
+    include: true

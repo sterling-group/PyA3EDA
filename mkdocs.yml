@@ -1,0 +1,120 @@
+site_name: PyA3EDA
+site_description: Python automation for Asymmetrically-constrained Adiabatic ALMO-EDA
+site_url: https://sterling-group.github.io/PyA3EDA/
+repo_url: https://github.com/sterling-group/PyA3EDA
+repo_name: sterling-group/PyA3EDA
+copyright: Copyright &copy; 2026 Markus G. S. Weiss
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.indexes
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+  icon:
+    repo: fontawesome/brands/github
+  #logo: assets/logo.svg
+  favicon: assets/logo.svg
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            show_source: true
+            show_root_heading: true
+            show_symbol_type_heading: true
+            members_order: source
+            docstring_style: google
+            merge_init_into_class: true
+            show_if_no_docstring: false
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.arithmatex:
+      generic: true
+  - toc:
+      permalink: true
+  - attr_list
+  - md_in_html
+  - def_list
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+extra_javascript:
+  - javascripts/extra.js
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
+
+nav:
+  - Home: index.md
+  - User Guide:
+      - user-guide/index.md
+      - Installation: user-guide/installation.md
+      - Configuration: user-guide/configuration.md
+      - CLI Reference: user-guide/cli.md
+      - Tutorial: user-guide/tutorial.md
+  - Theory:
+      - theory/index.md
+      - EDA Decomposition: theory/eda.md
+      - Non-Interacting Reference: theory/g_ni.md
+      - Kinetics & Barriers: theory/kinetics_and_barriers.md
+      - Barrier Decomposition: theory/barriers.md
+  - API Reference:
+      - api/index.md
+      - Configuration: api/config.md
+      - Registry: api/registry.md
+      - Identifiers: api/ids.md
+      - Extractor:
+          - Data Extraction: api/extractor/data.md
+          - Profile Assembly: api/extractor/stages.md
+          - Barrier Decomposition: api/extractor/barriers.md
+      - Exporter: api/exporter.md
+      - Plotter:
+          - Energy Profiles: api/plotter/profile.md
+          - Contribution Barplots: api/plotter/contributions.md
+      - Builder:
+          - Input Generation: api/builder/inputs.md
+          - Molecule Section: api/builder/molecule.md
+          - REM Section: api/builder/rem.md
+      - Runner: api/runner.md
+      - Pipeline: api/pipeline.md
+      - Status: api/status.md
+      - Parser:
+          - Q-Chem Output: api/parser/qchem.md
+          - XYZ Coordinates: api/parser/xyz.md
+      - Utilities: api/utils.md
+      - Constants: api/constants.md
+  - Developer Guide:
+      - developer/index.md
+      - Architecture: developer/architecture.md
+      - Contributing: developer/contributing.md

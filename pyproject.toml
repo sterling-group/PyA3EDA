@@ -1,24 +1,139 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [project]
-name = "PyA3EDA"
-version = "0.0.1"
-description = "Python Automatization of Automated Analysis of Electronic Structure Data"
+name = "pya3eda"
+version = "0.1.0"
+description = "Python automation for Asymmetrically-constrained Adiabatic ALMO-EDA (A3EDA)"
+readme = "README.md"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
 authors = [
     { name = "Markus-G-S-Weiss", email = "markus.guenter.weiss@rwth-aachen.de" },
 ]
-readme = "README.md"
-requires-python = ">=3.8"
+keywords = [
+    "computational chemistry",
+    "quantum chemistry",
+    "energy decomposition analysis",
+    "ALMO-EDA",
+    "Q-Chem",
+    "catalysis",
+    "automation",
+    "HPC",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Chemistry",
+    "Topic :: Scientific/Engineering :: Physics",
+]
 dependencies = [
-    "pandas",
-    "pyyaml",
-    "matplotlib",
+    # Floors are the lowest versions with wheels for every supported Python
+    # (3.11-3.13); pin them so the resolver and CI agree on a viable matrix.
+    "pydantic>=2.5",
+    "pandas>=2.2.3",
+    "pyyaml>=6.0.2",
+    "matplotlib>=3.7",
+    "numpy>=1.26",
 ]
 
+[project.optional-dependencies]
+test = ["pytest>=7.0", "pytest-cov"]
+docs = [
+    "mkdocs-material>=9.5",
+    "mkdocstrings[python]>=0.24",
+    "mkdocs-gen-files>=0.5",
+    "mkdocs-literate-nav>=0.6",
+    "mkdocs-section-index>=0.3",
+    "interrogate>=1.7",
+]
+# Convenience superset for contributors: cross-references [test] and [docs]
+# so their pinned tools (pytest, interrogate, ...) have a single source of
+# truth, plus the linting tools that have no separate extra of their own.
+dev = [
+    "pya3eda[test,docs]",
+    "ruff",
+    "mypy",
+    "types-PyYAML",
+    "pre-commit",
+]
+
+[project.urls]
+Homepage = "https://github.com/sterling-group/PyA3EDA"
+Documentation = "https://sterling-group.github.io/PyA3EDA/"
+Repository = "https://github.com/sterling-group/PyA3EDA.git"
+Issues = "https://github.com/sterling-group/PyA3EDA/issues"
+
 [project.scripts]
-pya3eda = "PyA3EDA.cli:main"
+pya3eda = "pya3eda.cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/PyA3EDA"]
+packages = ["src/pya3eda"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/pya3eda",
+    "README.md",
+    "LICENSE",
+    "pyproject.toml",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = [
+    "slow: tests that take longer than 1 second",
+    "gpu: tests that require CUDA",
+    "integration: tests that invoke real Q-Chem / SLURM / external services",
+]
+
+[tool.coverage.run]
+# Line *and* branch coverage gate.
+source = ["pya3eda"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 100
+show_missing = true
+
+[tool.interrogate]
+# Docstring-coverage gate for both packages (matches the CI docs job).
+ignore-init-module = true
+ignore-init-method = true
+ignore-magic = true
+ignore-nested-functions = true
+fail-under = 100
+exclude = ["tests", "examples", "build", "dist"]
+
+[tool.mypy]
+python_version = "3.11"
+plugins = ["pydantic.mypy"]
+files = ["src"]
+check_untyped_defs = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+# pandas ships no py.typed marker; numpy / matplotlib do, and PyYAML is
+# covered by types-PyYAML.
+module = ["pandas.*"]
+ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["E402"]

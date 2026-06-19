@@ -1,0 +1,8 @@
+METHOD            = {method}
+BASIS             = {basis}
+JOBTYPE           = {jobtype}
+DFT_D             = {dispersion}
+SOLVENT_METHOD    = {solvent}
+SCF_CONVERGENCE   = 8
+MAX_SCF_CYCLES    = 200
+SYM_IGNORE        = true
