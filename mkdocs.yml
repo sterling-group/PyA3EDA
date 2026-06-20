@@ -98,6 +98,7 @@ nav:
           - Data Extraction: api/extractor/data.md
           - Profile Assembly: api/extractor/stages.md
           - Barrier Decomposition: api/extractor/barriers.md
+          - Dimer Correction: api/extractor/dimer.md
       - Exporter: api/exporter.md
       - Plotter:
           - Energy Profiles: api/plotter/profile.md
@@ -114,6 +115,7 @@ nav:
           - XYZ Coordinates: api/parser/xyz.md
       - Utilities: api/utils.md
       - Constants: api/constants.md
+      - Errors: api/errors.md
   - Developer Guide:
       - developer/index.md
       - Architecture: developer/architecture.md

@@ -26,7 +26,7 @@ An editable clone with the dev + docs tooling (tests, ruff, mypy, mkdocs):
 ```bash
 git clone https://github.com/sterling-group/PyA3EDA.git
 cd PyA3EDA
-pip install -e ".[dev,docs]"
+pip install -e ".[dev]"
 ```
 
 ## Building the Documentation Locally

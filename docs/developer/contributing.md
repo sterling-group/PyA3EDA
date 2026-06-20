@@ -5,7 +5,7 @@
 ```bash
 git clone https://github.com/sterling-group/PyA3EDA.git
 cd PyA3EDA
-pip install -e ".[test,docs]"
+pip install -e ".[dev]"
 ```
 
 ## Running Tests
