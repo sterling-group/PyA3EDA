@@ -18,6 +18,8 @@ polarisation (POL), and charge-transfer (CT) on the electronic-energy
 surface, plus an additional confinement (NI) term on the Gibbs-energy
 surface — revealing *how* a catalyst lowers (or raises) a reaction barrier.
 
+📖 **Full documentation:** <https://sterling-group.github.io/PyA3EDA/>
+
 > **Reference** — The A3EDA method is described in:
 > M. G. S. Weiss, A. J. Sterling, *manuscript in preparation*.
 > (DOI to be added upon publication.)
@@ -55,13 +57,25 @@ config.yaml
 
 ## Installation
 
+PyA3EDA requires Python 3.11+.
+
+**From PyPI:**
+
 ```bash
-pip install .
+pip install pya3eda
 ```
 
-For development (with tests and documentation tooling):
+**From GitHub** (latest `main`):
 
 ```bash
+pip install git+https://github.com/sterling-group/PyA3EDA.git
+```
+
+**For development** (editable, with tests + documentation tooling):
+
+```bash
+git clone https://github.com/sterling-group/PyA3EDA.git
+cd PyA3EDA
 pip install -e ".[dev,docs]"
 ```
 
