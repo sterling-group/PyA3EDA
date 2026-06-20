@@ -352,6 +352,32 @@ def pipeline(
         )
 
 
+_COMMANDS = frozenset({"build", "run", "status", "extract", "pipeline"})
+
+
+def _default_command(argv: list[str]) -> list[str]:
+    """Default to ``status`` when the first positional is a config path, not a command.
+
+    Restores the pre-Typer shorthand ``pya3eda CONFIG`` (== ``pya3eda status CONFIG``).
+    ``--help`` / ``--version`` and explicit commands pass through unchanged.
+    """
+    if any(a in ("-h", "--help", "--version") for a in argv):
+        return argv
+    i = 0
+    while i < len(argv):
+        if argv[i] == "--log":
+            i += 2  # skip the global option and its value
+            continue
+        if argv[i].startswith("-"):
+            i += 1
+            continue
+        # First positional: a known command runs as-is; anything else → status CONFIG.
+        return argv if argv[i] in _COMMANDS else [*argv[:i], "status", *argv[i:]]
+    return argv  # only options / empty → let Typer handle (no_args_is_help, --version)
+
+
 def main() -> None:
     """Console-script entry point."""
-    app()
+    import sys
+
+    app(args=_default_command(sys.argv[1:]))

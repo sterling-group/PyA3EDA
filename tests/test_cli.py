@@ -158,6 +158,58 @@ class TestErrorTranslation:
         assert result.exit_code == ConfigError.exit_code
 
 
+class TestDefaultCommand:
+    """`pya3eda CONFIG` (no command) defaults to `status`."""
+
+    def test_config_only_inserts_status(self) -> None:
+        from pya3eda.cli import _default_command
+
+        assert _default_command(["config.yaml"]) == ["status", "config.yaml"]
+
+    def test_explicit_command_unchanged(self) -> None:
+        from pya3eda.cli import _default_command
+
+        assert _default_command(["build", "config.yaml"]) == ["build", "config.yaml"]
+
+    def test_skips_log_value(self) -> None:
+        from pya3eda.cli import _default_command
+
+        assert _default_command(["--log", "DEBUG", "config.yaml"]) == [
+            "--log",
+            "DEBUG",
+            "status",
+            "config.yaml",
+        ]
+
+    def test_skips_log_equals_form(self) -> None:
+        from pya3eda.cli import _default_command
+
+        assert _default_command(["--log=DEBUG", "config.yaml"]) == [
+            "--log=DEBUG",
+            "status",
+            "config.yaml",
+        ]
+
+    def test_help_version_passthrough(self) -> None:
+        from pya3eda.cli import _default_command
+
+        assert _default_command(["--version"]) == ["--version"]
+
+    def test_options_only_unchanged(self) -> None:
+        from pya3eda.cli import _default_command
+
+        assert _default_command(["--log", "DEBUG"]) == ["--log", "DEBUG"]
+        assert _default_command([]) == []
+
+    def test_end_to_end_runs_status(self, config_path: Path) -> None:
+        from pya3eda.cli import _default_command
+
+        with patch("pya3eda.status.checker.check_all") as mock_ca:
+            result = runner.invoke(app, _default_command([str(config_path)]))
+        assert result.exit_code == 0
+        mock_ca.assert_called_once()
+
+
 class TestDunderMain:
     def test_main_runs_app(self) -> None:
         """The console-script entry point invokes the Typer app."""
