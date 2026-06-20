@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Any
 
 import matplotlib
 
@@ -134,7 +135,7 @@ def _plot_catalyst(
     surface = "G" if include_ni else etype
 
     # Gather normalized traces per calc_type
-    traces: list[dict] = []
+    traces: list[dict[str, Any]] = []
     for calc_type, label in ProfileID.TRACE_ORDER:
         if calc_type == "ni" and not include_ni:
             continue
@@ -261,7 +262,7 @@ def _style_axes(
     ax: plt.Axes,
     etype: str,
     unit: str,
-    traces: list[dict],
+    traces: list[dict[str, Any]],
 ) -> None:
     """Apply axis labels, ticks, limits, and arrows to a profile plot."""
     ax.tick_params(bottom=False, left=False)
@@ -299,14 +300,14 @@ def _style_axes(
         "",
         xy=(xmax, ymin_lim),
         xytext=(xmin, ymin_lim),
-        arrowprops=dict(arrowstyle="->", color="k", lw=2.5),
+        arrowprops={"arrowstyle": "->", "color": "k", "lw": 2.5},
         clip_on=False,
     )
     ax.annotate(
         "",
         xy=(xmin, ymax_lim),
         xytext=(xmin, ymin_lim),
-        arrowprops=dict(arrowstyle="->", color="k", lw=2.5),
+        arrowprops={"arrowstyle": "->", "color": "k", "lw": 2.5},
         clip_on=False,
     )
 

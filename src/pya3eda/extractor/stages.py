@@ -20,6 +20,8 @@ from pya3eda.utils import convert_unit, standard_state_correction
 
 log = logging.getLogger(__name__)
 
+_SelKey = tuple[str, str, str | None, str | None, str]
+
 
 # ---------------------------------------------------------------------------
 # Public API
@@ -46,7 +48,7 @@ def build_profiles(
     # Selection leaders determine which candidate complex to use.
     # key = (method_key, mode, sp_subfolder, catalyst, stage_name)
     # value = (best_E_index, best_G_index) into [primary, *alternatives]
-    selections: dict[tuple, tuple[int, int]] = {}
+    selections: dict[_SelKey, tuple[int, int]] = {}
 
     leaders = [p for p in registry.all_profiles if p.selection_leader]
     followers = [p for p in registry.all_profiles if not p.selection_leader]
@@ -111,7 +113,7 @@ def _argmin(vals: list[float | None]) -> int:
     return best_idx
 
 
-def _sel_key(pid: ProfileID, stage_name: str) -> tuple:
+def _sel_key(pid: ProfileID, stage_name: str) -> _SelKey:
     """Selection-map key scoping the candidate choice."""
     return (pid.method_key, pid.mode, pid.sp_subfolder, pid.catalyst, stage_name)
 
@@ -124,7 +126,7 @@ def _sel_key(pid: ProfileID, stage_name: str) -> tuple:
 def _build_one(
     pspec: ProfileSpec,
     extracted: dict[CalcID, ExtractedData],
-    selections: dict[tuple, tuple[int, int]],
+    selections: dict[_SelKey, tuple[int, int]],
     *,
     is_ni: bool = False,
 ) -> ProfileData:
@@ -161,7 +163,7 @@ def _build_stage_best(
     stage_spec: StageSpec,
     pspec: ProfileSpec,
     extracted: dict[CalcID, ExtractedData],
-    selections: dict[tuple, tuple[int, int]],
+    selections: dict[_SelKey, tuple[int, int]],
     *,
     is_ni: bool = False,
 ) -> StageData:

@@ -296,22 +296,21 @@ def _build_rem_section(
             jobtype=jobtype,
             calc_type=cid.calc_type,
         )
-    else:
-        # SP mode — determine EDA parameters from calc_type
-        eda2 = str(spec.eda2 or 0)
-        if cid.catalyst is None or cid.stage == "cat":
-            eda2 = "0"
+    # SP mode — determine EDA parameters from calc_type
+    eda2 = str(spec.eda2 or 0)
+    if cid.catalyst is None or cid.stage == "cat":
+        eda2 = "0"
 
-        scfmi_freeze = "1" if cid.calc_type == "frz_cat" else "0"
-        eda_bsse = "true" if cid.calc_type == "full_cat" else "false"
+    scfmi_freeze = "1" if cid.calc_type == "frz_cat" else "0"
+    eda_bsse = "true" if cid.calc_type == "full_cat" else "false"
 
-        return build_sp_rem(
-            template_dir,
-            method=spec.method_name,
-            basis=spec.basis_set,
-            dispersion=spec.dispersion,
-            solvent=spec.solvent,
-            eda2=eda2,
-            scfmi_freeze_ss=scfmi_freeze,
-            eda_bsse=eda_bsse,
-        )
+    return build_sp_rem(
+        template_dir,
+        method=spec.method_name,
+        basis=spec.basis_set,
+        dispersion=spec.dispersion,
+        solvent=spec.solvent,
+        eda2=eda2,
+        scfmi_freeze_ss=scfmi_freeze,
+        eda_bsse=eda_bsse,
+    )

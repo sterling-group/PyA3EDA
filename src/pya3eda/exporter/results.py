@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
@@ -18,6 +19,8 @@ from pya3eda.ids import (
 from pya3eda.registry import CalcRegistry
 
 log = logging.getLogger(__name__)
+
+_Row = dict[str, Any]
 
 
 # ---------------------------------------------------------------------------
@@ -66,8 +69,8 @@ def _export_raw(
     out_dir: Path,
 ) -> int:
     """Write per-calculation raw data CSVs; return number of files written."""
-    rows_opt: list[dict] = []
-    rows_sp: list[dict] = []
+    rows_opt: list[_Row] = []
+    rows_sp: list[_Row] = []
 
     for cid, data in extracted.items():
         if cid.method_key != method_key:
@@ -122,9 +125,9 @@ def _export_raw_profiles(
         mlabel = ProfileID.method_label(method_key, pid.sp_subfolder)
         prefix = f"{pid.mode}_profile_{cat_label}_{ct_label}_{mlabel}"
 
-        rows: list[dict] = []
+        rows: list[_Row] = []
         for stage in pdata.stages:
-            row: dict = {
+            row: _Row = {
                 "Stage": stage.name,
                 "Calc_Type": stage.calc_type or "",
                 "Species": stage.species_label,
@@ -188,7 +191,7 @@ def _export_profiles(
                 continue
 
             # Stage-major ordering; endpoints only for uncat
-            rows: list[dict] = []
+            rows: list[_Row] = []
             for sname in ProfileID.STAGE_ORDER:
                 for calc_type, label, smap in available:
                     if calc_type is not None and sname in endpoints:
@@ -196,7 +199,7 @@ def _export_profiles(
                     stage = smap.get(sname)
                     if stage is None:
                         continue
-                    row: dict = {
+                    row: _Row = {
                         "Trace": label,
                         "Stage": stage.name,
                         "Species": stage.species_label,
@@ -240,7 +243,7 @@ def _export_delta_delta(
             for dd in subset:
                 if dd.energy_type != etype:
                     continue
-                row: dict = {
+                row: _Row = {
                     "Catalyst": dd.catalyst,
                     f"Barrier_uncat ({etype})": dd.barrier_uncat,
                 }
@@ -311,7 +314,7 @@ def _export_xyz(
 # ---------------------------------------------------------------------------
 
 
-def _write_csv(rows: list[dict], path: Path) -> int:
+def _write_csv(rows: list[_Row], path: Path) -> int:
     """Write rows to CSV.  Returns 1 on success, 0 on failure."""
     if not rows:
         return 0

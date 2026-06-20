@@ -146,7 +146,7 @@ def _interleave_opt_sp(specs: list[CalcSpec]) -> list[CalcSpec]:
     """
     from collections import OrderedDict
 
-    sp_by_key: OrderedDict[tuple, list[CalcSpec]] = OrderedDict()
+    sp_by_key: OrderedDict[tuple[str | None, str, str, str], list[CalcSpec]] = OrderedDict()
     opt_list: list[CalcSpec] = []
 
     for s in specs:

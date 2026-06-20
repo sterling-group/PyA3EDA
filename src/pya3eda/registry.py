@@ -11,7 +11,7 @@ from itertools import combinations
 from pathlib import Path
 from typing import TypedDict
 
-from pya3eda.config import Config, LevelConfig, TheoryConfig
+from pya3eda.config import Config, LevelConfig, SpeciesConfig, TheoryConfig
 from pya3eda.ids import (
     CalcID,
     CalcSpec,
@@ -574,10 +574,10 @@ class CalcRegistry:
         self,
         method_key: str,
         mode: str,
-        incl_r: list,
-        free_r: list,
-        incl_p: list,
-        free_p: list,
+        incl_r: list[SpeciesConfig],
+        free_r: list[SpeciesConfig],
+        incl_p: list[SpeciesConfig],
+        free_p: list[SpeciesConfig],
         *,
         sp_subfolder: str | None = None,
     ) -> None:
@@ -747,10 +747,10 @@ class CalcRegistry:
         mode: str,
         cat_name: str,
         calc_type: str,
-        incl_r: list,
-        free_r: list,
-        incl_p: list,
-        free_p: list,
+        incl_r: list[SpeciesConfig],
+        free_r: list[SpeciesConfig],
+        incl_p: list[SpeciesConfig],
+        free_p: list[SpeciesConfig],
         *,
         sp_subfolder: str | None = None,
         apply_ssc: bool = False,
@@ -819,7 +819,7 @@ class CalcRegistry:
             pre_label_parts.append(fr.name)
 
         # preTS alternatives: proper subsets of included reactants
-        pre_alt_data: list[tuple[tuple[CalcID, ...], str, tuple]] = []
+        pre_alt_data: list[tuple[tuple[CalcID, ...], str, tuple[SpeciesConfig, ...]]] = []
         if len(incl_r) > 1:
             for size in range(1, len(incl_r)):
                 for combo in combinations(incl_r, size):
@@ -899,7 +899,7 @@ class CalcRegistry:
             post_label_parts.append(fp.name)
 
         # postTS alternatives: proper subsets of included products
-        post_alt_data: list[tuple[tuple[CalcID, ...], str, tuple]] = []
+        post_alt_data: list[tuple[tuple[CalcID, ...], str, tuple[SpeciesConfig, ...]]] = []
         if len(incl_p) > 1:
             for size in range(1, len(incl_p)):
                 for combo in combinations(incl_p, size):
