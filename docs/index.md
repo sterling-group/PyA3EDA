@@ -79,8 +79,8 @@ If you use PyA3EDA in your research, please cite:
 pip install .
 
 # Run the full workflow
-pya3eda config.yaml build      # generate Q-Chem inputs
-pya3eda config.yaml run        # submit jobs
-pya3eda config.yaml status     # check progress
-pya3eda config.yaml extract    # extract data, export CSVs, generate plots
+pya3eda build config.yaml      # generate Q-Chem inputs
+pya3eda run config.yaml        # submit jobs
+pya3eda status config.yaml     # check progress
+pya3eda extract config.yaml    # extract data, export CSVs, generate plots
 ```
