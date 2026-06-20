@@ -41,11 +41,29 @@ app = typer.Typer(
 )
 
 
+def _version_callback(value: bool) -> None:
+    """Eager ``--version`` — print the package version and exit."""
+    if value:
+        from pya3eda import __version__
+
+        typer.echo(f"pya3eda {__version__}")
+        raise typer.Exit()
+
+
 @app.callback()
 def _main(
     log_level: Annotated[
         str, typer.Option("--log", help="Logging level (DEBUG, INFO, WARNING, ERROR).")
     ] = "INFO",
+    version: Annotated[
+        bool | None,
+        typer.Option(
+            "--version",
+            help="Show the pya3eda version and exit.",
+            callback=_version_callback,
+            is_eager=True,
+        ),
+    ] = None,
 ) -> None:
     """Configure logging for the rest of the invocation."""
     logging.basicConfig(
@@ -81,7 +99,7 @@ MemPerCpuOpt = Annotated[
 ]
 TimeOpt = Annotated[str | None, typer.Option("-t", "--time", help="Wall time (SLURM format).")]
 PartitionOpt = Annotated[str | None, typer.Option("-q", "--partition", help="Partition name.")]
-VersionOpt = Annotated[str, typer.Option("-v", "--version", help="Q-Chem version.")]
+VersionOpt = Annotated[str, typer.Option("-v", "--qchem-version", help="Q-Chem version.")]
 QcsetupOpt = Annotated[str | None, typer.Option("--qcsetup", help="Path to a custom qcsetup file.")]
 ScratchOpt = Annotated[str | None, typer.Option("-s", "--scratch", help="Scratch directory.")]
 NodeOpt = Annotated[str | None, typer.Option("-N", "--node", help="Target node.")]

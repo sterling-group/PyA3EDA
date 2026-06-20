@@ -34,6 +34,20 @@ class TestParsingAndDispatch:
         assert result.exit_code == 2  # no_args_is_help exits like a usage error
         assert "build" in result.output and "pipeline" in result.output
 
+    def test_version_flag(self) -> None:
+        """`pya3eda --version` prints the package version and exits 0."""
+        from pya3eda import __version__
+
+        result = runner.invoke(app, ["--version"])
+        assert result.exit_code == 0
+        assert __version__ in result.output and "pya3eda" in result.output
+
+    def test_run_qchem_version_option(self, config_path: Path) -> None:
+        with patch("pya3eda.runner.executor.run_all") as mock_ra:
+            result = runner.invoke(app, ["run", str(config_path), "--qchem-version", "5.4"])
+        assert result.exit_code == 0
+        assert mock_ra.call_args.kwargs["options"].version == "5.4"
+
     def test_build_calls_build_all(self, config_path: Path) -> None:
         with patch("pya3eda.builder.inputs.build_all") as mock_ba:
             result = runner.invoke(app, ["build", str(config_path), "--overwrite"])

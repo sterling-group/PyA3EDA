@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://sterling-group.github.io/PyA3EDA/
+    about: User guide, theory, and API reference.
+  - name: Questions & discussion
+    url: https://github.com/sterling-group/PyA3EDA/discussions
+    about: Ask a question or discuss usage (please don't open an issue for questions).
