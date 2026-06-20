@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pya3eda"
-version = "0.1.0.dev1"
+version = "0.1.0.dev2"
 description = "Python automation for Asymmetrically-constrained Adiabatic ALMO-EDA (A3EDA)"
 readme = "README.md"
 license = "GPL-3.0-or-later"
