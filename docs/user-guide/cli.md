@@ -11,7 +11,8 @@ pya3eda COMMAND CONFIG_FILE [OPTIONS]
 ```
 
 Running `pya3eda` with no command prints the help listing every command. Each
-command takes the YAML config as its first argument. `pya3eda --version` prints
+command takes the YAML config as its first argument. As a shorthand,
+`pya3eda CONFIG_FILE` with no command runs `status`. `pya3eda --version` prints
 the installed version, and `--log LEVEL` (before the command) sets logging.
 
 ---

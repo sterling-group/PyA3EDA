@@ -71,12 +71,14 @@ pip install pya3eda
 pip install git+https://github.com/sterling-group/PyA3EDA.git
 ```
 
-**For development** (editable, with tests + documentation tooling):
+**For development** — an editable install. The `[dev]` extra is the full set: it
+pulls `[test]` (pytest, pytest-cov) and `[docs]` (mkdocs, mkdocstrings,
+interrogate) plus the lint tools (ruff, mypy, pre-commit):
 
 ```bash
 git clone https://github.com/sterling-group/PyA3EDA.git
 cd PyA3EDA
-pip install -e ".[dev,docs]"
+pip install -e ".[dev]"
 ```
 
 > **Prerequisite** — Q-Chem must be available on the target HPC cluster.
@@ -98,6 +100,8 @@ pya3eda status config.yaml
 # 4. Extract data, export CSVs, and generate plots
 pya3eda extract config.yaml
 ```
+
+> `pya3eda config.yaml` with no command is shorthand for `pya3eda status config.yaml`.
 
 Each subcommand is incremental — you can re-run `extract` after new jobs
 finish without repeating earlier steps. Or run the whole thing as one

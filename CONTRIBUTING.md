@@ -7,7 +7,7 @@ Thanks for your interest in improving PyA3EDA!
 ```bash
 git clone https://github.com/sterling-group/PyA3EDA.git
 cd PyA3EDA
-pip install -e ".[dev,docs]"
+pip install -e ".[dev]"
 pre-commit install
 ```
 
