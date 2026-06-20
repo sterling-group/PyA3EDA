@@ -13,13 +13,30 @@ import pytest
 from pya3eda.config import (
     load_config,
 )
+from pya3eda.extractor.barriers import (
+    _barrier,
+    _compute_for_catalyst,
+    _should_use_preTS,
+)
+from pya3eda.extractor.stages import (
+    _argmin,
+    _build_one,
+    _build_stage_best,
+    _g_ni_for_stage,
+    _normalize,
+    _sum_energies,
+)
 from pya3eda.ids import (
     CalcID,
     DeltaDeltaData,
     ExtractedData,
+    NiStageRef,
     ProfileData,
     ProfileID,
+    ProfileSpec,
+    StageAlt,
     StageData,
+    StageSpec,
 )
 from pya3eda.registry import CalcRegistry
 from pya3eda.utils import standard_state_correction
@@ -378,16 +395,6 @@ class TestComputeDeltaDelta:
 # ===================================================================
 # Unit tests — stages.py internals
 # ===================================================================
-
-from pya3eda.extractor.stages import (
-    _argmin,
-    _build_one,
-    _build_stage_best,
-    _g_ni_for_stage,
-    _normalize,
-    _sum_energies,
-)
-from pya3eda.ids import NiStageRef, ProfileSpec, StageAlt, StageSpec
 
 
 def _ed(
@@ -826,12 +833,6 @@ class TestBuildOne:
 # ===================================================================
 # Unit tests — barriers.py internals
 # ===================================================================
-
-from pya3eda.extractor.barriers import (
-    _barrier,
-    _compute_for_catalyst,
-    _should_use_preTS,
-)
 
 
 def _sd(name: str, E: float | None = None, G: float | None = None) -> StageData:

@@ -137,4 +137,5 @@ target-version = "py311"
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["E402"]
+# Golden SLURM scripts are immutable byte-for-byte data; their long lines stand.
+"tests/golden_slurm.py" = ["E501"]
