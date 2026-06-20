@@ -28,7 +28,7 @@ def _generate(**kwargs: Any) -> str:
 
     # generate_slurm_script writes ``{job_name}.slurm`` relative to CWD and
     # returns the filename; run it in a throwaway dir and read the bytes back.
-    cwd = os.getcwd()
+    cwd = Path.cwd()
     with tempfile.TemporaryDirectory() as tmp:
         try:
             os.chdir(tmp)

@@ -193,22 +193,21 @@ def _parse_sp_energy(content: str, calc_type: str | None) -> float | None:
         if energy is None:
             return None
         return energy.value_kcal
-    else:
-        # EDA SP
-        eda = qchem.parse_eda_energies(content, calc_type)
-        if eda is None:
-            return None
-        sp_kcal = eda.sp_energy_kcal
+    # EDA SP
+    eda = qchem.parse_eda_energies(content, calc_type)
+    if eda is None:
+        return None
+    sp_kcal = eda.sp_energy_kcal
 
-        # CDS correction
-        if eda.cds_kcal is not None:
-            sp_kcal += eda.cds_kcal
+    # CDS correction
+    if eda.cds_kcal is not None:
+        sp_kcal += eda.cds_kcal
 
-        # BSSE correction
-        if eda.bsse_kcal is not None:
-            sp_kcal += eda.bsse_kcal
+    # BSSE correction
+    if eda.bsse_kcal is not None:
+        sp_kcal += eda.bsse_kcal
 
-        return sp_kcal
+    return sp_kcal
 
 
 # ---------------------------------------------------------------------------

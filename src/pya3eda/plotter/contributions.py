@@ -179,14 +179,14 @@ def _plot_single(
         "",
         xy=(xmax, 0),
         xytext=(xmin, 0),
-        arrowprops=dict(arrowstyle="->", color="k", lw=2.5),
+        arrowprops={"arrowstyle": "->", "color": "k", "lw": 2.5},
         clip_on=False,
     )
     ax.annotate(
         "",
         xy=(xmin, ymax_ax),
         xytext=(xmin, ymin_ax),
-        arrowprops=dict(arrowstyle="->", color="k", lw=2.5),
+        arrowprops={"arrowstyle": "->", "color": "k", "lw": 2.5},
         clip_on=False,
     )
 

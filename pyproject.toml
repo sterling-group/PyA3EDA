@@ -33,6 +33,7 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Chemistry",
     "Topic :: Scientific/Engineering :: Physics",
+    "Typing :: Typed",
 ]
 dependencies = [
     # Floors are the lowest versions with wheels for every supported Python
@@ -46,24 +47,23 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-test = ["pytest>=7.0", "pytest-cov"]
+test = ["pytest>=8.0", "pytest-cov>=5.0"]
 docs = [
+    "mkdocs>=1.6",
     "mkdocs-material>=9.5",
-    "mkdocstrings[python]>=0.24",
-    "mkdocs-gen-files>=0.5",
-    "mkdocs-literate-nav>=0.6",
-    "mkdocs-section-index>=0.3",
+    "mkdocstrings[python]>=0.26",
     "interrogate>=1.7",
 ]
 # Convenience superset for contributors: cross-references [test] and [docs]
 # so their pinned tools (pytest, interrogate, ...) have a single source of
 # truth, plus the linting tools that have no separate extra of their own.
+# ruff is floored to track the pre-commit `ruff-pre-commit` rev.
 dev = [
     "pya3eda[test,docs]",
-    "ruff",
-    "mypy",
+    "ruff>=0.15",
+    "mypy>=1.11",
     "types-PyYAML",
-    "pre-commit",
+    "pre-commit>=3.5",
 ]
 
 [project.urls]
@@ -91,7 +91,6 @@ testpaths = ["tests"]
 pythonpath = ["src"]
 markers = [
     "slow: tests that take longer than 1 second",
-    "gpu: tests that require CUDA",
     "integration: tests that invoke real Q-Chem / SLURM / external services",
 ]
 
@@ -105,7 +104,7 @@ fail_under = 100
 show_missing = true
 
 [tool.interrogate]
-# Docstring-coverage gate for both packages (matches the CI docs job).
+# Docstring-coverage gate (matches the CI docs job).
 ignore-init-module = true
 ignore-init-method = true
 ignore-magic = true
@@ -119,9 +118,12 @@ plugins = ["pydantic.mypy"]
 files = ["src"]
 check_untyped_defs = true
 disallow_untyped_defs = true
+disallow_any_generics = true
 no_implicit_optional = true
 warn_redundant_casts = true
 warn_unused_ignores = true
+warn_return_any = true
+strict_equality = true
 
 [[tool.mypy.overrides]]
 # pandas ships no py.typed marker; numpy / matplotlib do, and PyYAML is
@@ -134,7 +136,7 @@ line-length = 100
 target-version = "py311"
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF", "PTH", "RET", "C4", "TID"]
 
 [tool.ruff.lint.per-file-ignores]
 # Golden SLURM scripts are immutable byte-for-byte data; their long lines stand.
