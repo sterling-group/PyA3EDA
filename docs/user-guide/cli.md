@@ -11,7 +11,8 @@ pya3eda COMMAND CONFIG_FILE [OPTIONS]
 ```
 
 Running `pya3eda` with no command prints the help listing every command. Each
-command takes the YAML config as its first argument.
+command takes the YAML config as its first argument. `pya3eda --version` prints
+the installed version, and `--log LEVEL` (before the command) sets logging.
 
 ---
 
@@ -48,7 +49,7 @@ pya3eda run config.yaml [CRITERIA] [--backend auto|local|slurm] [--max-cores N] 
 
 Job options (passed to the Q-Chem SLURM/bash script): `-c/--cpus`, `-p/--parallel`,
 `-P/--parallel-type`, `-m/--memory`, `-M/--mem-per-cpu`, `-t/--time`, `-q/--partition`,
-`-v/--version`, `--qcsetup`, `-s/--scratch`, `-N/--node`, `-x/--exclude`, `--save`,
+`-v/--qchem-version`, `--qcsetup`, `-s/--scratch`, `-N/--node`, `-x/--exclude`, `--save`,
 `-f/--save-all`, `--save-scratch`, `-F/--force`.
 
 The default SLURM path submits and returns; `--wait` (and the local backend) throttle
