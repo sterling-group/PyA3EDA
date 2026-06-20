@@ -1,10 +1,9 @@
 """Characterization matrix for the generated SLURM script (byte-for-byte gate).
 
 ``CASES`` is a representative matrix of ``generate_slurm_script`` argument sets;
-``render(case)`` produces the exact script text for one case.  The goldens in
-``tests/data/golden/`` are captured from this once (``scripts/dump_slurm.py``)
-and ``test_slurm_golden.py`` asserts the generator still reproduces them
-byte-for-byte after the runner refactor.
+``render(case)`` produces the exact script text for one case.  The goldens live
+inline in :mod:`tests.golden_slurm`, and ``test_slurm_golden.py`` asserts the
+generator still reproduces them byte-for-byte after the runner refactor.
 
 To repoint at the absorbed generator after the refactor, change the single
 import in :func:`_generate`.

@@ -2,23 +2,31 @@
 
 ## Requirements
 
-- Python ≥ 3.10
+- Python ≥ 3.11
 - A working Q-Chem installation (for running calculations)
 
-## Install from Source
+## Install from PyPI
 
 ```bash
-git clone https://github.com/sterling-group/PyA3EDA.git
-cd PyA3EDA
-pip install .
+pip install pya3eda
+```
+
+## Install from GitHub
+
+The latest `main`:
+
+```bash
+pip install git+https://github.com/sterling-group/PyA3EDA.git
 ```
 
 ## Development Install
 
-For an editable install with test dependencies:
+An editable clone with the dev + docs tooling (tests, ruff, mypy, mkdocs):
 
 ```bash
-pip install -e ".[test]"
+git clone https://github.com/sterling-group/PyA3EDA.git
+cd PyA3EDA
+pip install -e ".[dev,docs]"
 ```
 
 ## Building the Documentation Locally
@@ -41,6 +49,7 @@ PyA3EDA depends on:
 | pyyaml     | YAML config parsing              |
 | matplotlib | Energy profile and bar plots     |
 | numpy      | Numerical operations             |
+| typer      | Command-line interface           |
 
 ---
 

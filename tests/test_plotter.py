@@ -16,6 +16,19 @@ from pya3eda.ids import (
     StageData,
     StageSpec,
 )
+from pya3eda.plotter.contributions import (
+    _catalyst_lightness,
+    _lighten,
+    _plot_single,
+    plot_delta_delta_barplots,
+)
+from pya3eda.plotter.profile import (
+    _draw_trace,
+    _plot_catalyst,
+    _rel_trace,
+    _style_axes,
+    plot_all_profiles,
+)
 
 matplotlib.use("SVG")
 
@@ -69,14 +82,6 @@ def _pspec(calc_type: str | None, catalyst: str | None, leader: bool = False) ->
 # ===================================================================
 # profile.py
 # ===================================================================
-
-from pya3eda.plotter.profile import (
-    _draw_trace,
-    _plot_catalyst,
-    _rel_trace,
-    _style_axes,
-    plot_all_profiles,
-)
 
 
 class TestRelTrace:
@@ -320,13 +325,6 @@ class TestPlotAllProfiles:
 # ===================================================================
 # contributions.py
 # ===================================================================
-
-from pya3eda.plotter.contributions import (
-    _catalyst_lightness,
-    _lighten,
-    _plot_single,
-    plot_delta_delta_barplots,
-)
 
 
 class TestCatalystLightness:
