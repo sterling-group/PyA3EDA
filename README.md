@@ -73,16 +73,16 @@ pip install -e ".[dev,docs]"
 
 ```bash
 # 1. Generate Q-Chem input files from templates + config
-pya3eda config.yaml build
+pya3eda build config.yaml
 
 # 2. Submit jobs to the cluster
-pya3eda config.yaml run
+pya3eda run config.yaml
 
 # 3. Check calculation progress
-pya3eda config.yaml status
+pya3eda status config.yaml
 
 # 4. Extract data, export CSVs, and generate plots
-pya3eda config.yaml extract
+pya3eda extract config.yaml
 ```
 
 Each subcommand is incremental — you can re-run `extract` after new jobs
@@ -91,7 +91,7 @@ dependency-aware pass under a core budget:
 
 ```bash
 # build → submit OPTs → submit each SP as its OPT converges → extract + plot
-pya3eda config.yaml pipeline --max-cores 16
+pya3eda pipeline config.yaml --max-cores 16
 ```
 
 See [`examples/diels-alder/`](examples/diels-alder/) for a complete

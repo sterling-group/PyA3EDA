@@ -7,10 +7,11 @@ commands (`build` → `run` → `status` → `extract`) can be run individually,
 ## General Usage
 
 ```bash
-pya3eda CONFIG_FILE SUBCOMMAND [OPTIONS]
+pya3eda COMMAND CONFIG_FILE [OPTIONS]
 ```
 
-If no subcommand is given, `status` is used by default.
+Running `pya3eda` with no command prints the help listing every command. Each
+command takes the YAML config as its first argument.
 
 ---
 
@@ -19,7 +20,7 @@ If no subcommand is given, `status` is used by default.
 Create Q-Chem input files for all calculations defined by the configuration.
 
 ```bash
-pya3eda config.yaml build [--overwrite MODE] [--sp-strategy STRATEGY] [--template-dir DIR]
+pya3eda build config.yaml [--overwrite MODE] [--sp-strategy STRATEGY] [--template-dir DIR]
 ```
 
 | Option            | Default    | Description                                |
@@ -35,7 +36,7 @@ pya3eda config.yaml build [--overwrite MODE] [--sp-strategy STRATEGY] [--templat
 Submit Q-Chem jobs locally (background `bash`) or to SLURM (`sbatch`).
 
 ```bash
-pya3eda config.yaml run [CRITERIA] [--backend auto|local|slurm] [--max-cores N] [--wait] [JOB OPTIONS...]
+pya3eda run config.yaml [CRITERIA] [--backend auto|local|slurm] [--max-cores N] [--wait] [JOB OPTIONS...]
 ```
 
 | Option         | Default  | Description                                                        |
@@ -66,7 +67,7 @@ calculations already SUCCESSFUL are skipped (an already-done OPT goes straight t
 its SPs).
 
 ```bash
-pya3eda config.yaml pipeline [--max-cores N] [--template-dir DIR] [--overwrite] [--no-plots] [JOB OPTIONS...]
+pya3eda pipeline config.yaml [--max-cores N] [--template-dir DIR] [--overwrite] [--no-plots] [JOB OPTIONS...]
 ```
 
 | Option           | Default     | Description                                  |
@@ -87,7 +88,7 @@ polls `squeue`.
 Display a status report for all calculations.
 
 ```bash
-pya3eda config.yaml status
+pya3eda status config.yaml
 ```
 
 Status values: `SUCCESSFUL`, `CRASH`, `running`, `terminated`, `nofile`,
@@ -101,7 +102,7 @@ Extract energies from completed calculations, assemble profiles, compute
 barrier decompositions, export CSVs, and generate plots.
 
 ```bash
-pya3eda config.yaml extract [--criteria CRITERIA] [--no-plots]
+pya3eda extract config.yaml [--criteria CRITERIA] [--no-plots]
 ```
 
 | Option       | Default       | Description                          |

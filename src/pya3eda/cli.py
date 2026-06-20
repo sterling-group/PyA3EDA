@@ -1,20 +1,27 @@
-"""Command-line interface for pya3eda.
+"""Typer command-line interface for pya3eda.
 
-Subcommands
------------
-build   - generate Q-Chem input files
-run     - submit calculations
-status  - check calculation status
-extract - extract data, build profiles, export CSVs, generate plots
+Each command takes the YAML config as its first argument:
+
+* ``pya3eda build CONFIG``    — generate Q-Chem input files
+* ``pya3eda run CONFIG``      — submit calculations (local or SLURM)
+* ``pya3eda status CONFIG``   — check calculation status
+* ``pya3eda extract CONFIG``  — extract data, profiles, CSVs, plots
+* ``pya3eda pipeline CONFIG`` — build → OPT → SP (as each OPT succeeds) → extract
+
+Running ``pya3eda`` with no command prints this help. This is the only module
+that drives process exit: every :class:`~pya3eda.errors.PyA3EDAError` is caught
+and translated into its documented exit code.
 """
 
 from __future__ import annotations
 
-import argparse
 import logging
-import sys
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Annotated
+
+import typer
 
 from pya3eda.config import load_config
 from pya3eda.errors import PyA3EDAError
@@ -23,215 +30,310 @@ from pya3eda.registry import CalcRegistry
 if TYPE_CHECKING:
     from pya3eda.runner.executor import RunOptions
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("pya3eda")
+
+app = typer.Typer(
+    name="pya3eda",
+    no_args_is_help=True,
+    add_completion=False,
+    pretty_exceptions_show_locals=False,
+    help="PyA3EDA — Python automation for Asymmetrically-constrained Adiabatic ALMO-EDA.",
+)
 
 
-def _add_job_options(p: argparse.ArgumentParser) -> None:
-    """Add the shared backend / core-budget / Q-Chem job flags (run + pipeline)."""
-    p.add_argument(
-        "--backend",
-        default="auto",
-        choices=["auto", "local", "slurm"],
-        help="Execution backend (default: auto — SLURM if sbatch is present, else local)",
-    )
-    p.add_argument(
-        "--max-cores",
-        type=int,
-        default=None,
-        help="Core budget for throttled submission (default: local CPU count)",
-    )
-    p.add_argument("-c", "--cpus", type=int, default=1, help="CPUs per task (threads)")
-    p.add_argument("-p", "--parallel", type=int, default=None, help="MPI processes")
-    p.add_argument(
-        "-P",
-        "--parallel-type",
-        choices=["openmp", "openmpi"],
-        default="openmp",
-        help="Parallelism mode (default: openmp)",
-    )
-    p.add_argument("-m", "--memory", type=int, default=None, help="Set mem_total (MB) in inputs")
-    p.add_argument("-M", "--mem-per-cpu", type=int, default=None, help="Memory per CPU (MB)")
-    p.add_argument("-t", "--time", dest="walltime", default=None, help="Wall time (SLURM format)")
-    p.add_argument("-q", "--partition", default=None, help="Partition name")
-    p.add_argument("-v", "--version", default="6.2.1", help="Q-Chem version (default: 6.2.1)")
-    p.add_argument("--qcsetup", default=None, help="Path to a custom qcsetup file")
-    p.add_argument("-s", "--scratch", default=None, help="Scratch directory")
-    p.add_argument("-N", "--node", dest="nodename", default=None, help="Target node")
-    p.add_argument("-x", "--exclude", default=None, help="Nodes to exclude (comma-separated)")
-    p.add_argument("--save", action="store_true", help="Save essential scratch files")
-    p.add_argument("-f", "--save-all", action="store_true", help="Save all scratch files")
-    p.add_argument("--save-scratch", action="store_true", help="Keep the scratch directory")
-    p.add_argument("-F", "--force", action="store_true", help="Proceed despite mismatches")
-
-
-def _run_options(args: argparse.Namespace) -> RunOptions:
-    """Build a ``RunOptions`` from parsed job flags (shared by run + pipeline)."""
-    from pya3eda.runner.executor import RunOptions
-
-    return RunOptions(
-        cpus=args.cpus,
-        parallel=args.parallel,
-        parallel_type=args.parallel_type,
-        memory=args.memory,
-        mem_per_cpu=args.mem_per_cpu,
-        walltime=args.walltime,
-        partition=args.partition,
-        version=args.version,
-        qcsetup=args.qcsetup,
-        scratch=args.scratch,
-        nodename=args.nodename,
-        exclude=args.exclude,
-        save=args.save,
-        save_all=args.save_all,
-        save_scratch=args.save_scratch,
-        force=args.force,
-    )
-
-
-def main(argv: list[str] | None = None) -> None:
-    """Parse CLI arguments, load configuration, and dispatch to a subcommand."""
-    parser = argparse.ArgumentParser(
-        prog="pya3eda",
-        description="PyA3EDA — Python automation for Asymmetrically-constrained Adiabatic ALMO-EDA",
-    )
-    parser.add_argument("--log", default="INFO", help="Logging level (DEBUG, INFO, WARNING, ERROR)")
-    parser.add_argument("config", help="Path to YAML config file")
-    sub = parser.add_subparsers(dest="command")
-
-    # build
-    p_build = sub.add_parser("build", help="Generate Q-Chem input files")
-    p_build.add_argument("--overwrite", action="store_true", help="Overwrite existing inputs")
-    p_build.add_argument(
-        "--sp-strategy",
-        default="smart",
-        choices=["always", "smart", "never"],
-        help="When to write SP inputs (default: smart)",
-    )
-    p_build.add_argument("--template-dir", default="templates", help="Template directory")
-
-    # run — submit Q-Chem jobs (local bash or SLURM)
-    p_run = sub.add_parser("run", help="Submit calculations (local or SLURM)")
-    p_run.add_argument(
-        "criteria",
-        nargs="?",
-        default="NOFILE",
-        help="Status filter for submission (default: NOFILE)",
-    )
-    _add_job_options(p_run)
-    p_run.add_argument(
-        "--wait",
-        action="store_true",
-        help="Block until all jobs finish (implied for the local backend)",
-    )
-
-    # pipeline — one command: build → run OPT → build/run SP (per OPT) → extract
-    p_pipeline = sub.add_parser(
-        "pipeline",
-        help="Full run: build → OPT → SP (as each OPT succeeds) → extract",
-    )
-    _add_job_options(p_pipeline)
-    p_pipeline.add_argument("--template-dir", default="templates", help="Template directory")
-    p_pipeline.add_argument("--overwrite", action="store_true", help="Overwrite existing inputs")
-    p_pipeline.add_argument("--no-plots", action="store_true", help="Skip plot generation")
-
-    # status
-    sub.add_parser("status", help="Check calculation status")
-
-    # extract
-    p_extract = sub.add_parser("extract", help="Extract data, profiles, plots")
-    p_extract.add_argument("--criteria", default="SUCCESSFUL", help="Status filter")
-    p_extract.add_argument("--no-plots", action="store_true", help="Skip plot generation")
-
-    args = parser.parse_args(argv)
-
+@app.callback()
+def _main(
+    log_level: Annotated[
+        str, typer.Option("--log", help="Logging level (DEBUG, INFO, WARNING, ERROR).")
+    ] = "INFO",
+) -> None:
+    """Configure logging for the rest of the invocation."""
     logging.basicConfig(
-        level=getattr(logging, args.log.upper(), logging.INFO),
+        level=getattr(logging, log_level.upper(), logging.INFO),
         format="%(asctime)s - %(levelname)s - %(message)s",
     )
 
-    if not args.command:
-        args.command = "status"
 
+# ---------------------------------------------------------------------------
+# Shared parameter types
+# ---------------------------------------------------------------------------
+
+ConfigArg = Annotated[
+    Path, typer.Argument(exists=True, dir_okay=False, readable=True, help="YAML config file.")
+]
+
+BackendOpt = Annotated[
+    str, typer.Option("--backend", help="Execution backend: auto, local, or slurm.")
+]
+MaxCoresOpt = Annotated[
+    int | None, typer.Option("--max-cores", help="Core budget for throttled submission.")
+]
+CpusOpt = Annotated[int, typer.Option("-c", "--cpus", help="CPUs per task (threads).")]
+ParallelOpt = Annotated[int | None, typer.Option("-p", "--parallel", help="MPI processes.")]
+ParallelTypeOpt = Annotated[
+    str, typer.Option("-P", "--parallel-type", help="Parallelism mode: openmp or openmpi.")
+]
+MemoryOpt = Annotated[
+    int | None, typer.Option("-m", "--memory", help="Set mem_total (MB) in inputs.")
+]
+MemPerCpuOpt = Annotated[
+    int | None, typer.Option("-M", "--mem-per-cpu", help="Memory per CPU (MB).")
+]
+TimeOpt = Annotated[str | None, typer.Option("-t", "--time", help="Wall time (SLURM format).")]
+PartitionOpt = Annotated[str | None, typer.Option("-q", "--partition", help="Partition name.")]
+VersionOpt = Annotated[str, typer.Option("-v", "--version", help="Q-Chem version.")]
+QcsetupOpt = Annotated[str | None, typer.Option("--qcsetup", help="Path to a custom qcsetup file.")]
+ScratchOpt = Annotated[str | None, typer.Option("-s", "--scratch", help="Scratch directory.")]
+NodeOpt = Annotated[str | None, typer.Option("-N", "--node", help="Target node.")]
+ExcludeOpt = Annotated[
+    str | None, typer.Option("-x", "--exclude", help="Nodes to exclude (comma-separated).")
+]
+SaveOpt = Annotated[bool, typer.Option("--save", help="Save essential scratch files.")]
+SaveAllOpt = Annotated[bool, typer.Option("-f", "--save-all", help="Save all scratch files.")]
+SaveScratchOpt = Annotated[bool, typer.Option("--save-scratch", help="Keep the scratch directory.")]
+ForceOpt = Annotated[bool, typer.Option("-F", "--force", help="Proceed despite mismatches.")]
+TemplateDirOpt = Annotated[Path, typer.Option("--template-dir", help="Template directory.")]
+NoPlotsOpt = Annotated[bool, typer.Option("--no-plots", help="Skip plot generation.")]
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+@contextmanager
+def _errors() -> Iterator[None]:
+    """Translate any domain error into its deterministic exit code."""
     try:
-        config = load_config(args.config)
-        base_dir = Path(args.config).resolve().parent
-        registry = CalcRegistry(config, base_dir)
-
-        if args.command == "build":
-            _cmd_build(registry, args)
-        elif args.command == "run":
-            _cmd_run(registry, args)
-        elif args.command == "pipeline":
-            _cmd_pipeline(registry, base_dir, args)
-        elif args.command == "status":
-            _cmd_status(registry)
-        else:  # "extract" — the only remaining valid subcommand
-            _cmd_extract(registry, base_dir, args)
+        yield
     except PyA3EDAError as exc:
-        # One catch point translates every domain failure into a deterministic
-        # exit code (see pya3eda.errors); the message is already user-facing.
         log.error("%s", exc)
-        sys.exit(exc.exit_code)
+        raise typer.Exit(code=exc.exit_code) from exc
+
+
+def _registry(config_path: Path) -> tuple[CalcRegistry, Path]:
+    """Load the config and build the registry (base dir = the config's directory)."""
+    config = load_config(config_path)
+    base_dir = config_path.resolve().parent
+    return CalcRegistry(config, base_dir), base_dir
+
+
+def _run_options(
+    *,
+    cpus: int,
+    parallel: int | None,
+    parallel_type: str,
+    memory: int | None,
+    mem_per_cpu: int | None,
+    walltime: str | None,
+    partition: str | None,
+    version: str,
+    qcsetup: str | None,
+    scratch: str | None,
+    nodename: str | None,
+    exclude: str | None,
+    save: bool,
+    save_all: bool,
+    save_scratch: bool,
+    force: bool,
+) -> RunOptions:
+    """Build a ``RunOptions`` from the shared job flags (run + pipeline)."""
+    from pya3eda.runner.executor import RunOptions
+
+    return RunOptions(
+        cpus=cpus,
+        parallel=parallel,
+        parallel_type=parallel_type,
+        memory=memory,
+        mem_per_cpu=mem_per_cpu,
+        walltime=walltime,
+        partition=partition,
+        version=version,
+        qcsetup=qcsetup,
+        scratch=scratch,
+        nodename=nodename,
+        exclude=exclude,
+        save=save,
+        save_all=save_all,
+        save_scratch=save_scratch,
+        force=force,
+    )
 
 
 # ---------------------------------------------------------------------------
-# Subcommand handlers
+# Commands
 # ---------------------------------------------------------------------------
 
 
-def _cmd_build(registry: CalcRegistry, args: argparse.Namespace) -> None:
+@app.command()
+def build(
+    config_path: ConfigArg,
+    overwrite: Annotated[
+        bool, typer.Option("--overwrite", help="Overwrite existing inputs.")
+    ] = False,
+    sp_strategy: Annotated[
+        str, typer.Option("--sp-strategy", help="When to write SP inputs: always, smart, never.")
+    ] = "smart",
+    template_dir: TemplateDirOpt = Path("templates"),
+) -> None:
     """Generate Q-Chem input files for all registered calculations."""
-    from pya3eda.builder.inputs import build_all
+    with _errors():
+        from pya3eda.builder.inputs import build_all
 
-    build_all(
-        registry,
-        template_dir=Path(args.template_dir),
-        overwrite="all" if args.overwrite else None,
-        sp_strategy=args.sp_strategy,
-    )
+        registry, _ = _registry(config_path)
+        build_all(
+            registry,
+            template_dir=template_dir,
+            overwrite="all" if overwrite else None,
+            sp_strategy=sp_strategy,
+        )
 
 
-def _cmd_run(registry: CalcRegistry, args: argparse.Namespace) -> None:
+@app.command()
+def run(
+    config_path: ConfigArg,
+    criteria: Annotated[str, typer.Argument(help="Status filter for submission.")] = "NOFILE",
+    backend: BackendOpt = "auto",
+    max_cores: MaxCoresOpt = None,
+    cpus: CpusOpt = 1,
+    parallel: ParallelOpt = None,
+    parallel_type: ParallelTypeOpt = "openmp",
+    memory: MemoryOpt = None,
+    mem_per_cpu: MemPerCpuOpt = None,
+    walltime: TimeOpt = None,
+    partition: PartitionOpt = None,
+    version: VersionOpt = "6.2.1",
+    qcsetup: QcsetupOpt = None,
+    scratch: ScratchOpt = None,
+    nodename: NodeOpt = None,
+    exclude: ExcludeOpt = None,
+    save: SaveOpt = False,
+    save_all: SaveAllOpt = False,
+    save_scratch: SaveScratchOpt = False,
+    force: ForceOpt = False,
+    wait: Annotated[
+        bool, typer.Option("--wait", help="Block until all jobs finish (implied for local).")
+    ] = False,
+) -> None:
     """Submit calculations via the local or SLURM backend."""
-    from pya3eda.runner.executor import run_all
+    with _errors():
+        from pya3eda.runner.executor import run_all
 
-    run_all(
-        registry,
-        criteria=args.criteria,
-        backend=args.backend,
-        max_cores=args.max_cores,
-        wait=args.wait,
-        options=_run_options(args),
-    )
+        registry, _ = _registry(config_path)
+        run_all(
+            registry,
+            criteria=criteria,
+            backend=backend,
+            max_cores=max_cores,
+            wait=wait,
+            options=_run_options(
+                cpus=cpus,
+                parallel=parallel,
+                parallel_type=parallel_type,
+                memory=memory,
+                mem_per_cpu=mem_per_cpu,
+                walltime=walltime,
+                partition=partition,
+                version=version,
+                qcsetup=qcsetup,
+                scratch=scratch,
+                nodename=nodename,
+                exclude=exclude,
+                save=save,
+                save_all=save_all,
+                save_scratch=save_scratch,
+                force=force,
+            ),
+        )
 
 
-def _cmd_pipeline(registry: CalcRegistry, base_dir: Path, args: argparse.Namespace) -> None:
-    """Run the full dependency-aware pipeline (build → OPT → SP → extract)."""
-    from pya3eda.pipeline import run_pipeline
-
-    run_pipeline(
-        registry,
-        base_dir,
-        backend=args.backend,
-        max_cores=args.max_cores,
-        options=_run_options(args),
-        template_dir=Path(args.template_dir),
-        overwrite="all" if args.overwrite else None,
-        plots=not args.no_plots,
-    )
-
-
-def _cmd_status(registry: CalcRegistry) -> None:
+@app.command()
+def status(config_path: ConfigArg) -> None:
     """Print a status report for all registered calculations."""
-    from pya3eda.status.checker import check_all
+    with _errors():
+        from pya3eda.status.checker import check_all
 
-    check_all(registry)
+        registry, _ = _registry(config_path)
+        check_all(registry)
 
 
-def _cmd_extract(registry: CalcRegistry, base_dir: Path, args: argparse.Namespace) -> None:
+@app.command()
+def extract(
+    config_path: ConfigArg,
+    criteria: Annotated[str, typer.Option("--criteria", help="Status filter.")] = "SUCCESSFUL",
+    no_plots: NoPlotsOpt = False,
+) -> None:
     """Extract data, assemble profiles, export CSVs, and generate plots."""
-    from pya3eda.extractor.data import extract_all
-    from pya3eda.pipeline import finalize_extraction
+    with _errors():
+        from pya3eda.extractor.data import extract_all
+        from pya3eda.pipeline import finalize_extraction
 
-    extracted = extract_all(registry, criteria=args.criteria)
-    finalize_extraction(registry, extracted, base_dir, plots=not args.no_plots)
+        registry, base_dir = _registry(config_path)
+        extracted = extract_all(registry, criteria=criteria)
+        finalize_extraction(registry, extracted, base_dir, plots=not no_plots)
+
+
+@app.command()
+def pipeline(
+    config_path: ConfigArg,
+    backend: BackendOpt = "auto",
+    max_cores: MaxCoresOpt = None,
+    cpus: CpusOpt = 1,
+    parallel: ParallelOpt = None,
+    parallel_type: ParallelTypeOpt = "openmp",
+    memory: MemoryOpt = None,
+    mem_per_cpu: MemPerCpuOpt = None,
+    walltime: TimeOpt = None,
+    partition: PartitionOpt = None,
+    version: VersionOpt = "6.2.1",
+    qcsetup: QcsetupOpt = None,
+    scratch: ScratchOpt = None,
+    nodename: NodeOpt = None,
+    exclude: ExcludeOpt = None,
+    save: SaveOpt = False,
+    save_all: SaveAllOpt = False,
+    save_scratch: SaveScratchOpt = False,
+    force: ForceOpt = False,
+    template_dir: TemplateDirOpt = Path("templates"),
+    overwrite: Annotated[
+        bool, typer.Option("--overwrite", help="Overwrite existing inputs.")
+    ] = False,
+    no_plots: NoPlotsOpt = False,
+) -> None:
+    """Run the full dependency-aware pipeline (build → OPT → SP → extract)."""
+    with _errors():
+        from pya3eda.pipeline import run_pipeline
+
+        registry, base_dir = _registry(config_path)
+        run_pipeline(
+            registry,
+            base_dir,
+            backend=backend,
+            max_cores=max_cores,
+            options=_run_options(
+                cpus=cpus,
+                parallel=parallel,
+                parallel_type=parallel_type,
+                memory=memory,
+                mem_per_cpu=mem_per_cpu,
+                walltime=walltime,
+                partition=partition,
+                version=version,
+                qcsetup=qcsetup,
+                scratch=scratch,
+                nodename=nodename,
+                exclude=exclude,
+                save=save,
+                save_all=save_all,
+                save_scratch=save_scratch,
+                force=force,
+            ),
+            template_dir=template_dir,
+            overwrite="all" if overwrite else None,
+            plots=not no_plots,
+        )
+
+
+def main() -> None:
+    """Console-script entry point."""
+    app()

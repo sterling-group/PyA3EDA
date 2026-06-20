@@ -160,7 +160,7 @@ The naming convention:
 
 ```bash
 cd examples/diels-alder
-pya3eda config.yaml build --template-dir templates
+pya3eda build config.yaml --template-dir templates
 ```
 
 This creates a directory tree under `wB97X-V_def2-SVP_smd/`:
@@ -200,13 +200,13 @@ decomposition: **full** (unconstrained), **pol** (polarisation only), and
 
 ```bash
 # Submit all OPT jobs to the cluster
-pya3eda config.yaml run
+pya3eda run config.yaml
 
 # Check progress (re-run as needed)
-pya3eda config.yaml status
+pya3eda status config.yaml
 
 # Once jobs finish — extract data, export CSVs, generate plots
-pya3eda config.yaml extract
+pya3eda extract config.yaml
 ```
 
 `status` prints a colour-coded table showing SUCCESSFUL / running /
@@ -229,7 +229,7 @@ converges, extracts results as jobs finish, and produces the final
 CSVs and plots once everything completes:
 
 ```bash
-pya3eda config.yaml pipeline --max-cores 16
+pya3eda pipeline config.yaml --max-cores 16
 ```
 
 Use the staged `build` / `run` / `status` / `extract` commands when you
