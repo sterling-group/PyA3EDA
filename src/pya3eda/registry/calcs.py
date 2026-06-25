@@ -11,6 +11,7 @@ from pya3eda.ids import CalcID, CalcSpec
 from pya3eda.registry._common import _CALC_TYPES, _TS_SPECIES, _sp_subfolder, build_method_key
 from pya3eda.registry.paths import build_input_path
 from pya3eda.sanitize import sanitize
+from pya3eda.vocab import Mode, Stage
 
 
 class _CommonCalcKwargs(TypedDict):
@@ -38,7 +39,7 @@ def enumerate_calcs(config: Config, base_dir: Path) -> tuple[dict[CalcID, CalcSp
             seen_method_keys.append(method_key)
 
         # OPT calcs
-        _enumerate_calcs_for_theory(config, calcs, base_dir, level.opt, method_key, "opt")
+        _enumerate_calcs_for_theory(config, calcs, base_dir, level.opt, method_key, Mode.OPT)
 
         # SP calcs (one round per SP theory)
         for sp_theory in level.sp:
@@ -48,7 +49,7 @@ def enumerate_calcs(config: Config, base_dir: Path) -> tuple[dict[CalcID, CalcSp
                 base_dir,
                 sp_theory,
                 method_key,
-                "sp",
+                Mode.SP,
                 sp_subfolder=_sp_subfolder(sp_theory),
             )
 
@@ -78,7 +79,7 @@ def _enumerate_calcs_for_theory(
         "basis_set": theory.basis,
         "dispersion": theory.dispersion or "False",
         "solvent": theory.solvent or "false",
-        "eda2": theory.eda2 if mode == "sp" else None,
+        "eda2": theory.eda2 if mode == Mode.SP else None,
         "sp_subfolder": sp_subfolder,
         "all_reactants": all_r,
         "all_products": all_p,
@@ -93,7 +94,7 @@ def _enumerate_calcs_for_theory(
             base_dir,
             method_key=method_key,
             catalyst=None,
-            stage="reactants",
+            stage=Stage.REACTANTS,
             species=sanitize(r.name),
             calc_type=None,
             mode=mode,
@@ -114,7 +115,7 @@ def _enumerate_calcs_for_theory(
                     base_dir,
                     method_key=method_key,
                     catalyst=None,
-                    stage="reactants",
+                    stage=Stage.REACTANTS,
                     species=species_name,
                     calc_type=None,
                     mode=mode,
@@ -132,7 +133,7 @@ def _enumerate_calcs_for_theory(
             base_dir,
             method_key=method_key,
             catalyst=None,
-            stage="products",
+            stage=Stage.PRODUCTS,
             species=sanitize(p.name),
             calc_type=None,
             mode=mode,
@@ -149,7 +150,7 @@ def _enumerate_calcs_for_theory(
         base_dir,
         method_key=method_key,
         catalyst=None,
-        stage="ts",
+        stage=Stage.TS,
         species=_TS_SPECIES,
         calc_type=None,
         mode=mode,
@@ -170,7 +171,7 @@ def _enumerate_calcs_for_theory(
             base_dir,
             method_key=method_key,
             catalyst=cat_s,
-            stage="cat",
+            stage=Stage.CAT,
             species=cat_s,
             calc_type=None,
             mode=mode,
@@ -189,7 +190,7 @@ def _enumerate_calcs_for_theory(
                 base_dir,
                 method_key=method_key,
                 catalyst=cat_s,
-                stage="dimer",
+                stage=Stage.DIMER,
                 species=f"{cat_s}-dimer",
                 calc_type=None,
                 mode=mode,
@@ -211,7 +212,7 @@ def _enumerate_calcs_for_theory(
                         base_dir,
                         method_key=method_key,
                         catalyst=cat_s,
-                        stage="preTS",
+                        stage=Stage.PRETS,
                         species=species_name,
                         calc_type=ct,
                         mode=mode,
@@ -233,7 +234,7 @@ def _enumerate_calcs_for_theory(
                         base_dir,
                         method_key=method_key,
                         catalyst=cat_s,
-                        stage="postTS",
+                        stage=Stage.POSTTS,
                         species=species_name,
                         calc_type=ct,
                         mode=mode,
@@ -251,7 +252,7 @@ def _enumerate_calcs_for_theory(
                 base_dir,
                 method_key=method_key,
                 catalyst=cat_s,
-                stage="ts",
+                stage=Stage.TS,
                 species=f"{cat_s}-{_TS_SPECIES}",
                 calc_type=ct,
                 mode=mode,

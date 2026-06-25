@@ -88,12 +88,12 @@ class ProfileID(BaseModel, frozen=True):
     )
 
     # Canonical stage order for the reaction coordinate
-    STAGE_ORDER: ClassVar[tuple[str, ...]] = (
-        "reactants",
-        "preTS",
-        "ts",
-        "postTS",
-        "products",
+    STAGE_ORDER: ClassVar[tuple[Stage, ...]] = (
+        Stage.REACTANTS,
+        Stage.PRETS,
+        Stage.TS,
+        Stage.POSTTS,
+        Stage.PRODUCTS,
     )
 
     @staticmethod
@@ -142,7 +142,7 @@ class ProfileSpec(BaseModel, frozen=True):
     id: ProfileID
     stages: tuple[StageSpec, ...]  # ordered reaction coordinate
     selection_leader: bool = False  # True for full_cat — drives candidate choice
-    ref_stage: str = "reactants"  # stage whose energies define the zero point
+    ref_stage: Stage = Stage.REACTANTS  # stage whose energies define the zero point
 
 
 # ---------------------------------------------------------------------------

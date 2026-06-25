@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from pya3eda.registry._common import _TS_SPECIES
+from pya3eda.vocab import Mode, Stage
 
 _NO_CAT_DIR = "no_cat"
 
@@ -30,48 +31,48 @@ def build_input_path(
     cat_dir = catalyst or _NO_CAT_DIR
 
     if catalyst is None:
-        if stage in ("reactants", "products"):
+        if stage in (Stage.REACTANTS, Stage.PRODUCTS):
             parts = Path(cat_dir) / stage / species
             filename = f"{species}{suffix}"
-        elif stage == "ts":
-            parts = Path(cat_dir) / "ts"
+        elif stage == Stage.TS:
+            parts = Path(cat_dir) / Stage.TS
             filename = f"{_TS_SPECIES}{suffix}"
         else:
             raise ValueError(f"Unknown uncatalyzed stage: {stage}")
 
-        if mode == "sp" and sp_subfolder:
+        if mode == Mode.SP and sp_subfolder:
             parts = parts / sp_subfolder
         return base / parts / filename
 
     # Catalyzed — cat_dir is the catalyst name
-    if stage == "cat":
-        parts = Path(cat_dir) / "cat"
+    if stage == Stage.CAT:
+        parts = Path(cat_dir) / Stage.CAT
         filename = f"{cat_dir}{suffix}"
-        if mode == "sp" and sp_subfolder:
+        if mode == Mode.SP and sp_subfolder:
             parts = parts / sp_subfolder
         return base / parts / filename
 
-    if stage == "dimer":
-        parts = Path(cat_dir) / "dimer"
+    if stage == Stage.DIMER:
+        parts = Path(cat_dir) / Stage.DIMER
         filename = f"{cat_dir}-dimer{suffix}"
-        if mode == "sp" and sp_subfolder:
+        if mode == Mode.SP and sp_subfolder:
             parts = parts / sp_subfolder
         return base / parts / filename
 
-    if stage in ("preTS", "postTS"):
+    if stage in (Stage.PRETS, Stage.POSTTS):
         assert calc_type is not None  # preTS/postTS calcs always carry a calc_type
         prefix = stage  # "preTS" or "postTS"
         parts = Path(cat_dir) / stage / species / calc_type
         filename = f"{prefix}_{species}_{calc_type}{suffix}"
-        if mode == "sp" and sp_subfolder:
+        if mode == Mode.SP and sp_subfolder:
             parts = parts / sp_subfolder
         return base / parts / filename
 
-    if stage == "ts":
+    if stage == Stage.TS:
         assert calc_type is not None  # TS calcs always carry a calc_type
-        parts = Path(cat_dir) / "ts" / calc_type
-        filename = f"ts_{species}_{calc_type}{suffix}"
-        if mode == "sp" and sp_subfolder:
+        parts = Path(cat_dir) / Stage.TS / calc_type
+        filename = f"{Stage.TS}_{species}_{calc_type}{suffix}"
+        if mode == Mode.SP and sp_subfolder:
             parts = parts / sp_subfolder
         return base / parts / filename
 

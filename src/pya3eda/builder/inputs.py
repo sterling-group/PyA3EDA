@@ -22,6 +22,7 @@ from pya3eda.parser.qchem import parse_status
 from pya3eda.parser.xyz import parse_xyz
 from pya3eda.registry import CalcRegistry
 from pya3eda.utils import read_text, write_text
+from pya3eda.vocab import CalcType, Mode, Stage
 
 log = logging.getLogger(__name__)
 
@@ -97,7 +98,7 @@ def _build_one(
     file_path = spec.input_path
 
     # SP strategy gate
-    if cid.mode == "sp":
+    if cid.mode == Mode.SP:
         if sp_strategy == "never":
             return
         if sp_strategy == "smart" and not _opt_successful(spec, registry):
@@ -123,7 +124,7 @@ def _build_one(
 
     # Geom opt section
     geom_block = ""
-    if cid.mode == "opt":
+    if cid.mode == Mode.OPT:
         geom_text = read_text(template_dir / "rem" / "geom_opt.rem")
         if geom_text:
             geom_block = "\n\n" + geom_text.strip("\n")
@@ -191,7 +192,7 @@ def _build_molecule_section(
 
     # For SP: read the OPT output to use optimised coordinates
     opt_output_text: str | None = None
-    if cid.mode == "sp":
+    if cid.mode == Mode.SP:
         try:
             opt_spec = registry.get(cid.to_opt())
             opt_output_text = read_text(opt_spec.output_path)
@@ -199,9 +200,9 @@ def _build_molecule_section(
             pass
 
     # Determine template name
-    if cid.stage == "ts" and cid.catalyst is None:
+    if cid.stage == Stage.TS and cid.catalyst is None:
         template_name = "tscomplex"
-    elif cid.stage in ("preTS", "postTS", "ts"):
+    elif cid.stage in (Stage.PRETS, Stage.POSTTS, Stage.TS):
         # Catalyzed stages: prefix from stage, species is clean
         template_name = f"{cid.stage}_{cid.species}"
     else:
@@ -278,11 +279,11 @@ def _build_rem_section(
     """Build the REM section from spec metadata."""
     cid = spec.id
 
-    if cid.mode == "opt":
+    if cid.mode == Mode.OPT:
         # Determine jobtype — single atoms cannot be optimised
         if n_atoms <= 1:
             jobtype = "sp"
-        elif cid.stage == "ts":
+        elif cid.stage == Stage.TS:
             jobtype = "ts"
         else:
             jobtype = "opt"
@@ -303,8 +304,8 @@ def _build_rem_section(
     # single-fragment $molecule makes Q-Chem run a fragment-EDA with no fragments.
     eda2 = str(spec.eda2 or 0) if cid.calc_type is not None else "0"
 
-    scfmi_freeze = "1" if cid.calc_type == "frz_cat" else "0"
-    eda_bsse = "true" if cid.calc_type == "full_cat" else "false"
+    scfmi_freeze = "1" if cid.calc_type == CalcType.FRZ_CAT else "0"
+    eda_bsse = "true" if cid.calc_type == CalcType.FULL_CAT else "false"
 
     return build_sp_rem(
         template_dir,

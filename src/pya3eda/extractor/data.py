@@ -19,6 +19,7 @@ from pya3eda.parser.xyz import format_xyz, parse_output_xyz
 from pya3eda.registry import CalcRegistry
 from pya3eda.status.checker import Status, get_status
 from pya3eda.utils import convert_unit, read_text, standard_state_correction
+from pya3eda.vocab import Mode
 
 log = logging.getLogger(__name__)
 
@@ -59,7 +60,7 @@ def extract_all(
     # Process OPT first (SP needs OPT content for thermo corrections)
     opt_content_cache: dict[CalcID, str] = {}
 
-    for mode in ("opt", "sp"):
+    for mode in (Mode.OPT, Mode.SP):
         for spec in registry.all_calcs:
             if spec.id.mode != mode:
                 continue
@@ -100,7 +101,7 @@ def extract_one(
 
     cid = spec.id
 
-    if cid.mode == "opt":
+    if cid.mode == Mode.OPT:
         opt_cache[cid] = content
         return _extract_opt(cid, spec, content)
     return _extract_sp(cid, spec, content, opt_cache)

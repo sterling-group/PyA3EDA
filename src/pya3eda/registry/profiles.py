@@ -16,7 +16,7 @@ from pya3eda.registry._common import (
     build_method_key,
 )
 from pya3eda.sanitize import sanitize
-from pya3eda.vocab import CalcType
+from pya3eda.vocab import CalcType, Mode, Stage
 
 
 class _CidFactory(Protocol):
@@ -74,11 +74,11 @@ def enumerate_profiles(config: Config) -> dict[ProfileID, ProfileSpec]:
 
         # Resolve solvent per (mode, sp_subfolder)
         mode_sps: list[tuple[str, str | None, bool]] = [
-            ("opt", None, _has_solvent(level.opt)),
+            (Mode.OPT, None, _has_solvent(level.opt)),
         ]
         if level.sp:
             for sp_theory in level.sp:
-                mode_sps.append(("sp", _sp_subfolder(sp_theory), _has_solvent(sp_theory)))
+                mode_sps.append((Mode.SP, _sp_subfolder(sp_theory), _has_solvent(sp_theory)))
 
         for mode, sp_sub, apply_ssc in mode_sps:
             _build_uncatalyzed_profile(cfg, profiles, method_key, mode, sp_subfolder=sp_sub)
@@ -122,23 +122,25 @@ def _build_uncatalyzed_profile(
         sp_subfolder=sp_subfolder,
     )
 
-    all_reactant_ids = [cid(stage="reactants", species=sanitize(r.name)) for r in config.reactants]
-    all_product_ids = [cid(stage="products", species=sanitize(p.name)) for p in config.products]
-    ts_id = cid(stage="ts", species=_TS_SPECIES)
+    all_reactant_ids = [
+        cid(stage=Stage.REACTANTS, species=sanitize(r.name)) for r in config.reactants
+    ]
+    all_product_ids = [cid(stage=Stage.PRODUCTS, species=sanitize(p.name)) for p in config.products]
+    ts_id = cid(stage=Stage.TS, species=_TS_SPECIES)
 
     stages = (
         StageSpec(
-            name="reactants",
+            name=Stage.REACTANTS,
             calc_ids=tuple(all_reactant_ids),
             label=" + ".join(r.name for r in config.reactants),
         ),
         StageSpec(
-            name="ts",
+            name=Stage.TS,
             calc_ids=(ts_id,),
             label=_TS_SPECIES,
         ),
         StageSpec(
-            name="products",
+            name=Stage.PRODUCTS,
             calc_ids=tuple(all_product_ids),
             label=" + ".join(p.name for p in config.products),
         ),
@@ -176,16 +178,16 @@ def _build_nocat_profile(
         sp_subfolder=sp_subfolder,
     )
 
-    cat_standalone = cid(catalyst=cat_s, stage="cat", species=cat_s)
+    cat_standalone = cid(catalyst=cat_s, stage=Stage.CAT, species=cat_s)
 
     reactant_ids = tuple(
-        [cid(stage="reactants", species=sanitize(r.name)) for r in config.reactants]
+        [cid(stage=Stage.REACTANTS, species=sanitize(r.name)) for r in config.reactants]
         + [cat_standalone]
     )
-    uncat_ts_id = cid(stage="ts", species=_TS_SPECIES)
+    uncat_ts_id = cid(stage=Stage.TS, species=_TS_SPECIES)
     ts_ids = (uncat_ts_id, cat_standalone)
     product_ids = tuple(
-        [cid(stage="products", species=sanitize(p.name)) for p in config.products]
+        [cid(stage=Stage.PRODUCTS, species=sanitize(p.name)) for p in config.products]
         + [cat_standalone]
     )
 
@@ -193,9 +195,9 @@ def _build_nocat_profile(
     product_label = " + ".join([p.name for p in config.products] + [cat_name])
 
     stages = (
-        StageSpec(name="reactants", calc_ids=reactant_ids, label=reactant_label),
-        StageSpec(name="ts", calc_ids=ts_ids, label=f"{_TS_SPECIES} + {cat_name}"),
-        StageSpec(name="products", calc_ids=product_ids, label=product_label),
+        StageSpec(name=Stage.REACTANTS, calc_ids=reactant_ids, label=reactant_label),
+        StageSpec(name=Stage.TS, calc_ids=ts_ids, label=f"{_TS_SPECIES} + {cat_name}"),
+        StageSpec(name=Stage.PRODUCTS, calc_ids=product_ids, label=product_label),
     )
 
     profiles[pid] = ProfileSpec(id=pid, stages=stages)
@@ -216,8 +218,8 @@ def _build_complex_stage(
     Returns the primary ``(calc_ids, label, alternatives)`` for a stage made of
     the catalyst+included-species complex plus the free species standalone, where
     *alternatives* are the proper-subset complexes (each as ``(calc_ids, label)``).
-    The reactant side passes ``("preTS", "reactants")`` and ``incl_r``/``free_r``;
-    the product side passes ``("postTS", "products")`` and ``incl_p``/``free_p``.
+    The reactant side passes ``(Stage.PRETS, Stage.REACTANTS)`` and ``incl_r``/``free_r``;
+    the product side passes ``(Stage.POSTTS, Stage.PRODUCTS)`` and ``incl_p``/``free_p``.
     """
     combo_name = "-".join(sanitize(s.name) for s in incl)
     complex_species = f"{cat_s}-{combo_name}" if incl else cat_s
@@ -279,26 +281,28 @@ def _build_catalyzed_profile(
     )
 
     # --- reactants / products endpoint stages (standalone species + catalyst) ---
-    cat_standalone = cid(catalyst=cat_s, stage="cat", species=cat_s)
-    reactant_ids = [cid(stage="reactants", species=sanitize(r.name)) for r in config.reactants]
+    cat_standalone = cid(catalyst=cat_s, stage=Stage.CAT, species=cat_s)
+    reactant_ids = [cid(stage=Stage.REACTANTS, species=sanitize(r.name)) for r in config.reactants]
     reactant_ids.append(cat_standalone)
     reactant_label = " + ".join([r.name for r in config.reactants] + [cat_name])
 
-    product_ids = [cid(stage="products", species=sanitize(p.name)) for p in config.products]
+    product_ids = [cid(stage=Stage.PRODUCTS, species=sanitize(p.name)) for p in config.products]
     product_ids.append(cat_standalone)
     product_label = " + ".join([p.name for p in config.products] + [cat_name])
 
     # --- preTS / postTS complex stages (mirror-shared) ---
     pre_ts_ids, pre_label, pre_alt_data = _build_complex_stage(
-        cid, cat_s, cat_name, calc_type, incl_r, free_r, "preTS", "reactants"
+        cid, cat_s, cat_name, calc_type, incl_r, free_r, Stage.PRETS, Stage.REACTANTS
     )
     post_ts_ids, post_label, post_alt_data = _build_complex_stage(
-        cid, cat_s, cat_name, calc_type, incl_p, free_p, "postTS", "products"
+        cid, cat_s, cat_name, calc_type, incl_p, free_p, Stage.POSTTS, Stage.PRODUCTS
     )
 
     # --- TS stage (+ uncatalyzed TS for the NI translational frame) ---
-    ts_id = cid(catalyst=cat_s, stage="ts", species=f"{cat_s}-{_TS_SPECIES}", calc_type=calc_type)
-    uncat_ts_id = cid(stage="ts", species=_TS_SPECIES)
+    ts_id = cid(
+        catalyst=cat_s, stage=Stage.TS, species=f"{cat_s}-{_TS_SPECIES}", calc_type=calc_type
+    )
+    uncat_ts_id = cid(stage=Stage.TS, species=_TS_SPECIES)
 
     # --- NI references (full_cat only) ---
     r_ids = tuple(reactant_ids)
@@ -318,28 +322,28 @@ def _build_catalyzed_profile(
     )
 
     stages = (
-        StageSpec(name="reactants", calc_ids=r_ids, label=reactant_label),
+        StageSpec(name=Stage.REACTANTS, calc_ids=r_ids, label=reactant_label),
         StageSpec(
-            name="preTS",
+            name=Stage.PRETS,
             calc_ids=tuple(pre_ts_ids),
             label=pre_label,
             ni_ref=_ni(r_ids, tuple(pre_ts_ids)),
             alternatives=pre_alts,
         ),
         StageSpec(
-            name="ts",
+            name=Stage.TS,
             calc_ids=(ts_id,),
             label=f"ts_{cat_name}-{_TS_SPECIES}",
             ni_ref=_ni((uncat_ts_id, cat_standalone), (ts_id,)),
         ),
         StageSpec(
-            name="postTS",
+            name=Stage.POSTTS,
             calc_ids=tuple(post_ts_ids),
             label=post_label,
             ni_ref=_ni(p_ids, tuple(post_ts_ids)),
             alternatives=post_alts,
         ),
-        StageSpec(name="products", calc_ids=p_ids, label=product_label),
+        StageSpec(name=Stage.PRODUCTS, calc_ids=p_ids, label=product_label),
     )
 
     profiles[pid] = ProfileSpec(

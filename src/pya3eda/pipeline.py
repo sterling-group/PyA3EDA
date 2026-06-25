@@ -29,6 +29,7 @@ from pya3eda.runner.clusters import ClusterConfig, detect_cluster
 from pya3eda.runner.executor import RunOptions, cores_for, prepare_job, submit_job
 from pya3eda.runner.throttle import Throttler
 from pya3eda.status.checker import Status, get_status, should_process
+from pya3eda.vocab import Mode
 
 log = logging.getLogger(__name__)
 
@@ -74,7 +75,7 @@ class _Pipeline:
         """Build OPT inputs, drive the scheduler to completion, return extracted data."""
         build_all(self.registry, self.template_dir, overwrite=self.overwrite, sp_strategy="never")
         for spec in self.registry.all_calcs:
-            if spec.id.mode == "sp":
+            if spec.id.mode == Mode.SP:
                 self.sp_by_opt.setdefault(spec.id.to_opt(), []).append(spec)
         self._seed()
         self._loop()
@@ -83,7 +84,7 @@ class _Pipeline:
     def _seed(self) -> None:
         """Queue OPTs that need running; complete (extract + enqueue SPs) already-done OPTs."""
         for spec in self.registry.all_calcs:
-            if spec.id.mode != "opt":
+            if spec.id.mode != Mode.OPT:
                 continue
             status, _ = get_status(spec)
             if status == Status.SUCCESSFUL:
@@ -128,7 +129,7 @@ class _Pipeline:
         if data is not None:
             self.extracted[spec.id] = data
             self._live_csv(spec.id.method_key)
-        if spec.id.mode == "opt":
+        if spec.id.mode == Mode.OPT:
             status, _ = get_status(spec)
             if status == Status.SUCCESSFUL:
                 self._enqueue_sps(spec)

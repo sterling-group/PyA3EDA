@@ -17,7 +17,7 @@ from pya3eda.ids import (
     StageData,
 )
 from pya3eda.registry import CalcRegistry
-from pya3eda.vocab import CalcType
+from pya3eda.vocab import CalcType, Mode, Stage, Surface
 
 log = logging.getLogger(__name__)
 
@@ -94,7 +94,7 @@ def export_raw(
             "zpve": data.zpve,
             "imag_freq": data.imag_freq,
         }
-        if cid.mode == "opt":
+        if cid.mode == Mode.OPT:
             rows_opt.append(row)
         else:
             rows_sp.append(row)
@@ -170,7 +170,7 @@ def _export_profiles(
         if pid.catalyst:
             catalysts.add(pid.catalyst)
 
-    endpoints = {"reactants", "products"}
+    endpoints = {Stage.REACTANTS, Stage.PRODUCTS}
 
     for mode, sp_sub in sorted(mode_sps):
         for cat in sorted(catalysts):
@@ -248,7 +248,7 @@ def _export_delta_delta(
                     "Catalyst": dd.catalyst,
                     f"Barrier_uncat ({etype})": dd.barrier_uncat,
                 }
-                if etype == "G_ni":
+                if etype == Surface.G_NI:
                     row[f"Barrier_ni ({etype})"] = dd.barrier_ni
                 row.update(
                     {
@@ -259,7 +259,7 @@ def _export_delta_delta(
                 )
                 if dd.dd_dissoc is not None:
                     row[f"DD_{etype}_dissoc"] = dd.dd_dissoc
-                if etype == "G_ni":
+                if etype == Surface.G_NI:
                     row[f"DD_{etype}_ni"] = dd.dd_ni
                 row.update(
                     {
@@ -297,7 +297,11 @@ def _export_xyz(
 
         out_dir.mkdir(parents=True, exist_ok=True)
         # Catalyzed stages need stage prefix (species is clean, no baked-in prefix)
-        prefix = f"{cid.stage}_" if cid.stage in ("preTS", "postTS", "ts") and cid.catalyst else ""
+        prefix = (
+            f"{cid.stage}_"
+            if cid.stage in (Stage.PRETS, Stage.POSTTS, Stage.TS) and cid.catalyst
+            else ""
+        )
         if cid.calc_type:
             out_path = out_dir / f"{prefix}{cid.species}_{cid.calc_type}.xyz"
         else:

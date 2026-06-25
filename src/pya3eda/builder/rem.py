@@ -11,15 +11,16 @@ from pathlib import Path
 
 from pya3eda.errors import TemplateNotFoundError
 from pya3eda.utils import read_text
+from pya3eda.vocab import CalcType
 
 # ---------------------------------------------------------------------------
 # Internals
 # ---------------------------------------------------------------------------
 
 _CALC_TYPE_FILES = {
-    "full_cat": "full_cat.rem",
-    "pol_cat": "pol_cat.rem",
-    "frz_cat": "frz_cat.rem",
+    CalcType.FULL_CAT: "full_cat.rem",
+    CalcType.POL_CAT: "pol_cat.rem",
+    CalcType.FRZ_CAT: "frz_cat.rem",
 }
 
 
@@ -44,7 +45,7 @@ def build_opt_rem(
     dispersion: str,
     solvent: str,
     jobtype: str,
-    calc_type: str | None = None,
+    calc_type: CalcType | None = None,
 ) -> str:
     """Build the ``$rem`` block for an optimisation / frequency job.
 

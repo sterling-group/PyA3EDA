@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 
 from pya3eda.ids import ProfileData, ProfileID, StageData
 from pya3eda.registry import CalcRegistry
+from pya3eda.vocab import CalcType, Surface
 
 log = logging.getLogger(__name__)
 
@@ -87,7 +88,7 @@ def plot_all_profiles(
 
         # To always include NI on the G plot (no separate G_ni),
         # change the line below to: StageData.energy_types()
-        # and remove the `if calc_type == "ni" and not include_ni` guard
+        # and remove the `if calc_type == CalcType.NI and not include_ni` guard
         # in _plot_catalyst.
         for etype in StageData.barrier_surfaces():
             uncat_pid = ProfileID(
@@ -130,14 +131,14 @@ def _plot_catalyst(
     unit = StageData.UNIT
     # include_ni / surface: controls whether the NI trace appears.
     # To always include NI on G, remove these two lines and
-    # the `if calc_type == "ni" ...` guard below; use etype directly.
-    include_ni = etype == "G_ni"
-    surface = "G" if include_ni else etype
+    # the `if calc_type == CalcType.NI ...` guard below; use etype directly.
+    include_ni = etype == Surface.G_NI
+    surface = Surface.G if include_ni else etype
 
     # Gather normalized traces per calc_type
     traces: list[dict[str, Any]] = []
     for calc_type, label in ProfileID.TRACE_ORDER:
-        if calc_type == "ni" and not include_ni:
+        if calc_type == CalcType.NI and not include_ni:
             continue
         is_uncat = calc_type is None
         pdata = (
