@@ -26,14 +26,14 @@ class TestCalcID:
         assert a != b
 
     def test_defaults(self) -> None:
-        cid = CalcID(method_key="mk", stage="r", species="s")
+        cid = CalcID(method_key="mk", stage="reactants", species="s")
         assert cid.catalyst is None
         assert cid.calc_type is None
         assert cid.mode == "opt"
         assert cid.sp_subfolder is None
 
     def test_frozen(self) -> None:
-        cid = CalcID(method_key="mk", stage="r", species="s")
+        cid = CalcID(method_key="mk", stage="reactants", species="s")
         with pytest.raises(ValidationError):
             cid.species = "new"
 
@@ -72,13 +72,13 @@ class TestStageData:
 class TestExtractedData:
     def test_mutable(self) -> None:
         """ExtractedData is not frozen — can be mutated."""
-        cid = CalcID(method_key="mk", stage="r", species="s")
+        cid = CalcID(method_key="mk", stage="reactants", species="s")
         data = ExtractedData(calc_id=cid)
         data.energy = 42.0
         assert data.energy == 42.0
 
     def test_defaults_none(self) -> None:
-        cid = CalcID(method_key="mk", stage="r", species="s")
+        cid = CalcID(method_key="mk", stage="reactants", species="s")
         data = ExtractedData(calc_id=cid)
         assert data.energy is None
         assert data.H is None

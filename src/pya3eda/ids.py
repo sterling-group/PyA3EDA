@@ -12,6 +12,8 @@ from typing import ClassVar, NamedTuple
 
 from pydantic import BaseModel
 
+from pya3eda.vocab import CalcType, Mode, Stage
+
 # ---------------------------------------------------------------------------
 # Calculation identity
 # ---------------------------------------------------------------------------
@@ -22,15 +24,15 @@ class CalcID(BaseModel, frozen=True):
 
     method_key: str  # OPT-level folder, e.g. "wB97X-V_def2-SVP_smd"
     catalyst: str | None = None  # None → uncatalyzed, else catalyst name
-    stage: str  # reactants | products | ts | preTS | postTS | cat
+    stage: Stage
     species: str  # e.g. "prop2enal", "lip-prop2enal", "ts_lip-tscomplex"
-    calc_type: str | None = None  # full_cat | pol_cat | frz_cat | None
-    mode: str = "opt"  # opt | sp
+    calc_type: CalcType | None = None  # full_cat | pol_cat | frz_cat | None
+    mode: Mode = Mode.OPT
     sp_subfolder: str | None = None  # e.g. "wB97M-V_def2-TZVPPD_smd_sp"
 
     def to_opt(self) -> CalcID:
         """The OPT calculation this id derives from (``mode='opt'``, no SP subfolder)."""
-        return self.model_copy(update={"mode": "opt", "sp_subfolder": None})
+        return self.model_copy(update={"mode": Mode.OPT, "sp_subfolder": None})
 
 
 class CalcSpec(BaseModel, frozen=True):
@@ -72,17 +74,17 @@ class ProfileID(BaseModel, frozen=True):
 
     method_key: str
     catalyst: str | None = None  # None → uncatalyzed
-    calc_type: str | None = None  # None → uncatalyzed
-    mode: str = "opt"
+    calc_type: CalcType | None = None  # None → uncatalyzed
+    mode: Mode = Mode.OPT
     sp_subfolder: str | None = None  # distinguishes SP profiles under same OPT
 
     # Ordered EDA calc_type cascade with display labels
-    TRACE_ORDER: ClassVar[tuple[tuple[str | None, str], ...]] = (
+    TRACE_ORDER: ClassVar[tuple[tuple[CalcType | None, str], ...]] = (
         (None, "uncat"),
-        ("ni", "NI"),
-        ("frz_cat", "FRZ"),
-        ("pol_cat", "POL"),
-        ("full_cat", "FULL"),
+        (CalcType.NI, "NI"),
+        (CalcType.FRZ_CAT, "FRZ"),
+        (CalcType.POL_CAT, "POL"),
+        (CalcType.FULL_CAT, "FULL"),
     )
 
     # Canonical stage order for the reaction coordinate
@@ -182,7 +184,7 @@ class StageData(BaseModel, frozen=True):
     _BARRIER_SURFACES: ClassVar[tuple[str, ...]] = ("E", "G", "G_ni")
 
     name: str
-    calc_type: str | None = None
+    calc_type: CalcType | None = None
     species_label: str = ""
     E: float | None = None
     G: float | None = None

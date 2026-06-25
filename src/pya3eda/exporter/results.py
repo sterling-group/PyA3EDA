@@ -17,6 +17,7 @@ from pya3eda.ids import (
     StageData,
 )
 from pya3eda.registry import CalcRegistry
+from pya3eda.vocab import CalcType
 
 log = logging.getLogger(__name__)
 
@@ -174,7 +175,7 @@ def _export_profiles(
     for mode, sp_sub in sorted(mode_sps):
         for cat in sorted(catalysts):
             # Collect available profiles as name → stage maps
-            available: list[tuple[str | None, str, dict[str, StageData]]] = []
+            available: list[tuple[CalcType | None, str, dict[str, StageData]]] = []
             for calc_type, label in traces:
                 pid = ProfileID(
                     method_key=method_key,
