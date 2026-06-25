@@ -52,6 +52,7 @@ from pya3eda.ids import CalcID, CalcSpec
 from pya3eda.parser.xyz import XYZData
 from pya3eda.registry import CalcRegistry
 
+from .conftest import _make_template_dir, _write_xyz
 from .synthetic_outputs import OPT_OUTPUT
 
 # ───────────────────────────────────────────────────────────────────
@@ -91,66 +92,8 @@ C   1.0000000000   0.0000000000   0.0000000000
 O   2.0000000000   0.0000000000   0.0000000000
 """
 
-# Minimal base template
-_BASE_TEMPLATE = "$rem\n{rem_section}\n$end\n\n$molecule\n{molecule_section}\n$end\n"
-
-# Minimal REM templates
-_REM_OPT_BASE = """\
-method = {method}
-basis = {basis}
-jobtype = {jobtype}
-dft_d = {dispersion}
-solvent_method = {solvent}"""
-
-_REM_SP_EDA_BASE = """\
-method = {method}
-basis = {basis}
-jobtype = sp
-dft_d = {dispersion}
-solvent_method = {solvent}
-eda2 = {eda2}
-scfmi_freeze_ss = {scfmi_freeze_ss}
-eda_bsse = {eda_bsse}"""
-
-_REM_FULL_CAT = "\nfull_cat_extra = true"
-_REM_POL_CAT = "\npol_cat_extra = true"
-_REM_FRZ_CAT = "\nfrz_cat_extra = true"
-
-_GEOM_OPT = """\
-geom_opt_max_cycles = 200
-geom_opt_tol_gradient = 300"""
-
-_SOLVENT_SMD = """\
-$smx
-solvent water
-$end"""
-
-
-def _make_template_dir(tmp_path: Path) -> Path:
-    """Create a template directory with all required template files."""
-    tpl = tmp_path / "templates"
-    rem = tpl / "rem"
-    mol = tpl / "molecule"
-    rem.mkdir(parents=True)
-    mol.mkdir(parents=True)
-
-    (tpl / "base_template.in").write_text(_BASE_TEMPLATE)
-    (rem / "opt_base.rem").write_text(_REM_OPT_BASE)
-    (rem / "sp_eda_base.rem").write_text(_REM_SP_EDA_BASE)
-    (rem / "full_cat.rem").write_text(_REM_FULL_CAT)
-    (rem / "pol_cat.rem").write_text(_REM_POL_CAT)
-    (rem / "frz_cat.rem").write_text(_REM_FRZ_CAT)
-    (rem / "geom_opt.rem").write_text(_GEOM_OPT)
-    (rem / "solvent_smd.rem").write_text(_SOLVENT_SMD)
-    return tpl
-
-
-def _write_xyz(template_dir: Path, name: str, content: str, calc_type: str | None = None) -> None:
-    """Write an XYZ template into the molecule sub-directory."""
-    mol_dir = template_dir / "molecule"
-    mol_dir.mkdir(parents=True, exist_ok=True)
-    fname = f"{name}_{calc_type}.xyz" if calc_type else f"{name}.xyz"
-    (mol_dir / fname).write_text(content)
+# The template-tree builders (`_make_template_dir`, `_write_xyz`) live in
+# conftest.py so the pipeline tests can share them without importing this module.
 
 
 def _simple_config() -> Config:
@@ -627,6 +570,19 @@ class TestBuildRemSection:
         """Catalyst standalone SP should have eda2=0."""
         tpl = _make_template_dir(tmp_path)
         spec = _make_spec(mode="sp", catalyst="cat1", stage="cat", species="cat1", eda2=1)
+        result = _build_rem_section(spec, tpl)
+        assert "eda2 = 0" in result
+
+    def test_sp_dimer_stage_eda2_zero(self, tmp_path: Path) -> None:
+        """Dimer standalone SP is non-fragmented (calc_type=None) → eda2=0, like cat.
+
+        Regression: a dimer SP must not request EDA — emitting eda2 != 0 on a
+        single-fragment $molecule makes Q-Chem run a fragment-EDA with no
+        fragments. Keyed off ``calc_type is None`` so the whole non-EDA class
+        (uncatalyzed, cat, dimer) is covered by the invariant, not a stage list.
+        """
+        tpl = _make_template_dir(tmp_path)
+        spec = _make_spec(mode="sp", catalyst="cat1", stage="dimer", species="cat1-dimer", eda2=1)
         result = _build_rem_section(spec, tpl)
         assert "eda2 = 0" in result
 
@@ -1485,7 +1441,6 @@ class TestBuildAll:
                 mode="opt",
             )
         )
-        original_content = spec.input_path.read_text()  # noqa: F841
         # Modify the file
         spec.input_path.write_text("MODIFIED")
         # Build again without overwrite → should skip
@@ -1842,3 +1797,33 @@ class TestBuildCalc:
         spec = next(s for s in reg.all_calcs if s.id.mode == "opt")
         with pytest.raises(TemplateNotFoundError, match="Base template"):
             build_calc(spec, reg, tmp_path / "templates")
+
+    def test_dimer_sp_built_nonfragmented_eda_off(self, tmp_path: Path) -> None:
+        """End-to-end: a dimer SP builds as a standard molecule with EDA off.
+
+        Regression — the dimer (``is_fragmented=False``, ``calc_type=None``) was
+        previously built as a fragment-EDA calc (``eda2`` from the SP theory),
+        which on a single-fragment ``$molecule`` makes Q-Chem run an EDA with no
+        fragments. The built input must carry ``eda2 = 0`` and no ``---`` fragment
+        separator.
+        """
+        tpl = _make_template_dir(tmp_path)
+        _write_xyz(tpl, "cat1-dimer", _XYZ_3ATOM)
+        cfg = Config(
+            levels=[
+                LevelConfig(
+                    opt=TheoryConfig(method="HF", basis="STO-3G", solvent="smd"),
+                    sp=[TheoryConfig(method="MP2", basis="cc-pVTZ", solvent="smd", eda2=1)],
+                )
+            ],
+            reactants=[SpeciesConfig(name="mol_a")],
+            products=[SpeciesConfig(name="mol_p")],
+            catalysts=[CatalystConfig(name="cat1", dimer=True)],
+        )
+        reg = CalcRegistry(cfg, tmp_path)
+        dimer_sp = next(s for s in reg.all_calcs if s.id.stage == "dimer" and s.id.mode == "sp")
+        assert dimer_sp.id.calc_type is None and not dimer_sp.is_fragmented
+        build_calc(dimer_sp, reg, tpl, sp_strategy="always")
+        content = dimer_sp.input_path.read_text()
+        assert "eda2 = 0" in content
+        assert "---" not in content  # standard $molecule block, not a fragmented EDA one
