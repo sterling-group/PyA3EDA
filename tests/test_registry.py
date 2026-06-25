@@ -293,3 +293,27 @@ class TestMethodKeyDeduplication:
         )
         reg = CalcRegistry(cfg, tmp_path)
         assert reg.method_keys == ["HF_STO-3G"]
+
+
+class TestBuildInputPathGuards:
+    """Defensive ValueErrors for stages that the enumeration never produces, but
+    which guard against a future stage being added without a path mapping."""
+
+    @staticmethod
+    def _registry(tmp_path: Path) -> CalcRegistry:
+        cfg = Config(
+            levels=[LevelConfig(opt=TheoryConfig(method="HF", basis="STO-3G"))],
+            reactants=[SpeciesConfig(name="r1")],
+            products=[SpeciesConfig(name="p1")],
+        )
+        return CalcRegistry(cfg, tmp_path)
+
+    def test_unknown_uncatalyzed_stage_raises(self, tmp_path: Path) -> None:
+        reg = self._registry(tmp_path)
+        with pytest.raises(ValueError, match="Unknown uncatalyzed stage: bogus"):
+            reg._build_input_path("HF_STO-3G", None, "bogus", "x", None, "opt", None)
+
+    def test_unknown_catalyzed_stage_raises(self, tmp_path: Path) -> None:
+        reg = self._registry(tmp_path)
+        with pytest.raises(ValueError, match="Unknown stage: bogus"):
+            reg._build_input_path("HF_STO-3G", "cat", "bogus", "x", None, "opt", None)

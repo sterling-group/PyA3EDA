@@ -11,7 +11,7 @@ from itertools import combinations
 from pathlib import Path
 from typing import TypedDict
 
-from pya3eda.config import Config, LevelConfig, SpeciesConfig, TheoryConfig
+from pya3eda.config import Config, SpeciesConfig, TheoryConfig
 from pya3eda.ids import (
     CalcID,
     CalcSpec,
@@ -175,12 +175,11 @@ class CalcRegistry:
                 seen_method_keys.append(method_key)
 
             # OPT calcs
-            self._enumerate_calcs_for_theory(level, level.opt, method_key, "opt")
+            self._enumerate_calcs_for_theory(level.opt, method_key, "opt")
 
             # SP calcs (one round per SP theory)
             for sp_theory in level.sp:
                 self._enumerate_calcs_for_theory(
-                    level,
                     sp_theory,
                     method_key,
                     "sp",
@@ -191,7 +190,6 @@ class CalcRegistry:
 
     def _enumerate_calcs_for_theory(
         self,
-        level: LevelConfig,
         theory: TheoryConfig,
         method_key: str,
         mode: str,
@@ -411,7 +409,7 @@ class CalcRegistry:
             sp_subfolder=sp_subfolder,
         )
         if cid in self._calcs:
-            return  # duplicate (from merged OPT levels) — skip silently  # pragma: no cover
+            return  # duplicate id (e.g. OPT theories differing only in SP-only fields)
 
         input_path = self._build_input_path(
             method_key,
@@ -474,7 +472,7 @@ class CalcRegistry:
                 parts = Path(cat_dir) / "ts"
                 filename = f"{_TS_SPECIES}{suffix}"
             else:
-                raise ValueError(f"Unknown uncatalyzed stage: {stage}")  # pragma: no cover
+                raise ValueError(f"Unknown uncatalyzed stage: {stage}")
 
             if mode == "sp" and sp_subfolder:
                 parts = parts / sp_subfolder
@@ -512,7 +510,7 @@ class CalcRegistry:
                 parts = parts / sp_subfolder
             return base / parts / filename
 
-        raise ValueError(f"Unknown stage: {stage}")  # pragma: no cover
+        raise ValueError(f"Unknown stage: {stage}")
 
     # -- profile enumeration ------------------------------------------------
 
@@ -526,8 +524,6 @@ class CalcRegistry:
 
         for level in cfg.levels:
             method_key = build_method_key(level.opt)
-            if method_key not in self._method_keys:
-                continue  # pragma: no cover
 
             # Resolve solvent per (mode, sp_subfolder)
             mode_sps: list[tuple[str, str | None, bool]] = [
@@ -538,24 +534,10 @@ class CalcRegistry:
                     mode_sps.append(("sp", _sp_subfolder(sp_theory), _has_solvent(sp_theory)))
 
             for mode, sp_sub, apply_ssc in mode_sps:
-                self._build_uncatalyzed_profile(
-                    method_key,
-                    mode,
-                    incl_r,
-                    free_r,
-                    incl_p,
-                    free_p,
-                    sp_subfolder=sp_sub,
-                )
+                self._build_uncatalyzed_profile(method_key, mode, sp_subfolder=sp_sub)
 
                 for cat in cfg.catalysts:
-                    self._build_nocat_profile(
-                        method_key,
-                        mode,
-                        cat.name,
-                        sp_subfolder=sp_sub,
-                        apply_ssc=apply_ssc,
-                    )
+                    self._build_nocat_profile(method_key, mode, cat.name, sp_subfolder=sp_sub)
                     for ct in _CALC_TYPES:
                         self._build_catalyzed_profile(
                             method_key,
@@ -574,10 +556,6 @@ class CalcRegistry:
         self,
         method_key: str,
         mode: str,
-        incl_r: list[SpeciesConfig],
-        free_r: list[SpeciesConfig],
-        incl_p: list[SpeciesConfig],
-        free_p: list[SpeciesConfig],
         *,
         sp_subfolder: str | None = None,
     ) -> None:
@@ -648,7 +626,6 @@ class CalcRegistry:
         cat_name: str,
         *,
         sp_subfolder: str | None = None,
-        apply_ssc: bool = False,
     ) -> None:
         """Build a no-catalyst reference profile.
 
