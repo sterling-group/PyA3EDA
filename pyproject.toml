@@ -63,6 +63,7 @@ dev = [
     "ruff>=0.15",
     "mypy>=1.11",
     "types-PyYAML",
+    "pandas-stubs>=2.2",
     "pre-commit>=3.5",
 ]
 
@@ -128,19 +129,14 @@ warn_unused_ignores = true
 warn_return_any = true
 strict_equality = true
 
-[[tool.mypy.overrides]]
-# pandas ships no py.typed marker; numpy / matplotlib do, and PyYAML is
-# covered by types-PyYAML.
-module = ["pandas.*"]
-ignore_missing_imports = true
-
 [tool.ruff]
 line-length = 100
 target-version = "py311"
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF", "PTH", "RET", "C4", "TID"]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF", "PTH", "RET", "C4", "TID", "ARG"]
 
 [tool.ruff.lint.per-file-ignores]
-# Golden SLURM scripts are immutable byte-for-byte data; their long lines stand.
-"tests/golden_slurm.py" = ["E501"]
+# Test doubles implement the backend Protocols (unused `job_id` / `log_path`) and
+# fixtures are taken for their side effects (`monkeypatch`, prepared configs).
+"tests/*" = ["ARG"]
