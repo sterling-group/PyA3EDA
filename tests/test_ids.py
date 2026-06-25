@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from pya3eda.ids import CalcID, ExtractedData, ProfileID
+from pya3eda.ids import CalcID, ExtractedData, ProfileID, StageData
 
 
 class TestCalcID:
@@ -49,6 +49,24 @@ class TestProfileID:
         assert pid.calc_type is None
         assert pid.mode == "opt"
         assert pid.sp_subfolder is None
+
+
+class TestStageData:
+    def test_rel_private_attr_survives_model_copy(self) -> None:
+        """Guard the relative-energy mechanism: ``StageData._rel`` is a Pydantic
+        PrivateAttr that ``extractor.stages._normalize`` populates via
+        ``model_copy(update={"_rel": ...})``. If a Pydantic upgrade ever stops
+        applying ``update`` to a private attribute, every relative energy would
+        silently become ``None`` (empty profile CSVs/plots) — this fails loudly
+        instead.
+        """
+        stage = StageData(name="ts", E=5.0, G=3.0)
+        assert stage.rel("E") is None  # nothing normalised yet
+
+        normalised = stage.model_copy(update={"_rel": {"E": 2.5, "G": 1.5}})
+        assert normalised.rel("E") == 2.5
+        assert normalised.rel("G") == 1.5
+        assert stage.rel("E") is None  # original (frozen) untouched
 
 
 class TestExtractedData:

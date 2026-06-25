@@ -1060,13 +1060,13 @@ class TestComputeForCatalyst:
 
 
 class TestExtractOneEdgeCases:
-    """Unit tests for _extract_one edge cases."""
+    """Unit tests for extract_one edge cases."""
 
     def test_non_successful_status_skipped(self, tmp_path: Path) -> None:
         """criteria != 'all' and non-SUCCESSFUL status → None."""
         from unittest.mock import patch
 
-        from pya3eda.extractor.data import _extract_one
+        from pya3eda.extractor.data import extract_one
 
         cid = CalcID(method_key="m", stage="reactants", species="mol", mode="opt")
         spec = type(
@@ -1080,14 +1080,14 @@ class TestExtractOneEdgeCases:
         )()
         (tmp_path / "mol.in").touch()
         with patch("pya3eda.extractor.data.get_status", return_value=("CRASH", "err")):
-            result = _extract_one(spec, "SUCCESSFUL", {})
+            result = extract_one(spec, "SUCCESSFUL", {})
         assert result is None
 
     def test_empty_output_content(self, tmp_path: Path) -> None:
         """Output file exists but is empty → None."""
         from unittest.mock import patch
 
-        from pya3eda.extractor.data import _extract_one
+        from pya3eda.extractor.data import extract_one
         from pya3eda.status.checker import Status
 
         cid = CalcID(method_key="m", stage="reactants", species="mol", mode="sp")
@@ -1103,14 +1103,14 @@ class TestExtractOneEdgeCases:
         (tmp_path / "mol.in").touch()
         (tmp_path / "mol.out").touch()  # empty file
         with patch("pya3eda.extractor.data.get_status", return_value=(Status.SUCCESSFUL, "ok")):
-            result = _extract_one(spec, "all", {})
+            result = extract_one(spec, "all", {})
         assert result is None
 
     def test_sp_no_energy_returns_none(self, tmp_path: Path) -> None:
         """SP output without parseable energy → None."""
         from unittest.mock import patch
 
-        from pya3eda.extractor.data import _extract_one
+        from pya3eda.extractor.data import extract_one
         from pya3eda.status.checker import Status
 
         cid = CalcID(method_key="m", stage="reactants", species="mol", mode="sp")
@@ -1128,14 +1128,14 @@ class TestExtractOneEdgeCases:
         (tmp_path / "mol.in").touch()
         (tmp_path / "mol.out").write_text("some output without energy")
         with patch("pya3eda.extractor.data.get_status", return_value=(Status.SUCCESSFUL, "ok")):
-            result = _extract_one(spec, "all", {})
+            result = extract_one(spec, "all", {})
         assert result is None
 
     def test_eda_sp_no_eda_data_returns_none(self, tmp_path: Path) -> None:
         """EDA SP output without parseable EDA energies → None."""
         from unittest.mock import patch
 
-        from pya3eda.extractor.data import _extract_one
+        from pya3eda.extractor.data import extract_one
         from pya3eda.status.checker import Status
 
         cid = CalcID(method_key="m", stage="ts", species="mol", mode="sp", calc_type="full_cat")
@@ -1153,7 +1153,7 @@ class TestExtractOneEdgeCases:
         (tmp_path / "mol.in").touch()
         (tmp_path / "mol.out").write_text("some output without EDA data")
         with patch("pya3eda.extractor.data.get_status", return_value=(Status.SUCCESSFUL, "ok")):
-            result = _extract_one(spec, "all", {})
+            result = extract_one(spec, "all", {})
         assert result is None
 
     def test_sp_without_opt_thermo_fails_loud(self, tmp_path: Path) -> None:
@@ -1161,7 +1161,7 @@ class TestExtractOneEdgeCases:
         from unittest.mock import patch
 
         from pya3eda.errors import IncompleteDataError
-        from pya3eda.extractor.data import _extract_one
+        from pya3eda.extractor.data import extract_one
         from pya3eda.status.checker import Status
 
         cid = CalcID(method_key="m", stage="reactants", species="mol", mode="sp")
@@ -1182,7 +1182,7 @@ class TestExtractOneEdgeCases:
             patch("pya3eda.extractor.data.get_status", return_value=(Status.SUCCESSFUL, "ok")),
             pytest.raises(IncompleteDataError, match="OPT thermo"),
         ):
-            _extract_one(spec, "all", {})  # empty opt_cache
+            extract_one(spec, "all", {})  # empty opt_cache
 
     def test_extract_all_aggregates_incomplete_errors(self, tmp_path: Path) -> None:
         """An OPT that parsed an energy but no thermo makes extract_all fail loud."""
@@ -1269,3 +1269,66 @@ class TestComputeForCatalystBranches:
 
         result = _compute_for_catalyst("m", "cat", "opt", None, {})
         assert isinstance(result, list)
+
+
+class TestValidateSpCds:
+    """The reinstated EDA-SP↔OPT CDS cross-check (warn, don't fail)."""
+
+    # OPT SMD detail block: G_S - G_ENP = -0.0011633 Ha ≈ -0.7300 kcal/mol.
+    _OPT_SMD = (
+        " (3)  G-ENP(liq) elect-nuc-pol free energy of system     -100.0000000000 a.u.\n"
+        " (6)  G-S(liq) free energy of system                     -100.0011633000 a.u.\n"
+    )
+
+    @staticmethod
+    def _cid(calc_type: str | None = "full_cat") -> CalcID:
+        return CalcID(
+            method_key="m",
+            catalyst="cat",
+            stage="ts",
+            species="cat-ts",
+            calc_type=calc_type,
+            mode="sp",
+        )
+
+    def _validate(self, *, sp: str, opt: str, solvent: str, calc_type: str | None = "full_cat"):
+        from pya3eda.extractor.data import _validate_sp_cds
+
+        _validate_sp_cds(self._cid(calc_type), sp, opt, solvent)
+
+    def test_skips_non_eda(self, caplog: pytest.LogCaptureFixture) -> None:
+        import logging
+
+        with caplog.at_level(logging.WARNING):
+            self._validate(
+                sp="  Total:  -9.0\n----\n", opt=self._OPT_SMD, solvent="smd", calc_type=None
+            )
+        assert not caplog.records  # calc_type None → not an EDA calc
+
+    def test_skips_gas_phase(self, caplog: pytest.LogCaptureFixture) -> None:
+        import logging
+
+        with caplog.at_level(logging.WARNING):
+            self._validate(sp="  Total:  -9.0\n----\n", opt=self._OPT_SMD, solvent="false")
+        assert not caplog.records
+
+    def test_skips_when_opt_lacks_smd_summary(self, caplog: pytest.LogCaptureFixture) -> None:
+        import logging
+
+        with caplog.at_level(logging.WARNING):
+            self._validate(sp="  Total:  -9.0\n----\n", opt="no smd summary", solvent="smd")
+        assert not caplog.records
+
+    def test_no_warning_when_cds_matches(self, caplog: pytest.LogCaptureFixture) -> None:
+        import logging
+
+        with caplog.at_level(logging.WARNING):
+            self._validate(sp="    Total:    -0.730\n  ----\n", opt=self._OPT_SMD, solvent="smd")
+        assert not caplog.records
+
+    def test_warns_when_cds_mismatches(self, caplog: pytest.LogCaptureFixture) -> None:
+        import logging
+
+        with caplog.at_level(logging.WARNING):
+            self._validate(sp="    Total:    -0.900\n  ----\n", opt=self._OPT_SMD, solvent="smd")
+        assert any("CDS mismatch" in r.message for r in caplog.records)

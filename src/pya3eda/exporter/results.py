@@ -43,7 +43,7 @@ def export_all(
         mk_dir = results_dir / mk
 
         # Raw calc data + per-profile CSVs
-        total += _export_raw(extracted, mk, mk_dir / "raw_data")
+        total += export_raw(extracted, mk, mk_dir / "raw_data")
         total += _export_raw_profiles(profiles, mk, mk_dir / "raw_data")
 
         # Combined profiles (per catalyst, mirroring plot traces)
@@ -63,7 +63,7 @@ def export_all(
 # ---------------------------------------------------------------------------
 
 
-def _export_raw(
+def export_raw(
     extracted: dict[CalcID, ExtractedData],
     method_key: str,
     out_dir: Path,

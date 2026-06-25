@@ -13,10 +13,10 @@ from pya3eda.runner import executor
 from pya3eda.runner.clusters import ClusterConfig, QChemVersion
 from pya3eda.runner.executor import (
     RunOptions,
-    _cores,
     _exclude_nodes,
     _resolve_parallel,
     _resolve_version,
+    cores_for,
     run_all,
 )
 
@@ -206,7 +206,7 @@ class TestCores:
             scratch_base_dir="/s",
             cluster_name="c",
         )
-        assert _cores(spec) == 4
+        assert cores_for(spec) == 4
 
     def test_openmpi(self) -> None:
         from pya3eda.runner.engine import JobSpec
@@ -225,7 +225,7 @@ class TestCores:
             scratch_base_dir="/s",
             cluster_name="c",
         )
-        assert _cores(spec) == 6
+        assert cores_for(spec) == 6
 
 
 class TestResolveVersion:

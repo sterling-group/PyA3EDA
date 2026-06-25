@@ -118,6 +118,12 @@ def parse_output_xyz(text: str) -> XYZData | None:
                     m.group(1), float(m.group(2)), float(m.group(3)), float(m.group(4))
                 )
             )
+        elif atoms:
+            # The coordinate rows form one contiguous table; the first
+            # non-matching line after it (the trailing separator) ends the
+            # geometry. Stop here so a later coordinate-shaped table (normal
+            # modes, a second orientation, …) cannot inflate the atom count.
+            break
 
     if not atoms:
         return None

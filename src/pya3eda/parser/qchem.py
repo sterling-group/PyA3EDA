@@ -251,6 +251,18 @@ def parse_smd(text: str) -> SMDData | None:
     return SMDData(g_enp, g_s, cds)
 
 
+def parse_cds_print(text: str) -> float | None:
+    """Parse the SMD G_CDS from the extended-print per-atom table (``print=2``).
+
+    Returns the *last* ``Total:`` value in kcal/mol. When per-fragment CDS tables
+    are printed, the full-system CDS is the last one — taking the first would pick
+    a fragment's value and mismatch the OPT's whole-system CDS. Used by both
+    :func:`parse_eda_energies` and the SP↔OPT CDS cross-check.
+    """
+    matches = _SMD_CDS_EXTENDED.findall(text)
+    return float(matches[-1]) if matches else None
+
+
 # -- EDA / BSSE ------------------------------------------------------------
 
 
@@ -294,10 +306,7 @@ def parse_eda_energies(
         if m:
             bsse_kcal = convert_unit(float(m.group(1)), "kJ/mol", "kcal/mol")
 
-    cds_kcal: float | None = None
-    m = _SMD_CDS_EXTENDED.search(text)
-    if m:
-        cds_kcal = float(m.group(1))
+    cds_kcal = parse_cds_print(text)
 
     return EDAData(
         sp_energy_ha=energy_ha,
@@ -333,12 +342,13 @@ def parse_status(
     if not out_text:
         return "nofile", "Output file not found"
 
-    if "Running on" in out_text and _THANK_YOU not in out_text:
-        return "running", "Calculation in progress"
-
     if _THANK_YOU in out_text:
         return "SUCCESSFUL", f"Completed in {_parse_wall_time(out_text)}"
 
+    # Failure markers take precedence over the "still running" heuristic below: a
+    # job that printed "Running on" and then died (fatal error / SGeom / SCF / OOM
+    # / killed) must surface as CRASH/terminated, not be reported "running" forever
+    # — the default NOFILE run filter would never resubmit such a stuck calc.
     if "Q-Chem fatal error occurred" in out_text:
         return "CRASH", _crash_detail(out_text)
     for tag, msg in (
@@ -351,6 +361,11 @@ def parse_status(
 
     if any(kw in out_text.lower() for kw in ("killed", "terminating")):
         return "terminated", "Job terminated unexpectedly"
+
+    # Started, no completion, no failure marker → genuinely still in progress
+    # (a live local job, or a SLURM job mid-flight whose sentinel we missed).
+    if "Running on" in out_text:
+        return "running", "Calculation in progress"
 
     if out_text.strip():
         return "CRASH", "Unknown failure"
