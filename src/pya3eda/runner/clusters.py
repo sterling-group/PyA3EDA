@@ -20,6 +20,8 @@ from pathlib import Path
 import yaml
 from pydantic import BaseModel
 
+from pya3eda.errors import PyA3EDAError
+
 log = logging.getLogger(__name__)
 
 _DEFAULT_PATH = Path.home() / ".config" / "qqchem" / "clusters.yaml"
@@ -68,8 +70,14 @@ class ClusterConfig(BaseModel, frozen=True):
     qchem_versions: dict[str, QChemVersion]
 
 
-class ClusterConfigError(RuntimeError):
-    """Raised when the cluster configuration is missing or invalid."""
+class ClusterConfigError(PyA3EDAError):
+    """The cluster configuration is missing or invalid.
+
+    Part of the :class:`~pya3eda.errors.PyA3EDAError` hierarchy so the CLI maps it
+    to a deterministic exit code instead of surfacing it as an uncaught crash.
+    """
+
+    exit_code = 8
 
 
 def _config_path() -> Path:

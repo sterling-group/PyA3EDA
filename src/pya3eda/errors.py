@@ -15,6 +15,7 @@ Exit code     Meaning
 ``5``         :class:`BackendError` — execution backend unknown or refused a job
 ``6``         :class:`RunOptionError` — invalid run / job options
 ``7``         :class:`ThrottleTimeoutError` — wait deadline expired
+``8``         :class:`~pya3eda.runner.clusters.ClusterConfigError` — cluster config missing/invalid
 ============  ============================================
 """
 

@@ -107,6 +107,13 @@ class TestLoad:
         with pytest.raises(ClusterConfigError, match="Invalid cluster config"):
             load_cluster_configs()
 
+    def test_is_domain_error_with_exit_code(self) -> None:
+        """ClusterConfigError is in the PyA3EDAError tree → CLI maps it to exit 8."""
+        from pya3eda.errors import PyA3EDAError
+
+        assert issubclass(ClusterConfigError, PyA3EDAError)
+        assert ClusterConfigError().exit_code == 8
+
 
 # ===================================================================
 # detect_cluster
