@@ -16,6 +16,7 @@ from pya3eda.registry._common import (
     build_method_key,
 )
 from pya3eda.sanitize import sanitize
+from pya3eda.vocab import CalcType
 
 
 class _CidFactory(Protocol):
@@ -170,7 +171,7 @@ def _build_nocat_profile(
     pid = ProfileID(
         method_key=method_key,
         catalyst=cat_s,
-        calc_type="nocat",
+        calc_type=CalcType.NOCAT,
         mode=mode,
         sp_subfolder=sp_subfolder,
     )

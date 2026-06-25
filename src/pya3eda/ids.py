@@ -12,7 +12,7 @@ from typing import ClassVar, NamedTuple
 
 from pydantic import BaseModel
 
-from pya3eda.vocab import CalcType, Mode, Stage
+from pya3eda.vocab import CalcType, Mode, Stage, Surface
 
 # ---------------------------------------------------------------------------
 # Calculation identity
@@ -180,8 +180,8 @@ class StageData(BaseModel, frozen=True):
     """Energy totals for one stage of a profile."""
 
     UNIT: ClassVar[str] = "kcal/mol"
-    _ENERGY_TYPES: ClassVar[tuple[str, ...]] = ("E", "G")
-    _BARRIER_SURFACES: ClassVar[tuple[str, ...]] = ("E", "G", "G_ni")
+    _ENERGY_TYPES: ClassVar[tuple[Surface, ...]] = (Surface.E, Surface.G)
+    _BARRIER_SURFACES: ClassVar[tuple[Surface, ...]] = (Surface.E, Surface.G, Surface.G_NI)
 
     name: str
     calc_type: CalcType | None = None
@@ -193,12 +193,12 @@ class StageData(BaseModel, frozen=True):
     _rel: dict[str, float] = {}
 
     @classmethod
-    def energy_types(cls) -> tuple[str, ...]:
+    def energy_types(cls) -> tuple[Surface, ...]:
         """Absolute energy field names."""
         return cls._ENERGY_TYPES
 
     @classmethod
-    def barrier_surfaces(cls) -> tuple[str, ...]:
+    def barrier_surfaces(cls) -> tuple[Surface, ...]:
         """Energy surfaces for barrier/plot decomposition (includes G_ni)."""
         return cls._BARRIER_SURFACES
 
@@ -219,8 +219,8 @@ class DeltaDeltaData(BaseModel, frozen=True):
 
     method_key: str
     catalyst: str
-    energy_type: str  # "E" | "G" | "G_ni"
-    mode: str = "opt"
+    energy_type: Surface
+    mode: Mode = Mode.OPT
     sp_subfolder: str | None = None
 
     barrier_uncat: float | None = None

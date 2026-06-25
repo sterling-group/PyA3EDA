@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from pya3eda.config import TheoryConfig
 from pya3eda.sanitize import sanitize
+from pya3eda.vocab import CalcType
 
-_FULL_CAT = "full_cat"
-_CALC_TYPES = (_FULL_CAT, "pol_cat", "frz_cat")
+_FULL_CAT = CalcType.FULL_CAT
+_CALC_TYPES = (CalcType.FULL_CAT, CalcType.POL_CAT, CalcType.FRZ_CAT)
 _TS_SPECIES = "tscomplex"
 
 
