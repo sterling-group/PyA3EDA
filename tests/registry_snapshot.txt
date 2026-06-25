@@ -1,0 +1,173 @@
+== CALCS ==
+m1_b1_smd/-/reactants/r1/-/opt/- :: m1_b1_smd/no_cat/reactants/r1/r1_opt.in frag=0 eda2=None pr=[r1] pp=[] pc=[]
+m1_b1_smd/-/reactants/r2/-/opt/- :: m1_b1_smd/no_cat/reactants/r2/r2_opt.in frag=0 eda2=None pr=[r2] pp=[] pc=[]
+m1_b1_smd/-/reactants/r3/-/opt/- :: m1_b1_smd/no_cat/reactants/r3/r3_opt.in frag=0 eda2=None pr=[r3] pp=[] pc=[]
+m1_b1_smd/-/reactants/r1-r2/-/opt/- :: m1_b1_smd/no_cat/reactants/r1-r2/r1-r2_opt.in frag=0 eda2=None pr=[r1,r2] pp=[] pc=[]
+m1_b1_smd/-/products/p1/-/opt/- :: m1_b1_smd/no_cat/products/p1/p1_opt.in frag=0 eda2=None pr=[] pp=[p1] pc=[]
+m1_b1_smd/-/products/p2/-/opt/- :: m1_b1_smd/no_cat/products/p2/p2_opt.in frag=0 eda2=None pr=[] pp=[p2] pc=[]
+m1_b1_smd/-/ts/tscomplex/-/opt/- :: m1_b1_smd/no_cat/ts/tscomplex_opt.in frag=0 eda2=None pr=[r1,r2,r3] pp=[p1,p2] pc=[]
+m1_b1_smd/c1/cat/c1/-/opt/- :: m1_b1_smd/c1/cat/c1_opt.in frag=0 eda2=None pr=[] pp=[] pc=[c1]
+m1_b1_smd/c1/dimer/c1-dimer/-/opt/- :: m1_b1_smd/c1/dimer/c1-dimer_opt.in frag=0 eda2=None pr=[] pp=[] pc=[c1]
+m1_b1_smd/c1/preTS/c1-r1/full_cat/opt/- :: m1_b1_smd/c1/preTS/c1-r1/full_cat/preTS_c1-r1_full_cat_opt.in frag=1 eda2=None pr=[r1] pp=[] pc=[c1]
+m1_b1_smd/c1/preTS/c1-r1/pol_cat/opt/- :: m1_b1_smd/c1/preTS/c1-r1/pol_cat/preTS_c1-r1_pol_cat_opt.in frag=1 eda2=None pr=[r1] pp=[] pc=[c1]
+m1_b1_smd/c1/preTS/c1-r1/frz_cat/opt/- :: m1_b1_smd/c1/preTS/c1-r1/frz_cat/preTS_c1-r1_frz_cat_opt.in frag=1 eda2=None pr=[r1] pp=[] pc=[c1]
+m1_b1_smd/c1/preTS/c1-r2/full_cat/opt/- :: m1_b1_smd/c1/preTS/c1-r2/full_cat/preTS_c1-r2_full_cat_opt.in frag=1 eda2=None pr=[r2] pp=[] pc=[c1]
+m1_b1_smd/c1/preTS/c1-r2/pol_cat/opt/- :: m1_b1_smd/c1/preTS/c1-r2/pol_cat/preTS_c1-r2_pol_cat_opt.in frag=1 eda2=None pr=[r2] pp=[] pc=[c1]
+m1_b1_smd/c1/preTS/c1-r2/frz_cat/opt/- :: m1_b1_smd/c1/preTS/c1-r2/frz_cat/preTS_c1-r2_frz_cat_opt.in frag=1 eda2=None pr=[r2] pp=[] pc=[c1]
+m1_b1_smd/c1/preTS/c1-r1-r2/full_cat/opt/- :: m1_b1_smd/c1/preTS/c1-r1-r2/full_cat/preTS_c1-r1-r2_full_cat_opt.in frag=1 eda2=None pr=[r1,r2] pp=[] pc=[c1]
+m1_b1_smd/c1/preTS/c1-r1-r2/pol_cat/opt/- :: m1_b1_smd/c1/preTS/c1-r1-r2/pol_cat/preTS_c1-r1-r2_pol_cat_opt.in frag=1 eda2=None pr=[r1,r2] pp=[] pc=[c1]
+m1_b1_smd/c1/preTS/c1-r1-r2/frz_cat/opt/- :: m1_b1_smd/c1/preTS/c1-r1-r2/frz_cat/preTS_c1-r1-r2_frz_cat_opt.in frag=1 eda2=None pr=[r1,r2] pp=[] pc=[c1]
+m1_b1_smd/c1/postTS/c1-p1/full_cat/opt/- :: m1_b1_smd/c1/postTS/c1-p1/full_cat/postTS_c1-p1_full_cat_opt.in frag=1 eda2=None pr=[] pp=[p1] pc=[c1]
+m1_b1_smd/c1/postTS/c1-p1/pol_cat/opt/- :: m1_b1_smd/c1/postTS/c1-p1/pol_cat/postTS_c1-p1_pol_cat_opt.in frag=1 eda2=None pr=[] pp=[p1] pc=[c1]
+m1_b1_smd/c1/postTS/c1-p1/frz_cat/opt/- :: m1_b1_smd/c1/postTS/c1-p1/frz_cat/postTS_c1-p1_frz_cat_opt.in frag=1 eda2=None pr=[] pp=[p1] pc=[c1]
+m1_b1_smd/c1/postTS/c1-p2/full_cat/opt/- :: m1_b1_smd/c1/postTS/c1-p2/full_cat/postTS_c1-p2_full_cat_opt.in frag=1 eda2=None pr=[] pp=[p2] pc=[c1]
+m1_b1_smd/c1/postTS/c1-p2/pol_cat/opt/- :: m1_b1_smd/c1/postTS/c1-p2/pol_cat/postTS_c1-p2_pol_cat_opt.in frag=1 eda2=None pr=[] pp=[p2] pc=[c1]
+m1_b1_smd/c1/postTS/c1-p2/frz_cat/opt/- :: m1_b1_smd/c1/postTS/c1-p2/frz_cat/postTS_c1-p2_frz_cat_opt.in frag=1 eda2=None pr=[] pp=[p2] pc=[c1]
+m1_b1_smd/c1/postTS/c1-p1-p2/full_cat/opt/- :: m1_b1_smd/c1/postTS/c1-p1-p2/full_cat/postTS_c1-p1-p2_full_cat_opt.in frag=1 eda2=None pr=[] pp=[p1,p2] pc=[c1]
+m1_b1_smd/c1/postTS/c1-p1-p2/pol_cat/opt/- :: m1_b1_smd/c1/postTS/c1-p1-p2/pol_cat/postTS_c1-p1-p2_pol_cat_opt.in frag=1 eda2=None pr=[] pp=[p1,p2] pc=[c1]
+m1_b1_smd/c1/postTS/c1-p1-p2/frz_cat/opt/- :: m1_b1_smd/c1/postTS/c1-p1-p2/frz_cat/postTS_c1-p1-p2_frz_cat_opt.in frag=1 eda2=None pr=[] pp=[p1,p2] pc=[c1]
+m1_b1_smd/c1/ts/c1-tscomplex/full_cat/opt/- :: m1_b1_smd/c1/ts/full_cat/ts_c1-tscomplex_full_cat_opt.in frag=1 eda2=None pr=[r1,r2,r3] pp=[p1,p2] pc=[c1]
+m1_b1_smd/c1/ts/c1-tscomplex/pol_cat/opt/- :: m1_b1_smd/c1/ts/pol_cat/ts_c1-tscomplex_pol_cat_opt.in frag=1 eda2=None pr=[r1,r2,r3] pp=[p1,p2] pc=[c1]
+m1_b1_smd/c1/ts/c1-tscomplex/frz_cat/opt/- :: m1_b1_smd/c1/ts/frz_cat/ts_c1-tscomplex_frz_cat_opt.in frag=1 eda2=None pr=[r1,r2,r3] pp=[p1,p2] pc=[c1]
+m1_b1_smd/-/reactants/r1/-/sp/m2_b2_smd_sp :: m1_b1_smd/no_cat/reactants/r1/m2_b2_smd_sp/r1_sp.in frag=0 eda2=1 pr=[r1] pp=[] pc=[]
+m1_b1_smd/-/reactants/r2/-/sp/m2_b2_smd_sp :: m1_b1_smd/no_cat/reactants/r2/m2_b2_smd_sp/r2_sp.in frag=0 eda2=1 pr=[r2] pp=[] pc=[]
+m1_b1_smd/-/reactants/r3/-/sp/m2_b2_smd_sp :: m1_b1_smd/no_cat/reactants/r3/m2_b2_smd_sp/r3_sp.in frag=0 eda2=1 pr=[r3] pp=[] pc=[]
+m1_b1_smd/-/reactants/r1-r2/-/sp/m2_b2_smd_sp :: m1_b1_smd/no_cat/reactants/r1-r2/m2_b2_smd_sp/r1-r2_sp.in frag=0 eda2=1 pr=[r1,r2] pp=[] pc=[]
+m1_b1_smd/-/products/p1/-/sp/m2_b2_smd_sp :: m1_b1_smd/no_cat/products/p1/m2_b2_smd_sp/p1_sp.in frag=0 eda2=1 pr=[] pp=[p1] pc=[]
+m1_b1_smd/-/products/p2/-/sp/m2_b2_smd_sp :: m1_b1_smd/no_cat/products/p2/m2_b2_smd_sp/p2_sp.in frag=0 eda2=1 pr=[] pp=[p2] pc=[]
+m1_b1_smd/-/ts/tscomplex/-/sp/m2_b2_smd_sp :: m1_b1_smd/no_cat/ts/m2_b2_smd_sp/tscomplex_sp.in frag=0 eda2=1 pr=[r1,r2,r3] pp=[p1,p2] pc=[]
+m1_b1_smd/c1/cat/c1/-/sp/m2_b2_smd_sp :: m1_b1_smd/c1/cat/m2_b2_smd_sp/c1_sp.in frag=0 eda2=1 pr=[] pp=[] pc=[c1]
+m1_b1_smd/c1/dimer/c1-dimer/-/sp/m2_b2_smd_sp :: m1_b1_smd/c1/dimer/m2_b2_smd_sp/c1-dimer_sp.in frag=0 eda2=1 pr=[] pp=[] pc=[c1]
+m1_b1_smd/c1/preTS/c1-r1/full_cat/sp/m2_b2_smd_sp :: m1_b1_smd/c1/preTS/c1-r1/full_cat/m2_b2_smd_sp/preTS_c1-r1_full_cat_sp.in frag=1 eda2=1 pr=[r1] pp=[] pc=[c1]
+m1_b1_smd/c1/preTS/c1-r1/pol_cat/sp/m2_b2_smd_sp :: m1_b1_smd/c1/preTS/c1-r1/pol_cat/m2_b2_smd_sp/preTS_c1-r1_pol_cat_sp.in frag=1 eda2=1 pr=[r1] pp=[] pc=[c1]
+m1_b1_smd/c1/preTS/c1-r1/frz_cat/sp/m2_b2_smd_sp :: m1_b1_smd/c1/preTS/c1-r1/frz_cat/m2_b2_smd_sp/preTS_c1-r1_frz_cat_sp.in frag=1 eda2=1 pr=[r1] pp=[] pc=[c1]
+m1_b1_smd/c1/preTS/c1-r2/full_cat/sp/m2_b2_smd_sp :: m1_b1_smd/c1/preTS/c1-r2/full_cat/m2_b2_smd_sp/preTS_c1-r2_full_cat_sp.in frag=1 eda2=1 pr=[r2] pp=[] pc=[c1]
+m1_b1_smd/c1/preTS/c1-r2/pol_cat/sp/m2_b2_smd_sp :: m1_b1_smd/c1/preTS/c1-r2/pol_cat/m2_b2_smd_sp/preTS_c1-r2_pol_cat_sp.in frag=1 eda2=1 pr=[r2] pp=[] pc=[c1]
+m1_b1_smd/c1/preTS/c1-r2/frz_cat/sp/m2_b2_smd_sp :: m1_b1_smd/c1/preTS/c1-r2/frz_cat/m2_b2_smd_sp/preTS_c1-r2_frz_cat_sp.in frag=1 eda2=1 pr=[r2] pp=[] pc=[c1]
+m1_b1_smd/c1/preTS/c1-r1-r2/full_cat/sp/m2_b2_smd_sp :: m1_b1_smd/c1/preTS/c1-r1-r2/full_cat/m2_b2_smd_sp/preTS_c1-r1-r2_full_cat_sp.in frag=1 eda2=1 pr=[r1,r2] pp=[] pc=[c1]
+m1_b1_smd/c1/preTS/c1-r1-r2/pol_cat/sp/m2_b2_smd_sp :: m1_b1_smd/c1/preTS/c1-r1-r2/pol_cat/m2_b2_smd_sp/preTS_c1-r1-r2_pol_cat_sp.in frag=1 eda2=1 pr=[r1,r2] pp=[] pc=[c1]
+m1_b1_smd/c1/preTS/c1-r1-r2/frz_cat/sp/m2_b2_smd_sp :: m1_b1_smd/c1/preTS/c1-r1-r2/frz_cat/m2_b2_smd_sp/preTS_c1-r1-r2_frz_cat_sp.in frag=1 eda2=1 pr=[r1,r2] pp=[] pc=[c1]
+m1_b1_smd/c1/postTS/c1-p1/full_cat/sp/m2_b2_smd_sp :: m1_b1_smd/c1/postTS/c1-p1/full_cat/m2_b2_smd_sp/postTS_c1-p1_full_cat_sp.in frag=1 eda2=1 pr=[] pp=[p1] pc=[c1]
+m1_b1_smd/c1/postTS/c1-p1/pol_cat/sp/m2_b2_smd_sp :: m1_b1_smd/c1/postTS/c1-p1/pol_cat/m2_b2_smd_sp/postTS_c1-p1_pol_cat_sp.in frag=1 eda2=1 pr=[] pp=[p1] pc=[c1]
+m1_b1_smd/c1/postTS/c1-p1/frz_cat/sp/m2_b2_smd_sp :: m1_b1_smd/c1/postTS/c1-p1/frz_cat/m2_b2_smd_sp/postTS_c1-p1_frz_cat_sp.in frag=1 eda2=1 pr=[] pp=[p1] pc=[c1]
+m1_b1_smd/c1/postTS/c1-p2/full_cat/sp/m2_b2_smd_sp :: m1_b1_smd/c1/postTS/c1-p2/full_cat/m2_b2_smd_sp/postTS_c1-p2_full_cat_sp.in frag=1 eda2=1 pr=[] pp=[p2] pc=[c1]
+m1_b1_smd/c1/postTS/c1-p2/pol_cat/sp/m2_b2_smd_sp :: m1_b1_smd/c1/postTS/c1-p2/pol_cat/m2_b2_smd_sp/postTS_c1-p2_pol_cat_sp.in frag=1 eda2=1 pr=[] pp=[p2] pc=[c1]
+m1_b1_smd/c1/postTS/c1-p2/frz_cat/sp/m2_b2_smd_sp :: m1_b1_smd/c1/postTS/c1-p2/frz_cat/m2_b2_smd_sp/postTS_c1-p2_frz_cat_sp.in frag=1 eda2=1 pr=[] pp=[p2] pc=[c1]
+m1_b1_smd/c1/postTS/c1-p1-p2/full_cat/sp/m2_b2_smd_sp :: m1_b1_smd/c1/postTS/c1-p1-p2/full_cat/m2_b2_smd_sp/postTS_c1-p1-p2_full_cat_sp.in frag=1 eda2=1 pr=[] pp=[p1,p2] pc=[c1]
+m1_b1_smd/c1/postTS/c1-p1-p2/pol_cat/sp/m2_b2_smd_sp :: m1_b1_smd/c1/postTS/c1-p1-p2/pol_cat/m2_b2_smd_sp/postTS_c1-p1-p2_pol_cat_sp.in frag=1 eda2=1 pr=[] pp=[p1,p2] pc=[c1]
+m1_b1_smd/c1/postTS/c1-p1-p2/frz_cat/sp/m2_b2_smd_sp :: m1_b1_smd/c1/postTS/c1-p1-p2/frz_cat/m2_b2_smd_sp/postTS_c1-p1-p2_frz_cat_sp.in frag=1 eda2=1 pr=[] pp=[p1,p2] pc=[c1]
+m1_b1_smd/c1/ts/c1-tscomplex/full_cat/sp/m2_b2_smd_sp :: m1_b1_smd/c1/ts/full_cat/m2_b2_smd_sp/ts_c1-tscomplex_full_cat_sp.in frag=1 eda2=1 pr=[r1,r2,r3] pp=[p1,p2] pc=[c1]
+m1_b1_smd/c1/ts/c1-tscomplex/pol_cat/sp/m2_b2_smd_sp :: m1_b1_smd/c1/ts/pol_cat/m2_b2_smd_sp/ts_c1-tscomplex_pol_cat_sp.in frag=1 eda2=1 pr=[r1,r2,r3] pp=[p1,p2] pc=[c1]
+m1_b1_smd/c1/ts/c1-tscomplex/frz_cat/sp/m2_b2_smd_sp :: m1_b1_smd/c1/ts/frz_cat/m2_b2_smd_sp/ts_c1-tscomplex_frz_cat_sp.in frag=1 eda2=1 pr=[r1,r2,r3] pp=[p1,p2] pc=[c1]
+m1_d3_b4/-/reactants/r1/-/opt/- :: m1_d3_b4/no_cat/reactants/r1/r1_opt.in frag=0 eda2=None pr=[r1] pp=[] pc=[]
+m1_d3_b4/-/reactants/r2/-/opt/- :: m1_d3_b4/no_cat/reactants/r2/r2_opt.in frag=0 eda2=None pr=[r2] pp=[] pc=[]
+m1_d3_b4/-/reactants/r3/-/opt/- :: m1_d3_b4/no_cat/reactants/r3/r3_opt.in frag=0 eda2=None pr=[r3] pp=[] pc=[]
+m1_d3_b4/-/reactants/r1-r2/-/opt/- :: m1_d3_b4/no_cat/reactants/r1-r2/r1-r2_opt.in frag=0 eda2=None pr=[r1,r2] pp=[] pc=[]
+m1_d3_b4/-/products/p1/-/opt/- :: m1_d3_b4/no_cat/products/p1/p1_opt.in frag=0 eda2=None pr=[] pp=[p1] pc=[]
+m1_d3_b4/-/products/p2/-/opt/- :: m1_d3_b4/no_cat/products/p2/p2_opt.in frag=0 eda2=None pr=[] pp=[p2] pc=[]
+m1_d3_b4/-/ts/tscomplex/-/opt/- :: m1_d3_b4/no_cat/ts/tscomplex_opt.in frag=0 eda2=None pr=[r1,r2,r3] pp=[p1,p2] pc=[]
+m1_d3_b4/c1/cat/c1/-/opt/- :: m1_d3_b4/c1/cat/c1_opt.in frag=0 eda2=None pr=[] pp=[] pc=[c1]
+m1_d3_b4/c1/dimer/c1-dimer/-/opt/- :: m1_d3_b4/c1/dimer/c1-dimer_opt.in frag=0 eda2=None pr=[] pp=[] pc=[c1]
+m1_d3_b4/c1/preTS/c1-r1/full_cat/opt/- :: m1_d3_b4/c1/preTS/c1-r1/full_cat/preTS_c1-r1_full_cat_opt.in frag=1 eda2=None pr=[r1] pp=[] pc=[c1]
+m1_d3_b4/c1/preTS/c1-r1/pol_cat/opt/- :: m1_d3_b4/c1/preTS/c1-r1/pol_cat/preTS_c1-r1_pol_cat_opt.in frag=1 eda2=None pr=[r1] pp=[] pc=[c1]
+m1_d3_b4/c1/preTS/c1-r1/frz_cat/opt/- :: m1_d3_b4/c1/preTS/c1-r1/frz_cat/preTS_c1-r1_frz_cat_opt.in frag=1 eda2=None pr=[r1] pp=[] pc=[c1]
+m1_d3_b4/c1/preTS/c1-r2/full_cat/opt/- :: m1_d3_b4/c1/preTS/c1-r2/full_cat/preTS_c1-r2_full_cat_opt.in frag=1 eda2=None pr=[r2] pp=[] pc=[c1]
+m1_d3_b4/c1/preTS/c1-r2/pol_cat/opt/- :: m1_d3_b4/c1/preTS/c1-r2/pol_cat/preTS_c1-r2_pol_cat_opt.in frag=1 eda2=None pr=[r2] pp=[] pc=[c1]
+m1_d3_b4/c1/preTS/c1-r2/frz_cat/opt/- :: m1_d3_b4/c1/preTS/c1-r2/frz_cat/preTS_c1-r2_frz_cat_opt.in frag=1 eda2=None pr=[r2] pp=[] pc=[c1]
+m1_d3_b4/c1/preTS/c1-r1-r2/full_cat/opt/- :: m1_d3_b4/c1/preTS/c1-r1-r2/full_cat/preTS_c1-r1-r2_full_cat_opt.in frag=1 eda2=None pr=[r1,r2] pp=[] pc=[c1]
+m1_d3_b4/c1/preTS/c1-r1-r2/pol_cat/opt/- :: m1_d3_b4/c1/preTS/c1-r1-r2/pol_cat/preTS_c1-r1-r2_pol_cat_opt.in frag=1 eda2=None pr=[r1,r2] pp=[] pc=[c1]
+m1_d3_b4/c1/preTS/c1-r1-r2/frz_cat/opt/- :: m1_d3_b4/c1/preTS/c1-r1-r2/frz_cat/preTS_c1-r1-r2_frz_cat_opt.in frag=1 eda2=None pr=[r1,r2] pp=[] pc=[c1]
+m1_d3_b4/c1/postTS/c1-p1/full_cat/opt/- :: m1_d3_b4/c1/postTS/c1-p1/full_cat/postTS_c1-p1_full_cat_opt.in frag=1 eda2=None pr=[] pp=[p1] pc=[c1]
+m1_d3_b4/c1/postTS/c1-p1/pol_cat/opt/- :: m1_d3_b4/c1/postTS/c1-p1/pol_cat/postTS_c1-p1_pol_cat_opt.in frag=1 eda2=None pr=[] pp=[p1] pc=[c1]
+m1_d3_b4/c1/postTS/c1-p1/frz_cat/opt/- :: m1_d3_b4/c1/postTS/c1-p1/frz_cat/postTS_c1-p1_frz_cat_opt.in frag=1 eda2=None pr=[] pp=[p1] pc=[c1]
+m1_d3_b4/c1/postTS/c1-p2/full_cat/opt/- :: m1_d3_b4/c1/postTS/c1-p2/full_cat/postTS_c1-p2_full_cat_opt.in frag=1 eda2=None pr=[] pp=[p2] pc=[c1]
+m1_d3_b4/c1/postTS/c1-p2/pol_cat/opt/- :: m1_d3_b4/c1/postTS/c1-p2/pol_cat/postTS_c1-p2_pol_cat_opt.in frag=1 eda2=None pr=[] pp=[p2] pc=[c1]
+m1_d3_b4/c1/postTS/c1-p2/frz_cat/opt/- :: m1_d3_b4/c1/postTS/c1-p2/frz_cat/postTS_c1-p2_frz_cat_opt.in frag=1 eda2=None pr=[] pp=[p2] pc=[c1]
+m1_d3_b4/c1/postTS/c1-p1-p2/full_cat/opt/- :: m1_d3_b4/c1/postTS/c1-p1-p2/full_cat/postTS_c1-p1-p2_full_cat_opt.in frag=1 eda2=None pr=[] pp=[p1,p2] pc=[c1]
+m1_d3_b4/c1/postTS/c1-p1-p2/pol_cat/opt/- :: m1_d3_b4/c1/postTS/c1-p1-p2/pol_cat/postTS_c1-p1-p2_pol_cat_opt.in frag=1 eda2=None pr=[] pp=[p1,p2] pc=[c1]
+m1_d3_b4/c1/postTS/c1-p1-p2/frz_cat/opt/- :: m1_d3_b4/c1/postTS/c1-p1-p2/frz_cat/postTS_c1-p1-p2_frz_cat_opt.in frag=1 eda2=None pr=[] pp=[p1,p2] pc=[c1]
+m1_d3_b4/c1/ts/c1-tscomplex/full_cat/opt/- :: m1_d3_b4/c1/ts/full_cat/ts_c1-tscomplex_full_cat_opt.in frag=1 eda2=None pr=[r1,r2,r3] pp=[p1,p2] pc=[c1]
+m1_d3_b4/c1/ts/c1-tscomplex/pol_cat/opt/- :: m1_d3_b4/c1/ts/pol_cat/ts_c1-tscomplex_pol_cat_opt.in frag=1 eda2=None pr=[r1,r2,r3] pp=[p1,p2] pc=[c1]
+m1_d3_b4/c1/ts/c1-tscomplex/frz_cat/opt/- :: m1_d3_b4/c1/ts/frz_cat/ts_c1-tscomplex_frz_cat_opt.in frag=1 eda2=None pr=[r1,r2,r3] pp=[p1,p2] pc=[c1]
+== PROFILES ==
+PID m1_b1_smd/-/-/opt/- leader=0 ref=reactants
+  reactants | r1 + r2 + r3 | [m1_b1_smd/-/reactants/r1/-/opt/-|m1_b1_smd/-/reactants/r2/-/opt/-|m1_b1_smd/-/reactants/r3/-/opt/-] | ni=- | alts=
+  ts | tscomplex | [m1_b1_smd/-/ts/tscomplex/-/opt/-] | ni=- | alts=
+  products | p1 + p2 | [m1_b1_smd/-/products/p1/-/opt/-|m1_b1_smd/-/products/p2/-/opt/-] | ni=- | alts=
+PID m1_b1_smd/c1/nocat/opt/- leader=0 ref=reactants
+  reactants | r1 + r2 + r3 + c1 | [m1_b1_smd/-/reactants/r1/-/opt/-|m1_b1_smd/-/reactants/r2/-/opt/-|m1_b1_smd/-/reactants/r3/-/opt/-|m1_b1_smd/c1/cat/c1/-/opt/-] | ni=- | alts=
+  ts | tscomplex + c1 | [m1_b1_smd/-/ts/tscomplex/-/opt/-|m1_b1_smd/c1/cat/c1/-/opt/-] | ni=- | alts=
+  products | p1 + p2 + c1 | [m1_b1_smd/-/products/p1/-/opt/-|m1_b1_smd/-/products/p2/-/opt/-|m1_b1_smd/c1/cat/c1/-/opt/-] | ni=- | alts=
+PID m1_b1_smd/c1/full_cat/opt/- leader=1 ref=reactants
+  reactants | r1 + r2 + r3 + c1 | [m1_b1_smd/-/reactants/r1/-/opt/-|m1_b1_smd/-/reactants/r2/-/opt/-|m1_b1_smd/-/reactants/r3/-/opt/-|m1_b1_smd/c1/cat/c1/-/opt/-] | ni=- | alts=
+  preTS | c1-r1-r2 + r3 | [m1_b1_smd/c1/preTS/c1-r1-r2/full_cat/opt/-|m1_b1_smd/-/reactants/r3/-/opt/-] | ni=R[m1_b1_smd/-/reactants/r1/-/opt/-|m1_b1_smd/-/reactants/r2/-/opt/-|m1_b1_smd/-/reactants/r3/-/opt/-|m1_b1_smd/c1/cat/c1/-/opt/-]T[m1_b1_smd/c1/preTS/c1-r1-r2/full_cat/opt/-|m1_b1_smd/-/reactants/r3/-/opt/-]ssc=1 | alts=c1-r1 + r2 + r3=[m1_b1_smd/c1/preTS/c1-r1/full_cat/opt/-|m1_b1_smd/-/reactants/r2/-/opt/-|m1_b1_smd/-/reactants/r3/-/opt/-]ni=1 ;; c1-r2 + r1 + r3=[m1_b1_smd/c1/preTS/c1-r2/full_cat/opt/-|m1_b1_smd/-/reactants/r1/-/opt/-|m1_b1_smd/-/reactants/r3/-/opt/-]ni=1
+  ts | ts_c1-tscomplex | [m1_b1_smd/c1/ts/c1-tscomplex/full_cat/opt/-] | ni=R[m1_b1_smd/-/ts/tscomplex/-/opt/-|m1_b1_smd/c1/cat/c1/-/opt/-]T[m1_b1_smd/c1/ts/c1-tscomplex/full_cat/opt/-]ssc=1 | alts=
+  postTS | c1-p1-p2 | [m1_b1_smd/c1/postTS/c1-p1-p2/full_cat/opt/-] | ni=R[m1_b1_smd/-/products/p1/-/opt/-|m1_b1_smd/-/products/p2/-/opt/-|m1_b1_smd/c1/cat/c1/-/opt/-]T[m1_b1_smd/c1/postTS/c1-p1-p2/full_cat/opt/-]ssc=1 | alts=c1-p1 + p2=[m1_b1_smd/c1/postTS/c1-p1/full_cat/opt/-|m1_b1_smd/-/products/p2/-/opt/-]ni=1 ;; c1-p2 + p1=[m1_b1_smd/c1/postTS/c1-p2/full_cat/opt/-|m1_b1_smd/-/products/p1/-/opt/-]ni=1
+  products | p1 + p2 + c1 | [m1_b1_smd/-/products/p1/-/opt/-|m1_b1_smd/-/products/p2/-/opt/-|m1_b1_smd/c1/cat/c1/-/opt/-] | ni=- | alts=
+PID m1_b1_smd/c1/pol_cat/opt/- leader=0 ref=reactants
+  reactants | r1 + r2 + r3 + c1 | [m1_b1_smd/-/reactants/r1/-/opt/-|m1_b1_smd/-/reactants/r2/-/opt/-|m1_b1_smd/-/reactants/r3/-/opt/-|m1_b1_smd/c1/cat/c1/-/opt/-] | ni=- | alts=
+  preTS | c1-r1-r2 + r3 | [m1_b1_smd/c1/preTS/c1-r1-r2/pol_cat/opt/-|m1_b1_smd/-/reactants/r3/-/opt/-] | ni=- | alts=c1-r1 + r2 + r3=[m1_b1_smd/c1/preTS/c1-r1/pol_cat/opt/-|m1_b1_smd/-/reactants/r2/-/opt/-|m1_b1_smd/-/reactants/r3/-/opt/-]ni=0 ;; c1-r2 + r1 + r3=[m1_b1_smd/c1/preTS/c1-r2/pol_cat/opt/-|m1_b1_smd/-/reactants/r1/-/opt/-|m1_b1_smd/-/reactants/r3/-/opt/-]ni=0
+  ts | ts_c1-tscomplex | [m1_b1_smd/c1/ts/c1-tscomplex/pol_cat/opt/-] | ni=- | alts=
+  postTS | c1-p1-p2 | [m1_b1_smd/c1/postTS/c1-p1-p2/pol_cat/opt/-] | ni=- | alts=c1-p1 + p2=[m1_b1_smd/c1/postTS/c1-p1/pol_cat/opt/-|m1_b1_smd/-/products/p2/-/opt/-]ni=0 ;; c1-p2 + p1=[m1_b1_smd/c1/postTS/c1-p2/pol_cat/opt/-|m1_b1_smd/-/products/p1/-/opt/-]ni=0
+  products | p1 + p2 + c1 | [m1_b1_smd/-/products/p1/-/opt/-|m1_b1_smd/-/products/p2/-/opt/-|m1_b1_smd/c1/cat/c1/-/opt/-] | ni=- | alts=
+PID m1_b1_smd/c1/frz_cat/opt/- leader=0 ref=reactants
+  reactants | r1 + r2 + r3 + c1 | [m1_b1_smd/-/reactants/r1/-/opt/-|m1_b1_smd/-/reactants/r2/-/opt/-|m1_b1_smd/-/reactants/r3/-/opt/-|m1_b1_smd/c1/cat/c1/-/opt/-] | ni=- | alts=
+  preTS | c1-r1-r2 + r3 | [m1_b1_smd/c1/preTS/c1-r1-r2/frz_cat/opt/-|m1_b1_smd/-/reactants/r3/-/opt/-] | ni=- | alts=c1-r1 + r2 + r3=[m1_b1_smd/c1/preTS/c1-r1/frz_cat/opt/-|m1_b1_smd/-/reactants/r2/-/opt/-|m1_b1_smd/-/reactants/r3/-/opt/-]ni=0 ;; c1-r2 + r1 + r3=[m1_b1_smd/c1/preTS/c1-r2/frz_cat/opt/-|m1_b1_smd/-/reactants/r1/-/opt/-|m1_b1_smd/-/reactants/r3/-/opt/-]ni=0
+  ts | ts_c1-tscomplex | [m1_b1_smd/c1/ts/c1-tscomplex/frz_cat/opt/-] | ni=- | alts=
+  postTS | c1-p1-p2 | [m1_b1_smd/c1/postTS/c1-p1-p2/frz_cat/opt/-] | ni=- | alts=c1-p1 + p2=[m1_b1_smd/c1/postTS/c1-p1/frz_cat/opt/-|m1_b1_smd/-/products/p2/-/opt/-]ni=0 ;; c1-p2 + p1=[m1_b1_smd/c1/postTS/c1-p2/frz_cat/opt/-|m1_b1_smd/-/products/p1/-/opt/-]ni=0
+  products | p1 + p2 + c1 | [m1_b1_smd/-/products/p1/-/opt/-|m1_b1_smd/-/products/p2/-/opt/-|m1_b1_smd/c1/cat/c1/-/opt/-] | ni=- | alts=
+PID m1_b1_smd/-/-/sp/m2_b2_smd_sp leader=0 ref=reactants
+  reactants | r1 + r2 + r3 | [m1_b1_smd/-/reactants/r1/-/sp/m2_b2_smd_sp|m1_b1_smd/-/reactants/r2/-/sp/m2_b2_smd_sp|m1_b1_smd/-/reactants/r3/-/sp/m2_b2_smd_sp] | ni=- | alts=
+  ts | tscomplex | [m1_b1_smd/-/ts/tscomplex/-/sp/m2_b2_smd_sp] | ni=- | alts=
+  products | p1 + p2 | [m1_b1_smd/-/products/p1/-/sp/m2_b2_smd_sp|m1_b1_smd/-/products/p2/-/sp/m2_b2_smd_sp] | ni=- | alts=
+PID m1_b1_smd/c1/nocat/sp/m2_b2_smd_sp leader=0 ref=reactants
+  reactants | r1 + r2 + r3 + c1 | [m1_b1_smd/-/reactants/r1/-/sp/m2_b2_smd_sp|m1_b1_smd/-/reactants/r2/-/sp/m2_b2_smd_sp|m1_b1_smd/-/reactants/r3/-/sp/m2_b2_smd_sp|m1_b1_smd/c1/cat/c1/-/sp/m2_b2_smd_sp] | ni=- | alts=
+  ts | tscomplex + c1 | [m1_b1_smd/-/ts/tscomplex/-/sp/m2_b2_smd_sp|m1_b1_smd/c1/cat/c1/-/sp/m2_b2_smd_sp] | ni=- | alts=
+  products | p1 + p2 + c1 | [m1_b1_smd/-/products/p1/-/sp/m2_b2_smd_sp|m1_b1_smd/-/products/p2/-/sp/m2_b2_smd_sp|m1_b1_smd/c1/cat/c1/-/sp/m2_b2_smd_sp] | ni=- | alts=
+PID m1_b1_smd/c1/full_cat/sp/m2_b2_smd_sp leader=1 ref=reactants
+  reactants | r1 + r2 + r3 + c1 | [m1_b1_smd/-/reactants/r1/-/sp/m2_b2_smd_sp|m1_b1_smd/-/reactants/r2/-/sp/m2_b2_smd_sp|m1_b1_smd/-/reactants/r3/-/sp/m2_b2_smd_sp|m1_b1_smd/c1/cat/c1/-/sp/m2_b2_smd_sp] | ni=- | alts=
+  preTS | c1-r1-r2 + r3 | [m1_b1_smd/c1/preTS/c1-r1-r2/full_cat/sp/m2_b2_smd_sp|m1_b1_smd/-/reactants/r3/-/sp/m2_b2_smd_sp] | ni=R[m1_b1_smd/-/reactants/r1/-/sp/m2_b2_smd_sp|m1_b1_smd/-/reactants/r2/-/sp/m2_b2_smd_sp|m1_b1_smd/-/reactants/r3/-/sp/m2_b2_smd_sp|m1_b1_smd/c1/cat/c1/-/sp/m2_b2_smd_sp]T[m1_b1_smd/c1/preTS/c1-r1-r2/full_cat/sp/m2_b2_smd_sp|m1_b1_smd/-/reactants/r3/-/sp/m2_b2_smd_sp]ssc=1 | alts=c1-r1 + r2 + r3=[m1_b1_smd/c1/preTS/c1-r1/full_cat/sp/m2_b2_smd_sp|m1_b1_smd/-/reactants/r2/-/sp/m2_b2_smd_sp|m1_b1_smd/-/reactants/r3/-/sp/m2_b2_smd_sp]ni=1 ;; c1-r2 + r1 + r3=[m1_b1_smd/c1/preTS/c1-r2/full_cat/sp/m2_b2_smd_sp|m1_b1_smd/-/reactants/r1/-/sp/m2_b2_smd_sp|m1_b1_smd/-/reactants/r3/-/sp/m2_b2_smd_sp]ni=1
+  ts | ts_c1-tscomplex | [m1_b1_smd/c1/ts/c1-tscomplex/full_cat/sp/m2_b2_smd_sp] | ni=R[m1_b1_smd/-/ts/tscomplex/-/sp/m2_b2_smd_sp|m1_b1_smd/c1/cat/c1/-/sp/m2_b2_smd_sp]T[m1_b1_smd/c1/ts/c1-tscomplex/full_cat/sp/m2_b2_smd_sp]ssc=1 | alts=
+  postTS | c1-p1-p2 | [m1_b1_smd/c1/postTS/c1-p1-p2/full_cat/sp/m2_b2_smd_sp] | ni=R[m1_b1_smd/-/products/p1/-/sp/m2_b2_smd_sp|m1_b1_smd/-/products/p2/-/sp/m2_b2_smd_sp|m1_b1_smd/c1/cat/c1/-/sp/m2_b2_smd_sp]T[m1_b1_smd/c1/postTS/c1-p1-p2/full_cat/sp/m2_b2_smd_sp]ssc=1 | alts=c1-p1 + p2=[m1_b1_smd/c1/postTS/c1-p1/full_cat/sp/m2_b2_smd_sp|m1_b1_smd/-/products/p2/-/sp/m2_b2_smd_sp]ni=1 ;; c1-p2 + p1=[m1_b1_smd/c1/postTS/c1-p2/full_cat/sp/m2_b2_smd_sp|m1_b1_smd/-/products/p1/-/sp/m2_b2_smd_sp]ni=1
+  products | p1 + p2 + c1 | [m1_b1_smd/-/products/p1/-/sp/m2_b2_smd_sp|m1_b1_smd/-/products/p2/-/sp/m2_b2_smd_sp|m1_b1_smd/c1/cat/c1/-/sp/m2_b2_smd_sp] | ni=- | alts=
+PID m1_b1_smd/c1/pol_cat/sp/m2_b2_smd_sp leader=0 ref=reactants
+  reactants | r1 + r2 + r3 + c1 | [m1_b1_smd/-/reactants/r1/-/sp/m2_b2_smd_sp|m1_b1_smd/-/reactants/r2/-/sp/m2_b2_smd_sp|m1_b1_smd/-/reactants/r3/-/sp/m2_b2_smd_sp|m1_b1_smd/c1/cat/c1/-/sp/m2_b2_smd_sp] | ni=- | alts=
+  preTS | c1-r1-r2 + r3 | [m1_b1_smd/c1/preTS/c1-r1-r2/pol_cat/sp/m2_b2_smd_sp|m1_b1_smd/-/reactants/r3/-/sp/m2_b2_smd_sp] | ni=- | alts=c1-r1 + r2 + r3=[m1_b1_smd/c1/preTS/c1-r1/pol_cat/sp/m2_b2_smd_sp|m1_b1_smd/-/reactants/r2/-/sp/m2_b2_smd_sp|m1_b1_smd/-/reactants/r3/-/sp/m2_b2_smd_sp]ni=0 ;; c1-r2 + r1 + r3=[m1_b1_smd/c1/preTS/c1-r2/pol_cat/sp/m2_b2_smd_sp|m1_b1_smd/-/reactants/r1/-/sp/m2_b2_smd_sp|m1_b1_smd/-/reactants/r3/-/sp/m2_b2_smd_sp]ni=0
+  ts | ts_c1-tscomplex | [m1_b1_smd/c1/ts/c1-tscomplex/pol_cat/sp/m2_b2_smd_sp] | ni=- | alts=
+  postTS | c1-p1-p2 | [m1_b1_smd/c1/postTS/c1-p1-p2/pol_cat/sp/m2_b2_smd_sp] | ni=- | alts=c1-p1 + p2=[m1_b1_smd/c1/postTS/c1-p1/pol_cat/sp/m2_b2_smd_sp|m1_b1_smd/-/products/p2/-/sp/m2_b2_smd_sp]ni=0 ;; c1-p2 + p1=[m1_b1_smd/c1/postTS/c1-p2/pol_cat/sp/m2_b2_smd_sp|m1_b1_smd/-/products/p1/-/sp/m2_b2_smd_sp]ni=0
+  products | p1 + p2 + c1 | [m1_b1_smd/-/products/p1/-/sp/m2_b2_smd_sp|m1_b1_smd/-/products/p2/-/sp/m2_b2_smd_sp|m1_b1_smd/c1/cat/c1/-/sp/m2_b2_smd_sp] | ni=- | alts=
+PID m1_b1_smd/c1/frz_cat/sp/m2_b2_smd_sp leader=0 ref=reactants
+  reactants | r1 + r2 + r3 + c1 | [m1_b1_smd/-/reactants/r1/-/sp/m2_b2_smd_sp|m1_b1_smd/-/reactants/r2/-/sp/m2_b2_smd_sp|m1_b1_smd/-/reactants/r3/-/sp/m2_b2_smd_sp|m1_b1_smd/c1/cat/c1/-/sp/m2_b2_smd_sp] | ni=- | alts=
+  preTS | c1-r1-r2 + r3 | [m1_b1_smd/c1/preTS/c1-r1-r2/frz_cat/sp/m2_b2_smd_sp|m1_b1_smd/-/reactants/r3/-/sp/m2_b2_smd_sp] | ni=- | alts=c1-r1 + r2 + r3=[m1_b1_smd/c1/preTS/c1-r1/frz_cat/sp/m2_b2_smd_sp|m1_b1_smd/-/reactants/r2/-/sp/m2_b2_smd_sp|m1_b1_smd/-/reactants/r3/-/sp/m2_b2_smd_sp]ni=0 ;; c1-r2 + r1 + r3=[m1_b1_smd/c1/preTS/c1-r2/frz_cat/sp/m2_b2_smd_sp|m1_b1_smd/-/reactants/r1/-/sp/m2_b2_smd_sp|m1_b1_smd/-/reactants/r3/-/sp/m2_b2_smd_sp]ni=0
+  ts | ts_c1-tscomplex | [m1_b1_smd/c1/ts/c1-tscomplex/frz_cat/sp/m2_b2_smd_sp] | ni=- | alts=
+  postTS | c1-p1-p2 | [m1_b1_smd/c1/postTS/c1-p1-p2/frz_cat/sp/m2_b2_smd_sp] | ni=- | alts=c1-p1 + p2=[m1_b1_smd/c1/postTS/c1-p1/frz_cat/sp/m2_b2_smd_sp|m1_b1_smd/-/products/p2/-/sp/m2_b2_smd_sp]ni=0 ;; c1-p2 + p1=[m1_b1_smd/c1/postTS/c1-p2/frz_cat/sp/m2_b2_smd_sp|m1_b1_smd/-/products/p1/-/sp/m2_b2_smd_sp]ni=0
+  products | p1 + p2 + c1 | [m1_b1_smd/-/products/p1/-/sp/m2_b2_smd_sp|m1_b1_smd/-/products/p2/-/sp/m2_b2_smd_sp|m1_b1_smd/c1/cat/c1/-/sp/m2_b2_smd_sp] | ni=- | alts=
+PID m1_d3_b4/-/-/opt/- leader=0 ref=reactants
+  reactants | r1 + r2 + r3 | [m1_d3_b4/-/reactants/r1/-/opt/-|m1_d3_b4/-/reactants/r2/-/opt/-|m1_d3_b4/-/reactants/r3/-/opt/-] | ni=- | alts=
+  ts | tscomplex | [m1_d3_b4/-/ts/tscomplex/-/opt/-] | ni=- | alts=
+  products | p1 + p2 | [m1_d3_b4/-/products/p1/-/opt/-|m1_d3_b4/-/products/p2/-/opt/-] | ni=- | alts=
+PID m1_d3_b4/c1/nocat/opt/- leader=0 ref=reactants
+  reactants | r1 + r2 + r3 + c1 | [m1_d3_b4/-/reactants/r1/-/opt/-|m1_d3_b4/-/reactants/r2/-/opt/-|m1_d3_b4/-/reactants/r3/-/opt/-|m1_d3_b4/c1/cat/c1/-/opt/-] | ni=- | alts=
+  ts | tscomplex + c1 | [m1_d3_b4/-/ts/tscomplex/-/opt/-|m1_d3_b4/c1/cat/c1/-/opt/-] | ni=- | alts=
+  products | p1 + p2 + c1 | [m1_d3_b4/-/products/p1/-/opt/-|m1_d3_b4/-/products/p2/-/opt/-|m1_d3_b4/c1/cat/c1/-/opt/-] | ni=- | alts=
+PID m1_d3_b4/c1/full_cat/opt/- leader=1 ref=reactants
+  reactants | r1 + r2 + r3 + c1 | [m1_d3_b4/-/reactants/r1/-/opt/-|m1_d3_b4/-/reactants/r2/-/opt/-|m1_d3_b4/-/reactants/r3/-/opt/-|m1_d3_b4/c1/cat/c1/-/opt/-] | ni=- | alts=
+  preTS | c1-r1-r2 + r3 | [m1_d3_b4/c1/preTS/c1-r1-r2/full_cat/opt/-|m1_d3_b4/-/reactants/r3/-/opt/-] | ni=R[m1_d3_b4/-/reactants/r1/-/opt/-|m1_d3_b4/-/reactants/r2/-/opt/-|m1_d3_b4/-/reactants/r3/-/opt/-|m1_d3_b4/c1/cat/c1/-/opt/-]T[m1_d3_b4/c1/preTS/c1-r1-r2/full_cat/opt/-|m1_d3_b4/-/reactants/r3/-/opt/-]ssc=0 | alts=c1-r1 + r2 + r3=[m1_d3_b4/c1/preTS/c1-r1/full_cat/opt/-|m1_d3_b4/-/reactants/r2/-/opt/-|m1_d3_b4/-/reactants/r3/-/opt/-]ni=1 ;; c1-r2 + r1 + r3=[m1_d3_b4/c1/preTS/c1-r2/full_cat/opt/-|m1_d3_b4/-/reactants/r1/-/opt/-|m1_d3_b4/-/reactants/r3/-/opt/-]ni=1
+  ts | ts_c1-tscomplex | [m1_d3_b4/c1/ts/c1-tscomplex/full_cat/opt/-] | ni=R[m1_d3_b4/-/ts/tscomplex/-/opt/-|m1_d3_b4/c1/cat/c1/-/opt/-]T[m1_d3_b4/c1/ts/c1-tscomplex/full_cat/opt/-]ssc=0 | alts=
+  postTS | c1-p1-p2 | [m1_d3_b4/c1/postTS/c1-p1-p2/full_cat/opt/-] | ni=R[m1_d3_b4/-/products/p1/-/opt/-|m1_d3_b4/-/products/p2/-/opt/-|m1_d3_b4/c1/cat/c1/-/opt/-]T[m1_d3_b4/c1/postTS/c1-p1-p2/full_cat/opt/-]ssc=0 | alts=c1-p1 + p2=[m1_d3_b4/c1/postTS/c1-p1/full_cat/opt/-|m1_d3_b4/-/products/p2/-/opt/-]ni=1 ;; c1-p2 + p1=[m1_d3_b4/c1/postTS/c1-p2/full_cat/opt/-|m1_d3_b4/-/products/p1/-/opt/-]ni=1
+  products | p1 + p2 + c1 | [m1_d3_b4/-/products/p1/-/opt/-|m1_d3_b4/-/products/p2/-/opt/-|m1_d3_b4/c1/cat/c1/-/opt/-] | ni=- | alts=
+PID m1_d3_b4/c1/pol_cat/opt/- leader=0 ref=reactants
+  reactants | r1 + r2 + r3 + c1 | [m1_d3_b4/-/reactants/r1/-/opt/-|m1_d3_b4/-/reactants/r2/-/opt/-|m1_d3_b4/-/reactants/r3/-/opt/-|m1_d3_b4/c1/cat/c1/-/opt/-] | ni=- | alts=
+  preTS | c1-r1-r2 + r3 | [m1_d3_b4/c1/preTS/c1-r1-r2/pol_cat/opt/-|m1_d3_b4/-/reactants/r3/-/opt/-] | ni=- | alts=c1-r1 + r2 + r3=[m1_d3_b4/c1/preTS/c1-r1/pol_cat/opt/-|m1_d3_b4/-/reactants/r2/-/opt/-|m1_d3_b4/-/reactants/r3/-/opt/-]ni=0 ;; c1-r2 + r1 + r3=[m1_d3_b4/c1/preTS/c1-r2/pol_cat/opt/-|m1_d3_b4/-/reactants/r1/-/opt/-|m1_d3_b4/-/reactants/r3/-/opt/-]ni=0
+  ts | ts_c1-tscomplex | [m1_d3_b4/c1/ts/c1-tscomplex/pol_cat/opt/-] | ni=- | alts=
+  postTS | c1-p1-p2 | [m1_d3_b4/c1/postTS/c1-p1-p2/pol_cat/opt/-] | ni=- | alts=c1-p1 + p2=[m1_d3_b4/c1/postTS/c1-p1/pol_cat/opt/-|m1_d3_b4/-/products/p2/-/opt/-]ni=0 ;; c1-p2 + p1=[m1_d3_b4/c1/postTS/c1-p2/pol_cat/opt/-|m1_d3_b4/-/products/p1/-/opt/-]ni=0
+  products | p1 + p2 + c1 | [m1_d3_b4/-/products/p1/-/opt/-|m1_d3_b4/-/products/p2/-/opt/-|m1_d3_b4/c1/cat/c1/-/opt/-] | ni=- | alts=
+PID m1_d3_b4/c1/frz_cat/opt/- leader=0 ref=reactants
+  reactants | r1 + r2 + r3 + c1 | [m1_d3_b4/-/reactants/r1/-/opt/-|m1_d3_b4/-/reactants/r2/-/opt/-|m1_d3_b4/-/reactants/r3/-/opt/-|m1_d3_b4/c1/cat/c1/-/opt/-] | ni=- | alts=
+  preTS | c1-r1-r2 + r3 | [m1_d3_b4/c1/preTS/c1-r1-r2/frz_cat/opt/-|m1_d3_b4/-/reactants/r3/-/opt/-] | ni=- | alts=c1-r1 + r2 + r3=[m1_d3_b4/c1/preTS/c1-r1/frz_cat/opt/-|m1_d3_b4/-/reactants/r2/-/opt/-|m1_d3_b4/-/reactants/r3/-/opt/-]ni=0 ;; c1-r2 + r1 + r3=[m1_d3_b4/c1/preTS/c1-r2/frz_cat/opt/-|m1_d3_b4/-/reactants/r1/-/opt/-|m1_d3_b4/-/reactants/r3/-/opt/-]ni=0
+  ts | ts_c1-tscomplex | [m1_d3_b4/c1/ts/c1-tscomplex/frz_cat/opt/-] | ni=- | alts=
+  postTS | c1-p1-p2 | [m1_d3_b4/c1/postTS/c1-p1-p2/frz_cat/opt/-] | ni=- | alts=c1-p1 + p2=[m1_d3_b4/c1/postTS/c1-p1/frz_cat/opt/-|m1_d3_b4/-/products/p2/-/opt/-]ni=0 ;; c1-p2 + p1=[m1_d3_b4/c1/postTS/c1-p2/frz_cat/opt/-|m1_d3_b4/-/products/p1/-/opt/-]ni=0
+  products | p1 + p2 + c1 | [m1_d3_b4/-/products/p1/-/opt/-|m1_d3_b4/-/products/p2/-/opt/-|m1_d3_b4/c1/cat/c1/-/opt/-] | ni=- | alts=
+MK=m1_b1_smd,m1_d3_b4
+CO=c1
+DC=c1
