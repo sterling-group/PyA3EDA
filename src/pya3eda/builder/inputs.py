@@ -296,10 +296,12 @@ def _build_rem_section(
             jobtype=jobtype,
             calc_type=cid.calc_type,
         )
-    # SP mode — determine EDA parameters from calc_type
-    eda2 = str(spec.eda2 or 0)
-    if cid.catalyst is None or cid.stage == "cat":
-        eda2 = "0"
+    # SP mode — EDA parameters key off calc_type. A calc is an EDA fragment
+    # calculation iff it carries a calc_type (full/pol/frz); standalone molecules
+    # (uncatalyzed species, the catalyst ``cat``, and the ``dimer``) have
+    # calc_type None and must not request EDA — emitting eda2 != 0 on a
+    # single-fragment $molecule makes Q-Chem run a fragment-EDA with no fragments.
+    eda2 = str(spec.eda2 or 0) if cid.calc_type is not None else "0"
 
     scfmi_freeze = "1" if cid.calc_type == "frz_cat" else "0"
     eda_bsse = "true" if cid.calc_type == "full_cat" else "false"

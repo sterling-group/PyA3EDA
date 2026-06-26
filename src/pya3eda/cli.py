@@ -23,11 +23,10 @@ from typing import TYPE_CHECKING, Annotated
 
 import typer
 
-from pya3eda.config import load_config
 from pya3eda.errors import PyA3EDAError
-from pya3eda.registry import CalcRegistry
 
 if TYPE_CHECKING:
+    from pya3eda.registry import CalcRegistry
     from pya3eda.runner.executor import RunOptions
 
 log = logging.getLogger("pya3eda")
@@ -55,7 +54,7 @@ def _main(
     log_level: Annotated[
         str, typer.Option("--log", help="Logging level (DEBUG, INFO, WARNING, ERROR).")
     ] = "INFO",
-    version: Annotated[
+    _version: Annotated[
         bool | None,
         typer.Option(
             "--version",
@@ -65,7 +64,12 @@ def _main(
         ),
     ] = None,
 ) -> None:
-    """Configure logging for the rest of the invocation."""
+    """Configure logging for the rest of the invocation.
+
+    ``_version`` is wired only to attach the eager ``--version`` option +
+    callback; the callback prints and exits, so the parameter is intentionally
+    unused here (leading underscore keeps it out of the unused-argument lint).
+    """
     logging.basicConfig(
         level=getattr(logging, log_level.upper(), logging.INFO),
         format="%(asctime)s - %(levelname)s - %(message)s",
@@ -130,7 +134,15 @@ def _errors() -> Iterator[None]:
 
 
 def _registry(config_path: Path) -> tuple[CalcRegistry, Path]:
-    """Load the config and build the registry (base dir = the config's directory)."""
+    """Load the config and build the registry (base dir = the config's directory).
+
+    ``pydantic``/``yaml`` (~60 ms) are imported here rather than at module top so
+    ``--help``/``--version``/shell-completion — which never load a config — pay
+    nothing for them.
+    """
+    from pya3eda.config import load_config
+    from pya3eda.registry import CalcRegistry
+
     config = load_config(config_path)
     base_dir = config_path.resolve().parent
     return CalcRegistry(config, base_dir), base_dir

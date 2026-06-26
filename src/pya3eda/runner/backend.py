@@ -24,6 +24,7 @@ import os
 import re
 import shutil
 import subprocess
+import time
 from pathlib import Path
 from typing import IO, Protocol
 
@@ -67,8 +68,12 @@ class ExecutionBackend(Protocol):
         """Whether this backend can run in the current environment."""
         ...
 
-    def submit(self, script_path: Path, *, log_path: Path | None = None) -> str:
-        """Submit *script_path*; return a job ID. Raise :class:`JobSubmissionError` on failure."""
+    def submit(self, script_path: Path) -> str:
+        """Submit *script_path*; return a job ID. Raise :class:`JobSubmissionError` on failure.
+
+        Implementations may accept extra optional keywords (e.g. ``LocalBackend``
+        takes ``log_path``); callers using this Protocol only pass *script_path*.
+        """
         ...
 
     def is_finished(self, job_id: str) -> bool:
@@ -147,16 +152,41 @@ class SlurmBackend:
 
     name = "slurm"
 
-    def __init__(self, *, sbatch_cmd: str = "sbatch", squeue_cmd: str = "squeue") -> None:
-        """Configure the ``sbatch`` / ``squeue`` commands (overridable for tests)."""
+    def __init__(
+        self,
+        *,
+        sbatch_cmd: str = "sbatch",
+        squeue_cmd: str = "squeue",
+        appear_grace_polls: int = 3,
+        squeue_failure_timeout: float = 300.0,
+    ) -> None:
+        """Configure the ``sbatch`` / ``squeue`` commands (overridable for tests).
+
+        *appear_grace_polls* guards the submit→poll race: a job just ``sbatch``-ed
+        may not show up in ``squeue`` for a poll or two (scheduler latency). A
+        submitted-but-never-yet-observed job is treated as still running for up to
+        this many polls so it is not declared finished before it even starts.
+
+        *squeue_failure_timeout* bounds the transient-vs-fatal split: a ``squeue``
+        error is retried (treated as "not finished") only while failures stay
+        within this many seconds of the first one. Continuous failure past the
+        window raises :class:`BackendError` rather than letting a waited run hang
+        forever — a transient blip on a busy cluster resets the window on the next
+        success, but a genuinely broken ``squeue`` fails loud.
+        """
         self.sbatch_cmd = sbatch_cmd
         self.squeue_cmd = squeue_cmd
+        self._appear_grace_polls = appear_grace_polls
+        self._squeue_failure_timeout = squeue_failure_timeout
+        self._first_squeue_failure: float | None = None  # monotonic time of first failure
+        self._seen: set[str] = set()  # job ids observed in squeue at least once
+        self._awaiting: dict[str, int] = {}  # submitted, not yet seen → polls elapsed
 
     def available(self) -> bool:
         """Whether ``sbatch`` is on ``PATH``."""
         return sbatch_available(sbatch_cmd=self.sbatch_cmd)
 
-    def submit(self, script_path: Path, *, log_path: Path | None = None) -> str:
+    def submit(self, script_path: Path) -> str:
         """``sbatch`` the script and return the parsed job ID."""
         try:
             result = subprocess.run(
@@ -174,11 +204,20 @@ class SlurmBackend:
                 f"could not parse job ID from sbatch output: {result.stdout!r}"
             )
         job_id = m.group(1)
+        self._awaiting[job_id] = 0  # track until first observed in squeue (race guard)
         log.info("submitted %s as job %s", script_path, job_id)
         return job_id
 
     def is_finished(self, job_id: str) -> bool:
-        """Return True if *job_id* is absent from the current user's ``squeue``."""
+        """Return True once *job_id* is no longer running.
+
+        A job is "finished" only after it has been *observed* in ``squeue`` and
+        then disappeared. A submitted-but-never-yet-seen job is held as running
+        for ``appear_grace_polls`` polls to absorb scheduler latency, so the
+        throttler/pipeline does not free its cores (or build its SPs) before the
+        job has even started. Jobs this backend never submitted fall back to the
+        plain "absent ⇒ finished" rule.
+        """
         try:
             result = subprocess.run(
                 [self.squeue_cmd, "-u", _current_user(), "-o", "%i"],
@@ -187,11 +226,36 @@ class SlurmBackend:
                 check=True,
             )
         except subprocess.CalledProcessError:
-            # squeue is transient on busy clusters; treat as not-finished, retry later.
+            # squeue is often transient on busy clusters → retry (not-finished), but
+            # escalate if it has failed continuously past the timeout so a waited
+            # run fails loud instead of hanging forever.
+            now = time.monotonic()
+            if self._first_squeue_failure is None:
+                self._first_squeue_failure = now
+            elif now - self._first_squeue_failure > self._squeue_failure_timeout:
+                raise BackendError(
+                    f"squeue has failed continuously for over "
+                    f"{self._squeue_failure_timeout:.0f}s; cannot determine job completion"
+                ) from None
             return False
+        self._first_squeue_failure = None  # squeue responded → reset the failure window
         lines = [line.strip() for line in result.stdout.splitlines() if line.strip()]
         running = lines[1:] if lines else []  # drop the "JOBID" header
-        return not any(line == job_id or line.startswith(f"{job_id}_") for line in running)
+        present = any(line == job_id or line.startswith(f"{job_id}_") for line in running)
+
+        if present:
+            self._seen.add(job_id)
+            self._awaiting.pop(job_id, None)
+            return False
+        if job_id in self._seen:
+            return True  # ran and is now gone → genuinely finished
+        if job_id in self._awaiting:
+            self._awaiting[job_id] += 1
+            if self._awaiting[job_id] >= self._appear_grace_polls:
+                self._awaiting.pop(job_id, None)
+                return True  # never appeared within grace → assume done / failed to enqueue
+            return False  # still within the appearance grace window
+        return True  # not a job we submitted → absent means finished
 
 
 # ---------------------------------------------------------------------------

@@ -21,12 +21,12 @@ from collections import deque
 from pathlib import Path
 
 from pya3eda.builder.inputs import build_all, build_calc
-from pya3eda.extractor.data import _extract_one
+from pya3eda.extractor.data import extract_one
 from pya3eda.ids import CalcID, CalcSpec, ExtractedData
 from pya3eda.registry import CalcRegistry
 from pya3eda.runner.backend import ExecutionBackend, get_backend
 from pya3eda.runner.clusters import ClusterConfig, detect_cluster
-from pya3eda.runner.executor import RunOptions, _cores, _prepare_job, _write_and_submit
+from pya3eda.runner.executor import RunOptions, cores_for, prepare_job, submit_job
 from pya3eda.runner.throttle import Throttler
 from pya3eda.status.checker import Status, get_status, should_process
 
@@ -109,22 +109,22 @@ class _Pipeline:
                 self.ready.popleft()
                 log.warning("Missing input, skipping: %s", spec.input_path)
                 continue
-            job = _prepare_job(spec, self.opts, self.cluster, self.cluster_name)
+            job = prepare_job(spec, self.opts, self.cluster, self.cluster_name)
             if job is None:
                 self.ready.popleft()
                 continue
-            cores = _cores(job)
+            cores = cores_for(job)
             in_use = self.throttler.cores_in_use
             if in_use and in_use + cores > self.throttler.max_cores:
                 break  # busy and won't fit → wait for running jobs to finish
             self.ready.popleft()
-            job_id = _write_and_submit(spec, job, self.be)
+            job_id = submit_job(spec, job, self.be)
             self.throttler.register(job_id, cores)
             self.inflight[job_id] = spec
 
     def _complete(self, spec: CalcSpec) -> None:
         """Extract a finished calc live; on a successful OPT, build/enqueue its SP(s)."""
-        data = _extract_one(spec, self.extract_criteria, self.opt_cache)
+        data = extract_one(spec, self.extract_criteria, self.opt_cache)
         if data is not None:
             self.extracted[spec.id] = data
             self._live_csv(spec.id.method_key)
@@ -150,9 +150,9 @@ class _Pipeline:
 
     def _live_csv(self, method_key: str) -> None:
         """Re-write the raw-data CSVs for *method_key* so progress is visible mid-run."""
-        from pya3eda.exporter.results import _export_raw
+        from pya3eda.exporter.results import export_raw
 
-        _export_raw(self.extracted, method_key, self.base_dir / "results" / method_key / "raw_data")
+        export_raw(self.extracted, method_key, self.base_dir / "results" / method_key / "raw_data")
 
 
 # ---------------------------------------------------------------------------

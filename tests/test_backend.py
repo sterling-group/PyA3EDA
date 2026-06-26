@@ -200,6 +200,60 @@ class TestSlurmBackend:
         ):
             assert SlurmBackend().is_finished("12345") is False
 
+    def test_is_finished_raises_after_persistent_squeue_failure(self) -> None:
+        """squeue failing continuously past the timeout escalates → no infinite hang."""
+        be = SlurmBackend(squeue_failure_timeout=10.0)
+        with (
+            patch(
+                "pya3eda.runner.backend.subprocess.run",
+                side_effect=subprocess.CalledProcessError(1, "squeue"),
+            ),
+            patch("pya3eda.runner.backend.time.monotonic", side_effect=[100.0, 105.0, 200.0]),
+        ):
+            assert be.is_finished("1") is False  # t=100 — records the first failure
+            assert be.is_finished("1") is False  # t=105 — 5s < 10s, still retrying
+            with pytest.raises(BackendError, match="failed continuously"):
+                be.is_finished("1")  # t=200 — 100s past the window → escalate
+
+    def test_is_finished_grace_window_for_unseen_submitted_job(self, tmp_path: Path) -> None:
+        """A just-submitted job not yet in squeue is held running for the grace
+        window, then declared finished — fixes the submit→poll race."""
+        script = tmp_path / "job.slurm"
+        script.write_text("#!/bin/bash\n")
+        be = SlurmBackend(appear_grace_polls=3)
+        with patch(
+            "pya3eda.runner.backend.subprocess.run",
+            return_value=MagicMock(stdout="Submitted batch job 777\n"),
+        ):
+            jid = be.submit(script)
+        assert jid == "777"
+        empty = MagicMock(stdout="JOBID\n")  # job has not appeared in squeue yet
+        with patch("pya3eda.runner.backend.subprocess.run", return_value=empty):
+            assert be.is_finished(jid) is False  # poll 1 — within grace, not finished
+            assert be.is_finished(jid) is False  # poll 2 — within grace
+            assert be.is_finished(jid) is True  # poll 3 — grace exhausted
+
+    def test_is_finished_after_seen_then_absent(self, tmp_path: Path) -> None:
+        """Once observed running, a job that later leaves squeue is finished."""
+        script = tmp_path / "job.slurm"
+        script.write_text("#!/bin/bash\n")
+        be = SlurmBackend()
+        with patch(
+            "pya3eda.runner.backend.subprocess.run",
+            return_value=MagicMock(stdout="Submitted batch job 777\n"),
+        ):
+            jid = be.submit(script)
+        with patch(
+            "pya3eda.runner.backend.subprocess.run",
+            return_value=MagicMock(stdout="JOBID\n777\n"),
+        ):
+            assert be.is_finished(jid) is False  # observed running
+        with patch(
+            "pya3eda.runner.backend.subprocess.run",
+            return_value=MagicMock(stdout="JOBID\n"),
+        ):
+            assert be.is_finished(jid) is True  # was seen, now gone → finished
+
 
 def test_backends_registry() -> None:
     assert set(backend.BACKENDS) == {"local", "slurm"}

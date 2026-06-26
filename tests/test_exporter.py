@@ -10,11 +10,11 @@ import pytest
 from pya3eda.exporter.results import (
     _export_delta_delta,
     _export_profiles,
-    _export_raw,
     _export_raw_profiles,
     _export_xyz,
     _write_csv,
     export_all,
+    export_raw,
 )
 from pya3eda.ids import (
     CalcID,
@@ -104,7 +104,7 @@ class TestWriteCsv:
         assert "1,2" in content
 
 
-# ── _export_raw ──────────────────────────────────────────────────────
+# ── export_raw ──────────────────────────────────────────────────────
 
 
 class TestExportRaw:
@@ -115,7 +115,7 @@ class TestExportRaw:
             c_opt: _ed(c_opt, energy=-100.0),
             c_sp: _ed(c_sp, sp_energy=-101.0),
         }
-        count = _export_raw(extracted, MK, tmp_path)
+        count = export_raw(extracted, MK, tmp_path)
         assert count == 2
         assert (tmp_path / f"opt_{MK}.csv").exists()
         assert (tmp_path / f"sp_{MK}.csv").exists()
@@ -123,13 +123,13 @@ class TestExportRaw:
     def test_method_key_filter(self, tmp_path: Path) -> None:
         c = _cid()
         extracted = {c: _ed(c, energy=-100.0)}
-        count = _export_raw(extracted, "other_key", tmp_path)
+        count = export_raw(extracted, "other_key", tmp_path)
         assert count == 0
 
     def test_only_opt(self, tmp_path: Path) -> None:
         c = _cid(mode="opt")
         extracted = {c: _ed(c, energy=-100.0)}
-        count = _export_raw(extracted, MK, tmp_path)
+        count = export_raw(extracted, MK, tmp_path)
         assert count == 1
         assert (tmp_path / f"opt_{MK}.csv").exists()
         assert not (tmp_path / f"sp_{MK}.csv").exists()

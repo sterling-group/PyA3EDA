@@ -18,7 +18,7 @@ from pya3eda.parser import qchem
 from pya3eda.parser.xyz import format_xyz, parse_output_xyz
 from pya3eda.registry import CalcRegistry
 from pya3eda.status.checker import Status, get_status
-from pya3eda.utils import read_text, standard_state_correction
+from pya3eda.utils import convert_unit, read_text, standard_state_correction
 
 log = logging.getLogger(__name__)
 
@@ -64,7 +64,7 @@ def extract_all(
             if spec.id.mode != mode:
                 continue
             try:
-                data = _extract_one(spec, criteria, opt_content_cache)
+                data = extract_one(spec, criteria, opt_content_cache)
             except IncompleteDataError as exc:
                 errors.append(str(exc))
                 continue
@@ -83,7 +83,7 @@ def extract_all(
 # ---------------------------------------------------------------------------
 
 
-def _extract_one(
+def extract_one(
     spec: CalcSpec,
     criteria: str,
     opt_cache: dict[CalcID, str],
@@ -167,6 +167,8 @@ def _extract_sp(
             f"({opt_id}) was not extracted — cannot compute H/G"
         )
 
+    _validate_sp_cds(cid, content, opt_content, spec.solvent)
+
     h_corr, s_corr, s_trans, temperature, zpve, pressure = _opt_thermo(opt_content)
     H, G = _derive_hg(cid, sp_energy_kcal, h_corr, s_corr, temperature, pressure, spec.solvent)
 
@@ -208,6 +210,42 @@ def _parse_sp_energy(content: str, calc_type: str | None) -> float | None:
         sp_kcal += eda.bsse_kcal
 
     return sp_kcal
+
+
+# SP↔OPT G_CDS agreement tolerance (kcal/mol). CDS is geometry-only, and the SP
+# runs on the OPT geometry, so the two must agree to well within this.
+_CDS_TOLERANCE_KCAL = 1e-3
+
+
+def _validate_sp_cds(cid: CalcID, sp_content: str, opt_content: str, solvent: str) -> None:
+    """Warn if an EDA SMD SP's G_CDS disagrees with its OPT's G_CDS.
+
+    G_CDS (cavity-dispersion-solvent-structure) depends only on geometry and the
+    atomic radii, not on the electronic method, and the SP runs on the OPT
+    geometry, so the SP's manually-added CDS must equal the OPT's
+    ``G_S(liq) - G_ENP``. A mismatch points to a wrong OPT/SP geometry pairing or
+    a parsing error that would silently corrupt the barrier. Non-fatal: logged as
+    a warning (reinstates the cross-check the rewrite dropped). Only EDA SPs add
+    CDS manually, so non-EDA / gas-phase calcs are skipped.
+    """
+    if cid.calc_type is None or not _solvent_active(solvent):
+        return
+    sp_cds = qchem.parse_cds_print(sp_content)
+    opt_smd = qchem.parse_smd(opt_content)
+    if sp_cds is None or opt_smd is None or opt_smd.g_s_ha is None or opt_smd.g_enp_ha is None:
+        return
+    opt_cds = convert_unit(opt_smd.g_s_ha - opt_smd.g_enp_ha, "hartree", "kcal/mol")
+    diff = abs(sp_cds - opt_cds)
+    if diff > _CDS_TOLERANCE_KCAL:
+        log.warning(
+            "CDS mismatch for %s: SP=%.4f vs OPT=%.4f kcal/mol (|Δ|=%.4f > %.0e) — "
+            "the SP geometry may not match its OPT.",
+            cid,
+            sp_cds,
+            opt_cds,
+            diff,
+            _CDS_TOLERANCE_KCAL,
+        )
 
 
 # ---------------------------------------------------------------------------

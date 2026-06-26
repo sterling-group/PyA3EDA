@@ -93,14 +93,14 @@ def run_all(
         if not should_process(spec, criteria):
             continue
 
-        job = _prepare_job(spec, opts, cluster, cluster_name)
+        job = prepare_job(spec, opts, cluster, cluster_name)
         if job is None:
             continue
-        cores = _cores(job)
+        cores = cores_for(job)
 
         if throttler is not None:
             throttler.wait_for_room(cores, is_finished=be.is_finished)
-        job_id = _write_and_submit(spec, job, be)
+        job_id = submit_job(spec, job, be)
         if throttler is not None:
             throttler.register(job_id, cores)
         count += 1
@@ -112,7 +112,7 @@ def run_all(
     return count
 
 
-def _write_and_submit(spec: CalcSpec, job: JobSpec, be: ExecutionBackend) -> str:
+def submit_job(spec: CalcSpec, job: JobSpec, be: ExecutionBackend) -> str:
     """Write *spec*'s script (local or SLURM) and submit it; return the job id.
 
     Shared by ``run_all`` and the dependency-aware pipeline; the caller owns the
@@ -132,7 +132,7 @@ def _write_and_submit(spec: CalcSpec, job: JobSpec, be: ExecutionBackend) -> str
 # ---------------------------------------------------------------------------
 
 
-def _prepare_job(
+def prepare_job(
     spec: CalcSpec,
     opts: RunOptions,
     cluster: ClusterConfig,
@@ -190,7 +190,7 @@ def _resolve_parallel(opts: RunOptions) -> tuple[int, int]:
     return (opts.cpus or 1), 1
 
 
-def _cores(job: JobSpec) -> int:
+def cores_for(job: JobSpec) -> int:
     """Total cores a job charges against the throttler budget."""
     if job.parallel_type == "openmpi":
         return job.qchem_processors * job.cpus

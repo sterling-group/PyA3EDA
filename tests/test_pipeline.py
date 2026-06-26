@@ -19,8 +19,8 @@ from pya3eda.registry import CalcRegistry
 from pya3eda.runner.clusters import ClusterConfig, QChemVersion
 from pya3eda.runner.executor import RunOptions
 from pya3eda.runner.throttle import Throttler
+from tests.conftest import _make_template_dir, _write_xyz
 from tests.synthetic_outputs import OPT_OUTPUT, SP_OUTPUT, TS_OUTPUT
-from tests.test_builder import _make_template_dir, _write_xyz
 
 _XYZ = "3\n0 1\nO 0 0 0\nH 0 0 1\nH 0 1 0\n"
 
@@ -198,7 +198,7 @@ class TestSchedulerBranches:
         be = FakeBackend()
         pipe = _pipeline(registry, base, tpl, be)
         spec = next(s for s in registry.all_calcs if s.id.mode == "opt")
-        # Build an input whose mem_total exceeds the budget → _prepare_job returns None.
+        # Build an input whose mem_total exceeds the budget → prepare_job returns None.
         spec.input_path.parent.mkdir(parents=True, exist_ok=True)
         spec.input_path.write_text("$rem\nmem_total 9999999\n$end\n")
         pipe.ready.append(spec)

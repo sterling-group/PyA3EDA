@@ -11,6 +11,7 @@ from pya3eda.parser.qchem import (
     EDAData,
     EnergyResult,
     SMDData,
+    parse_cds_print,
     parse_eda_energies,
     parse_energy,
     parse_enthalpy,
@@ -261,10 +262,11 @@ class TestParseEDAEnergies:
         assert result.sp_energy_ha != pytest.approx(-1814.100000000000, abs=1e-6)
 
     def test_pol_cat_extracts_cds(self) -> None:
-        """pol_cat extracts CDS from the first 'Total:' line (search, not last)."""
+        """CDS is the LAST 'Total:' table — the full-system value, which follows
+        any per-fragment CDS tables; taking the first would pick a fragment's CDS."""
         result = parse_eda_energies(EDA_POL_OUTPUT, "pol_cat")
         assert result is not None
-        assert result.cds_kcal == pytest.approx(-2.432, abs=0.001)
+        assert result.cds_kcal == pytest.approx(-2.414, abs=0.001)
 
     def test_frz_cat_uses_last_convergence(self) -> None:
         """frz_cat picks the last convergence energy line."""
@@ -308,6 +310,15 @@ class TestParseEDAEnergies:
         assert result.cds_kcal is None
 
 
+class TestParseCdsPrint:
+    def test_last_table_is_full_system(self) -> None:
+        """With multiple CDS tables (per-fragment then full-system), the last wins."""
+        assert parse_cds_print(EDA_POL_OUTPUT) == pytest.approx(-2.414, abs=1e-4)
+
+    def test_none_when_absent(self) -> None:
+        assert parse_cds_print("no CDS extended-print table here") is None
+
+
 # ===================================================================
 # parse_status
 # ===================================================================
@@ -337,6 +348,18 @@ class TestParseStatus:
         text = "Running on host abc\nSome calculation output\n"
         status, _ = parse_status(text)
         assert status == "running"
+
+    def test_running_then_crash_is_crash_not_running(self) -> None:
+        """A job that printed 'Running on' then died with a marker → CRASH, not a
+        forever-'running' that the NOFILE filter would never resubmit."""
+        status, detail = parse_status("Running on host abc\nSCF failed to converge\n")
+        assert status == "CRASH"
+        assert "SCF" in detail
+
+    def test_running_then_killed_is_terminated(self) -> None:
+        """'Running on' plus a kill marker → terminated, not running."""
+        status, _ = parse_status("Running on host abc\nProcess killed by signal\n")
+        assert status == "terminated"
 
     def test_cancelled(self) -> None:
         status, _ = parse_status("", "CANCELLED AT 2024-01-01")

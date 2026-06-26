@@ -349,7 +349,10 @@ start_time=$(date +%s)
 export OMP_NUM_THREADS=2
 echo $PWD
 
-qchem -mpi -np 2 -nt 2 job.in job.out $scrname || { echo "Warning: Q-Chem execution might have failed."; }
+"""
+    "qchem -mpi -np 2 -nt 2 job.in job.out $scrname "
+    '|| { echo "Warning: Q-Chem execution might have failed."; }\n'
+    """\
 
 # Record end time
 end_time=$(date +%s)
@@ -512,7 +515,10 @@ echo "Elapsed time: $elapsed seconds"
 
 # Copy saved files back to original directory
 if [ -n "$scrname" ] && [ -d "$QCSCRATCH/$scrname" ]; then
-  cp -r "$QCSCRATCH/$scrname" "$ORIG/job_scratch" || { echo "Error: Failed to copy saved files"; exit 1; }
+"""
+    '  cp -r "$QCSCRATCH/$scrname" "$ORIG/job_scratch" '
+    '|| { echo "Error: Failed to copy saved files"; exit 1; }\n'
+    """\
   echo "Copied $QCSCRATCH/$scrname to $ORIG/job_scratch"
 fi
 
@@ -566,7 +572,10 @@ echo "Elapsed time: $elapsed seconds"
 
 # Copy saved files back to original directory
 if [ -n "$scrname" ] && [ -d "$QCSCRATCH/$scrname" ]; then
-  cp -r "$QCSCRATCH/$scrname" "$ORIG/job_scratch" || { echo "Error: Failed to copy saved files"; exit 1; }
+"""
+    '  cp -r "$QCSCRATCH/$scrname" "$ORIG/job_scratch" '
+    '|| { echo "Error: Failed to copy saved files"; exit 1; }\n'
+    """\
   echo "Copied $QCSCRATCH/$scrname to $ORIG/job_scratch"
 fi
 

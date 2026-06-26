@@ -149,6 +149,31 @@ class TestParseOutputXYZ:
         # Should be from the LAST block (1.0, 2.0, 3.0)
         assert "1.0000000000" in result.atoms[0]
 
+    def test_stops_at_table_end_ignores_trailing_table(self) -> None:
+        """A coordinate-shaped table after the final geometry must not inflate the
+        atom count — the scan stops at the first non-matching line after the table."""
+        block = """
+ $molecule
+ 0 1
+ $end
+
+ Standard Nuclear Orientation (Angstroms)
+    I     Atom           X            Y            Z
+ ----------------------------------------------------------------
+    1      O       0.0000000    0.0000000    0.0000000
+    2      H       1.0000000    0.0000000    0.0000000
+ ----------------------------------------------------------------
+
+ Some later section with a coordinate-shaped table:
+    1      C       9.0000000    9.0000000    9.0000000
+    2      C       8.0000000    8.0000000    8.0000000
+    3      C       7.0000000    7.0000000    7.0000000
+"""
+        result = parse_output_xyz(block)
+        assert result is not None
+        assert result.n_atoms == 2  # only the real geometry, not the trailing decoy
+        assert all("9.0000000" not in a for a in result.atoms)
+
 
 class TestParseXYZEdgeCases:
     def test_invalid_charge_mult(self) -> None:
