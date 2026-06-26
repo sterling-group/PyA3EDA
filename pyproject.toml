@@ -113,7 +113,10 @@ fail-under = 100
 exclude = ["tests", "examples", "build", "dist"]
 
 [tool.mypy]
-python_version = "3.11"
+# Target 3.12 so mypy parses third-party stubs that use the PEP 695 ``type X = …``
+# statement (e.g. numpy>=2.5's ``numpy/__init__.pyi``). Runtime support stays at
+# ``requires-python = ">=3.11"`` and is exercised by the 3.11/3.12/3.13 test matrix.
+python_version = "3.12"
 plugins = ["pydantic.mypy"]
 files = ["src"]
 check_untyped_defs = true
