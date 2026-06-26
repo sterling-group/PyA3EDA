@@ -268,7 +268,7 @@ class TestExportProfiles:
         """A catalyst appears in one mode but not another → empty available → skip."""
         # Create a profile that registers cat2 in catalysts and (opt, None) in mode_sps,
         # but cat2 has no matching trace profiles for any calc_type in TRACE_ORDER.
-        pid_cat2 = ProfileID(method_key=MK, catalyst="cat2", calc_type="custom_type", mode="opt")
+        pid_cat2 = ProfileID(method_key=MK, catalyst="cat2", calc_type="nocat", mode="opt")
         stages = (_sd("reactants", label="r", _rel={"E": 0.0}),)
         profiles = {pid_cat2: ProfileData(profile_id=pid_cat2, stages=stages)}
         count = _export_profiles(profiles, MK, tmp_path)

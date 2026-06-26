@@ -10,6 +10,7 @@ import re
 from typing import NamedTuple
 
 from pya3eda.utils import convert_unit
+from pya3eda.vocab import CalcType
 
 # ---------------------------------------------------------------------------
 # Compiled patterns
@@ -288,7 +289,7 @@ def parse_eda_energies(
     """
     energy_ha: float | None = None
 
-    if calc_type == "pol_cat":
+    if calc_type == CalcType.POL_CAT:
         r = _last_value_unit(_EDA_POL_ENERGY, text, default_unit="Ha")
         if r:
             energy_ha = r[0]
@@ -301,7 +302,7 @@ def parse_eda_energies(
         return None
 
     bsse_kcal: float | None = None
-    if calc_type == "full_cat":
+    if calc_type == CalcType.FULL_CAT:
         m = _BSSE_ENERGY.search(text)
         if m:
             bsse_kcal = convert_unit(float(m.group(1)), "kJ/mol", "kcal/mol")

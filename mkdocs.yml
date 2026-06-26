@@ -58,6 +58,8 @@ markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
   - pymdownx.inlinehilite
+  - pymdownx.snippets:
+      base_path: ["."]
   - pymdownx.tabbed:
       alternate_style: true
   - pymdownx.arithmatex:
@@ -81,6 +83,7 @@ nav:
       - user-guide/index.md
       - Installation: user-guide/installation.md
       - Configuration: user-guide/configuration.md
+      - Cluster Setup: user-guide/clusters.md
       - CLI Reference: user-guide/cli.md
       - Tutorial: user-guide/tutorial.md
   - Theory:
@@ -120,3 +123,4 @@ nav:
       - developer/index.md
       - Architecture: developer/architecture.md
       - Contributing: developer/contributing.md
+  - Changelog: changelog.md

@@ -17,6 +17,7 @@ from pya3eda.ids import (
 )
 from pya3eda.registry import CalcRegistry
 from pya3eda.utils import convert_unit, standard_state_correction
+from pya3eda.vocab import CalcType
 
 log = logging.getLogger(__name__)
 
@@ -132,7 +133,7 @@ def _build_one(
 ) -> ProfileData:
     """Assemble a single profile from its spec and extracted energies.
 
-    When *is_ni* is True the profile carries ``calc_type="ni"``:
+    When *is_ni* is True the profile carries ``calc_type=CalcType.NI``:
     G is taken from the non-interacting reference (``ni_ref``) for
     complex stages, from the normal sum for endpoints, and E is
     always ``None``.
@@ -148,14 +149,14 @@ def _build_one(
                 G = _g_ni_for_stage(stage_spec.ni_ref, extracted)
             sd = StageData(
                 name=stage_spec.name,
-                calc_type="ni" if is_ni else pspec.id.calc_type,
+                calc_type=CalcType.NI if is_ni else pspec.id.calc_type,
                 species_label=stage_spec.label,
                 E=None if is_ni else E,
                 G=G,
             )
         stages.append(sd)
 
-    pid = pspec.id.model_copy(update={"calc_type": "ni"}) if is_ni else pspec.id
+    pid = pspec.id.model_copy(update={"calc_type": CalcType.NI}) if is_ni else pspec.id
     return ProfileData(profile_id=pid, stages=_normalize(stages, pspec.ref_stage))
 
 
@@ -215,7 +216,7 @@ def _build_stage_best(
 
     return StageData(
         name=stage_spec.name,
-        calc_type="ni" if is_ni else pspec.id.calc_type,
+        calc_type=CalcType.NI if is_ni else pspec.id.calc_type,
         species_label=g_label,
         E=None if is_ni else E_val,
         G=G_val,

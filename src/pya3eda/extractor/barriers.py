@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 
 from pya3eda.ids import DeltaDeltaData, ProfileData, ProfileID, StageData
+from pya3eda.vocab import CalcType, Stage, Surface
 
 log = logging.getLogger(__name__)
 
@@ -60,29 +61,29 @@ def _compute_for_catalyst(
         pd = profiles.get(pid)
         return _stage_map(pd) if pd is not None else None
 
-    full = _find("full_cat")
-    pol = _find("pol_cat")
-    frz = _find("frz_cat")
-    nocat = _find("nocat")
-    ni = _find("ni")
+    full = _find(CalcType.FULL_CAT)
+    pol = _find(CalcType.POL_CAT)
+    frz = _find(CalcType.FRZ_CAT)
+    nocat = _find(CalcType.NOCAT)
+    ni = _find(CalcType.NI)
 
     out: list[DeltaDeltaData] = []
     for etype in StageData.barrier_surfaces():
-        is_ni = etype == "G_ni"
-        surface = "G" if is_ni else etype
+        is_ni = etype == Surface.G_NI
+        surface = Surface.G if is_ni else etype
 
         # Baseline decision driven by full_cat on the matching surface
         use_preTS = False
         if full:
             use_preTS = _should_use_preTS(
-                full, "G"
+                full, Surface.G
             )  # change to surface if we want to decide separately per surface
 
         b_nocat = _barrier(nocat, surface, use_preTS=False)
         b_full = _barrier(full, surface, use_preTS=use_preTS)
         b_pol = _barrier(pol, surface, use_preTS=use_preTS)
         b_frz = _barrier(frz, surface, use_preTS=use_preTS)
-        b_ni = _barrier(ni, "G", use_preTS=use_preTS) if is_ni else None
+        b_ni = _barrier(ni, Surface.G, use_preTS=use_preTS) if is_ni else None
 
         # For G_ni the NI barrier sits between nocat and FRZ
         frz_base = b_ni if is_ni else b_nocat
@@ -142,8 +143,8 @@ def _stage_map(pd: ProfileData) -> dict[str, StageData]:
 
 def _should_use_preTS(stages: dict[str, StageData], etype: str) -> bool:
     """True if preTS_full < reactants on the given energy surface."""
-    reactants = stages.get("reactants")
-    preTS = stages.get("preTS")
+    reactants = stages.get(Stage.REACTANTS)
+    preTS = stages.get(Stage.PRETS)
     if reactants is None or preTS is None:
         return False
     r_val = _stage_value(reactants, etype)
@@ -161,7 +162,7 @@ def _barrier(
     """barrier = TS - baseline."""
     if stages is None:
         return None
-    ts = stages.get("ts")
+    ts = stages.get(Stage.TS)
     if ts is None:
         return None
     ts_val = _stage_value(ts, etype)
@@ -169,13 +170,13 @@ def _barrier(
         return None
 
     if use_preTS:
-        preTS = stages.get("preTS")
+        preTS = stages.get(Stage.PRETS)
         if preTS is not None:
             p_val = _stage_value(preTS, etype)
             if p_val is not None:
                 return ts_val - p_val
 
-    reactants = stages.get("reactants")
+    reactants = stages.get(Stage.REACTANTS)
     if reactants is None:
         return None
     r_val = _stage_value(reactants, etype)

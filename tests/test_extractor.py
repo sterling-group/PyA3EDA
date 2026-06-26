@@ -410,7 +410,7 @@ def _ed(
     **kw,
 ) -> ExtractedData:
     """Minimal ExtractedData factory — calc_id is a filler."""
-    cid = kw.pop("calc_id", CalcID(method_key="m", stage="r", species="x"))
+    cid = kw.pop("calc_id", CalcID(method_key="m", stage="reactants", species="x"))
     return ExtractedData(
         calc_id=cid,
         energy=energy,
@@ -427,28 +427,28 @@ def _ed(
 
 class TestSumEnergies:
     def test_missing_cid_returns_none(self) -> None:
-        cid = CalcID(method_key="m", stage="r", species="x")
+        cid = CalcID(method_key="m", stage="reactants", species="x")
         result = _sum_energies((cid,), {})
         assert result == (None, None)
 
     def test_has_E_false(self) -> None:
         """When energy and sp_energy are both None, E comes back None."""
-        cid = CalcID(method_key="m", stage="r", species="x")
+        cid = CalcID(method_key="m", stage="reactants", species="x")
         ed = _ed(calc_id=cid, energy=None, sp_energy=None, G=10.0)
         E, G = _sum_energies((cid,), {cid: ed})
         assert E is None
         assert pytest.approx(10.0) == G
 
     def test_has_G_false(self) -> None:
-        cid = CalcID(method_key="m", stage="r", species="x")
+        cid = CalcID(method_key="m", stage="reactants", species="x")
         ed = _ed(calc_id=cid, energy=5.0, G=None)
         E, G = _sum_energies((cid,), {cid: ed})
         assert pytest.approx(5.0) == E
         assert G is None
 
     def test_sums_multiple(self) -> None:
-        c1 = CalcID(method_key="m", stage="r", species="a")
-        c2 = CalcID(method_key="m", stage="r", species="b")
+        c1 = CalcID(method_key="m", stage="reactants", species="a")
+        c2 = CalcID(method_key="m", stage="reactants", species="b")
         d1 = _ed(calc_id=c1, energy=1.0, G=10.0)
         d2 = _ed(calc_id=c2, energy=2.0, G=20.0)
         E, G = _sum_energies((c1, c2), {c1: d1, c2: d2})
@@ -457,7 +457,7 @@ class TestSumEnergies:
 
     def test_sp_energy_fallback(self) -> None:
         """When energy=None, sp_energy is used for E."""
-        cid = CalcID(method_key="m", stage="r", species="x")
+        cid = CalcID(method_key="m", stage="reactants", species="x")
         ed = _ed(calc_id=cid, energy=None, sp_energy=7.0, G=10.0)
         E, _G = _sum_energies((cid,), {cid: ed})
         assert pytest.approx(7.0) == E
@@ -514,7 +514,7 @@ class TestGniForStage:
     """Unit tests for _g_ni_for_stage."""
 
     def _cid(self, sp: str) -> CalcID:
-        return CalcID(method_key="m", stage="r", species=sp)
+        return CalcID(method_key="m", stage="reactants", species=sp)
 
     def test_missing_ref_data(self) -> None:
         """ref_cid not in extracted → None."""
@@ -691,8 +691,8 @@ class TestBuildStageBest:
     def test_is_ni_overrides_G(self) -> None:
         """When is_ni=True and g_ni_ref is present, G is overridden."""
         c_prim = CalcID(method_key="m", stage="preTS", species="a", calc_type="full_cat")
-        ref_cid = CalcID(method_key="m", stage="r", species="ref")
-        trans_cid = CalcID(method_key="m", stage="r", species="trans")
+        ref_cid = CalcID(method_key="m", stage="reactants", species="ref")
+        trans_cid = CalcID(method_key="m", stage="reactants", species="trans")
 
         ni_ref = NiStageRef(
             ref_cids=(ref_cid,),
@@ -750,8 +750,8 @@ class TestBuildOne:
         """NI profile uses ni_ref for G on complex stages."""
         c_r = CalcID(method_key="m", stage="reactants", species="x", calc_type="full_cat")
         c_ts = CalcID(method_key="m", stage="ts", species="y", calc_type="full_cat")
-        ref_cid = CalcID(method_key="m", stage="r", species="ref")
-        trans_cid = CalcID(method_key="m", stage="r", species="trans")
+        ref_cid = CalcID(method_key="m", stage="reactants", species="ref")
+        trans_cid = CalcID(method_key="m", stage="reactants", species="trans")
 
         ni_ref = NiStageRef(
             ref_cids=(ref_cid,),

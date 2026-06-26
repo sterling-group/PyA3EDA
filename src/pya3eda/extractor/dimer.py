@@ -20,13 +20,14 @@ from pya3eda.errors import IncompleteDataError
 from pya3eda.ids import CalcID, DeltaDeltaData, ExtractedData
 from pya3eda.registry import CalcRegistry
 from pya3eda.sanitize import sanitize
+from pya3eda.vocab import Stage, Surface
 
 log = logging.getLogger(__name__)
 
 
 def _surface_value(data: ExtractedData, energy_type: str) -> float | None:
     """Electronic energy for ``E``; free energy for ``G``/``G_ni``."""
-    if energy_type == "E":
+    if energy_type == Surface.E:
         return data.energy if data.energy is not None else data.sp_energy
     return data.G
 
@@ -59,7 +60,7 @@ def apply_dimer_corrections(
         cat_cid = CalcID(
             method_key=dd.method_key,
             catalyst=cat_s,
-            stage="cat",
+            stage=Stage.CAT,
             species=cat_s,
             mode=dd.mode,
             sp_subfolder=dd.sp_subfolder,
@@ -67,7 +68,7 @@ def apply_dimer_corrections(
         dimer_cid = CalcID(
             method_key=dd.method_key,
             catalyst=cat_s,
-            stage="dimer",
+            stage=Stage.DIMER,
             species=f"{cat_s}-dimer",
             mode=dd.mode,
             sp_subfolder=dd.sp_subfolder,

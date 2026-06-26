@@ -129,4 +129,27 @@ results/
 
 ---
 
+## Exit Codes
+
+Every command catches the project's domain errors and exits with a deterministic
+code, so failures are easy to branch on in scripts:
+
+| Code | Error                   | Meaning                                          |
+| ---- | ----------------------- | ------------------------------------------------ |
+| `0`  | —                       | Success                                          |
+| `1`  | `PyA3EDAError`          | Generic / catch-all domain error                 |
+| `2`  | `ConfigError`           | YAML config missing or invalid                   |
+| `3`  | `TemplateNotFoundError` | A required template / input file does not exist  |
+| `4`  | `IncompleteDataError`   | A derived value is missing a required input      |
+| `5`  | `BackendError`          | Execution backend unknown or refused a job       |
+| `6`  | `RunOptionError`        | Invalid run / job options                        |
+| `7`  | `ThrottleTimeoutError`  | A throttled wait exceeded its deadline           |
+| `8`  | `ClusterConfigError`    | Cluster configuration missing or invalid         |
+
+```bash
+pya3eda extract config.yaml || echo "extract failed with code $?"
+```
+
+---
+
 **Next:** [Tutorial](tutorial.md) — run through a complete Diels–Alder example from config to plots.

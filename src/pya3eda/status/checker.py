@@ -10,6 +10,7 @@ from pya3eda.ids import CalcSpec
 from pya3eda.parser.qchem import parse_imaginary_freq, parse_opt_converged, parse_status
 from pya3eda.registry import CalcRegistry
 from pya3eda.utils import read_text
+from pya3eda.vocab import Mode, Stage
 
 log = logging.getLogger(__name__)
 
@@ -73,7 +74,7 @@ def get_status(spec: CalcSpec) -> tuple[Status, str]:
         status = Status.CRASH
 
     # Enhanced OPT validation for successful calculations
-    if status == Status.SUCCESSFUL and spec.id.mode == "opt" and out_text:
+    if status == Status.SUCCESSFUL and spec.id.mode == Mode.OPT and out_text:
         v_status, v_detail = _validate_opt(out_text, spec)
         if v_status is not None:
             return v_status, v_detail
@@ -93,7 +94,7 @@ def _validate_opt(out_text: str, spec: CalcSpec) -> tuple[Status | None, str]:
     if not converged and imag is None:
         return None, ""
 
-    is_ts = spec.id.stage == "ts"
+    is_ts = spec.id.stage == Stage.TS
 
     if is_ts:
         if imag != 1:
@@ -152,7 +153,7 @@ def _interleave_opt_sp(specs: list[CalcSpec]) -> list[CalcSpec]:
     for s in specs:
         cid = s.id
         key = (cid.catalyst, cid.stage, cid.species, cid.calc_type or "")
-        if cid.mode == "opt":
+        if cid.mode == Mode.OPT:
             opt_list.append(s)
         else:
             sp_by_key.setdefault(key, []).append(s)
@@ -199,7 +200,7 @@ def check_all(registry: CalcRegistry) -> None:
         group_counts: dict[str, int] = {}
         for spec in specs:
             status, detail = get_status(spec)
-            mode = "SP" if spec.id.mode == "sp" else "OPT"
+            mode = "SP" if spec.id.mode == Mode.SP else "OPT"
             display = _rel_display(spec, base_dir)
 
             # Print immediately

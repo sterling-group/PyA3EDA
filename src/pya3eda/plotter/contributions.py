@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 
 from pya3eda.ids import DeltaDeltaData, ProfileID, StageData
 from pya3eda.registry import CalcRegistry
+from pya3eda.vocab import Surface
 
 log = logging.getLogger(__name__)
 
@@ -95,7 +96,7 @@ def _plot_single(
     cat_lookup = {dd.catalyst: dd for dd in data}
     unit = StageData.UNIT
 
-    if energy_type == "G_ni":
+    if energy_type == Surface.G_NI:
         ctypes, labels = list(_NI_CONTRIBUTION_TYPES), list(_NI_DISPLAY_LABELS)
     else:
         ctypes, labels = list(_CONTRIBUTION_TYPES), list(_DISPLAY_LABELS)

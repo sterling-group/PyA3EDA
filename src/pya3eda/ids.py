@@ -12,6 +12,8 @@ from typing import ClassVar, NamedTuple
 
 from pydantic import BaseModel
 
+from pya3eda.vocab import CalcType, Mode, Stage, Surface
+
 # ---------------------------------------------------------------------------
 # Calculation identity
 # ---------------------------------------------------------------------------
@@ -22,15 +24,15 @@ class CalcID(BaseModel, frozen=True):
 
     method_key: str  # OPT-level folder, e.g. "wB97X-V_def2-SVP_smd"
     catalyst: str | None = None  # None → uncatalyzed, else catalyst name
-    stage: str  # reactants | products | ts | preTS | postTS | cat
+    stage: Stage
     species: str  # e.g. "prop2enal", "lip-prop2enal", "ts_lip-tscomplex"
-    calc_type: str | None = None  # full_cat | pol_cat | frz_cat | None
-    mode: str = "opt"  # opt | sp
+    calc_type: CalcType | None = None  # full_cat | pol_cat | frz_cat | None
+    mode: Mode = Mode.OPT
     sp_subfolder: str | None = None  # e.g. "wB97M-V_def2-TZVPPD_smd_sp"
 
     def to_opt(self) -> CalcID:
         """The OPT calculation this id derives from (``mode='opt'``, no SP subfolder)."""
-        return self.model_copy(update={"mode": "opt", "sp_subfolder": None})
+        return self.model_copy(update={"mode": Mode.OPT, "sp_subfolder": None})
 
 
 class CalcSpec(BaseModel, frozen=True):
@@ -72,26 +74,26 @@ class ProfileID(BaseModel, frozen=True):
 
     method_key: str
     catalyst: str | None = None  # None → uncatalyzed
-    calc_type: str | None = None  # None → uncatalyzed
-    mode: str = "opt"
+    calc_type: CalcType | None = None  # None → uncatalyzed
+    mode: Mode = Mode.OPT
     sp_subfolder: str | None = None  # distinguishes SP profiles under same OPT
 
     # Ordered EDA calc_type cascade with display labels
-    TRACE_ORDER: ClassVar[tuple[tuple[str | None, str], ...]] = (
+    TRACE_ORDER: ClassVar[tuple[tuple[CalcType | None, str], ...]] = (
         (None, "uncat"),
-        ("ni", "NI"),
-        ("frz_cat", "FRZ"),
-        ("pol_cat", "POL"),
-        ("full_cat", "FULL"),
+        (CalcType.NI, "NI"),
+        (CalcType.FRZ_CAT, "FRZ"),
+        (CalcType.POL_CAT, "POL"),
+        (CalcType.FULL_CAT, "FULL"),
     )
 
     # Canonical stage order for the reaction coordinate
-    STAGE_ORDER: ClassVar[tuple[str, ...]] = (
-        "reactants",
-        "preTS",
-        "ts",
-        "postTS",
-        "products",
+    STAGE_ORDER: ClassVar[tuple[Stage, ...]] = (
+        Stage.REACTANTS,
+        Stage.PRETS,
+        Stage.TS,
+        Stage.POSTTS,
+        Stage.PRODUCTS,
     )
 
     @staticmethod
@@ -140,7 +142,7 @@ class ProfileSpec(BaseModel, frozen=True):
     id: ProfileID
     stages: tuple[StageSpec, ...]  # ordered reaction coordinate
     selection_leader: bool = False  # True for full_cat — drives candidate choice
-    ref_stage: str = "reactants"  # stage whose energies define the zero point
+    ref_stage: Stage = Stage.REACTANTS  # stage whose energies define the zero point
 
 
 # ---------------------------------------------------------------------------
@@ -178,11 +180,11 @@ class StageData(BaseModel, frozen=True):
     """Energy totals for one stage of a profile."""
 
     UNIT: ClassVar[str] = "kcal/mol"
-    _ENERGY_TYPES: ClassVar[tuple[str, ...]] = ("E", "G")
-    _BARRIER_SURFACES: ClassVar[tuple[str, ...]] = ("E", "G", "G_ni")
+    _ENERGY_TYPES: ClassVar[tuple[Surface, ...]] = (Surface.E, Surface.G)
+    _BARRIER_SURFACES: ClassVar[tuple[Surface, ...]] = (Surface.E, Surface.G, Surface.G_NI)
 
     name: str
-    calc_type: str | None = None
+    calc_type: CalcType | None = None
     species_label: str = ""
     E: float | None = None
     G: float | None = None
@@ -191,12 +193,12 @@ class StageData(BaseModel, frozen=True):
     _rel: dict[str, float] = {}
 
     @classmethod
-    def energy_types(cls) -> tuple[str, ...]:
+    def energy_types(cls) -> tuple[Surface, ...]:
         """Absolute energy field names."""
         return cls._ENERGY_TYPES
 
     @classmethod
-    def barrier_surfaces(cls) -> tuple[str, ...]:
+    def barrier_surfaces(cls) -> tuple[Surface, ...]:
         """Energy surfaces for barrier/plot decomposition (includes G_ni)."""
         return cls._BARRIER_SURFACES
 
@@ -217,8 +219,8 @@ class DeltaDeltaData(BaseModel, frozen=True):
 
     method_key: str
     catalyst: str
-    energy_type: str  # "E" | "G" | "G_ni"
-    mode: str = "opt"
+    energy_type: Surface
+    mode: Mode = Mode.OPT
     sp_subfolder: str | None = None
 
     barrier_uncat: float | None = None
