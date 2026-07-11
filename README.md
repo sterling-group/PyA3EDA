@@ -1,4 +1,13 @@
-# PyA3EDA
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/sterling-group/PyA3EDA/main/docs/assets/logo-wordmark-dark.svg">
+    <img src="https://raw.githubusercontent.com/sterling-group/PyA3EDA/main/docs/assets/logo-wordmark.svg" alt="PyA3EDA" width="380">
+  </picture>
+</p>
+
+<p align="center"><strong>Python automation for Asymmetrically-constrained Adiabatic ALMO-EDA (A3EDA)</strong></p>
+
+<div align="center">
 
 [![CI](https://github.com/sterling-group/PyA3EDA/actions/workflows/ci.yml/badge.svg)](https://github.com/sterling-group/PyA3EDA/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/sterling-group/PyA3EDA/actions/workflows/ci.yml)
@@ -8,7 +17,7 @@
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
-**Python automation for Asymmetrically-constrained Adiabatic ALMO-EDA (A3EDA)**
+</div>
 
 PyA3EDA automates the full computational workflow for
 **Asymmetrically-constrained Adiabatic ALMO-EDA (A3EDA)** calculations in
