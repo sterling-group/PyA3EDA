@@ -33,8 +33,11 @@ theme:
     - content.code.copy
   icon:
     repo: fontawesome/brands/github
-  #logo: assets/logo.svg
-  favicon: assets/logo.svg
+  # both are stroke-boosted micro-size marks (16-48 px legibility; display
+  # sizes use logo*.svg): the header gets the white mono variant so it reads
+  # on the indigo header bar, the favicon keeps the brand colors
+  logo: assets/logo-header.svg
+  favicon: assets/favicon.svg
 
 plugins:
   - search

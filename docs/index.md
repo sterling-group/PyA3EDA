@@ -1,5 +1,6 @@
 <div align="center" markdown>
-![PyA3EDA logo](assets/logo.svg){ width="160" }
+![PyA3EDA logo](assets/logo-wordmark.svg#only-light){ width="320" }
+![PyA3EDA logo](assets/logo-wordmark-dark.svg#only-dark){ width="320" }
 </div>
 
 # **Python automation for Asymmetrically-constrained Adiabatic ALMO-EDA**
