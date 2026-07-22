@@ -6,6 +6,11 @@ always for local, whose background processes die with the CLI) submissions are
 bounded by a CPU-core :class:`~pya3eda.runner.throttle.Throttler` and the call
 blocks until every job finishes; the default SLURM path stays fire-and-forget
 (submit and return, preserving the staged build→run→status→extract workflow).
+
+Submission is one job at a time either way — the loop below is sequential, and
+the SLURM backend additionally waits for the controller to acknowledge each job
+before the next ``sbatch``, so a large run does not fire hundreds of submissions
+at a scheduler that is already struggling.
 """
 
 from __future__ import annotations

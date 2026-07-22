@@ -57,6 +57,13 @@ The default SLURM path submits and returns; `--wait` (and the local backend) thr
 submissions to `--max-cores` and block until completion. Cluster settings are read from
 `$QQCHEM_CLUSTERS` or `~/.config/qqchem/clusters.yaml`.
 
+Jobs go to SLURM **one at a time**: after each `sbatch`, PyA3EDA waits for the
+controller to list the job in `squeue` before submitting the next, so a big run is
+paced by how fast the scheduler is actually responding rather than by a fixed sleep.
+A healthy controller confirms on the first check (no added wait); a lagging one is
+polled with a backing-off interval up to 60 s, after which the gate switches itself
+off for the rest of the run and a warning is logged.
+
 ---
 
 ## `pipeline` — Full Dependency-Aware Run
