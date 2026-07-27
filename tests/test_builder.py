@@ -11,6 +11,7 @@ Tests cover:
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 import pytest
@@ -53,7 +54,7 @@ from pya3eda.parser.xyz import XYZData
 from pya3eda.registry import CalcRegistry
 
 from .conftest import _make_template_dir, _write_xyz
-from .synthetic_outputs import OPT_OUTPUT
+from .synthetic_outputs import FRAGMENTED_OPT_OUTPUT, OPT_OUTPUT
 
 # ───────────────────────────────────────────────────────────────────
 # Fixtures / helpers
@@ -90,6 +91,25 @@ _XYZ_COMPOSITE = """\
 Li  0.0000000000   0.0000000000   0.0000000000
 C   1.0000000000   0.0000000000   0.0000000000
 O   2.0000000000   0.0000000000   0.0000000000
+"""
+
+# An OPT output whose optimised geometry matches the 3-atom templates above, for the cases
+# that are about coordinate provenance rather than atom-count disagreement.
+_THREE_ATOM_OPT_OUTPUT = """\
+ $molecule
+ 0 1
+ Li  0.0000000000   0.0000000000   0.0000000000
+ C   1.0000000000   0.0000000000   0.0000000000
+ O   2.0000000000   0.0000000000   0.0000000000
+ $end
+
+ Standard Nuclear Orientation (Angstroms)
+    I     Atom           X            Y            Z
+ ----------------------------------------------------------------
+    1      Li      0.1111111111    0.0000000000    0.0000000000
+    2      C       1.1111111111    0.0000000000    0.0000000000
+    3      O       2.1111111111    0.0000000000    0.0000000000
+ ----------------------------------------------------------------
 """
 
 # The template-tree builders (`_make_template_dir`, `_write_xyz`) live in
@@ -235,12 +255,13 @@ class TestCoordsFromOutput:
             multiplicity=1,
             atoms=["H   0.0   0.0   0.0"] * 8,
         )
-        atoms = _coords_from_output(OPT_OUTPUT, template)
+        atoms, from_output = _coords_from_output(OPT_OUTPUT, template)
         # Should get the LAST Standard Nuclear Orientation block
         # (8 atoms from the second block in OPT_OUTPUT)
         assert len(atoms) == 8
         # First atom should be C from the second orientation block
         assert atoms[0].startswith("C")
+        assert from_output is True
 
     def test_falls_back_to_template(self) -> None:
         template = XYZData(
@@ -249,8 +270,9 @@ class TestCoordsFromOutput:
             multiplicity=1,
             atoms=["H   0.0   0.0   0.0", "O   1.0   0.0   0.0"],
         )
-        atoms = _coords_from_output(None, template)
+        atoms, from_output = _coords_from_output(None, template)
         assert atoms == template.atoms
+        assert from_output is False
 
     def test_falls_back_on_bad_output(self) -> None:
         template = XYZData(
@@ -259,8 +281,10 @@ class TestCoordsFromOutput:
             multiplicity=1,
             atoms=["H   0.0   0.0   0.0"],
         )
-        atoms = _coords_from_output("no geometry here", template)
+        atoms, from_output = _coords_from_output("no geometry here", template)
         assert atoms == template.atoms
+        # Unparseable output must not be treated as a source of fragmentation either.
+        assert from_output is False
 
 
 # ===================================================================
@@ -338,15 +362,100 @@ class TestBuildFragmentedMolecule:
 
     def test_with_output_coords(self) -> None:
         """When output_text is provided, coords come from it, not the template."""
-        # OPT_OUTPUT has 8 atoms — cat has 1, sub has 2 → need ≥3
         result = build_fragmented_molecule(
             _XYZ_COMPOSITE,
             _XYZ_CAT,
             _XYZ_SUB,
-            OPT_OUTPUT,
+            _THREE_ATOM_OPT_OUTPUT,
         )
         assert result is not None
-        # Atoms should be from OPT output's last orientation block
+        assert "0.1111111111" in result  # optimised coordinate, not the template's 0.0
+
+
+# ===================================================================
+# 4b. Fragmented molecule — geometry/template atom-count agreement
+# ===================================================================
+
+
+class TestFragmentedAtomCountAgreement:
+    """An SP must describe the molecule its OPT actually computed — never a trimmed one."""
+
+    def test_surplus_atoms_are_not_silently_truncated(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """The regression: 8 optimised atoms into 1+2 templates used to drop five of them."""
+        with caplog.at_level(logging.ERROR):
+            result = build_fragmented_molecule(
+                _XYZ_COMPOSITE, _XYZ_CAT, _XYZ_SUB, OPT_OUTPUT, label="ts_x-y"
+            )
+        assert result is None
+        assert "ts_x-y" in caplog.text
+        assert "8" in caplog.text and "3" in caplog.text
+
+    def test_layout_inherited_from_the_output(self) -> None:
+        """A 5-atom optimisation splits 1/4 per its own $molecule, not 1/2 per templates."""
+        result = build_fragmented_molecule(
+            _XYZ_COMPOSITE, _XYZ_CAT, _XYZ_SUB, FRAGMENTED_OPT_OUTPUT
+        )
+        assert result is not None
+        lines = result.splitlines()
+        sep = [i for i, ln in enumerate(lines) if ln == "---"]
+        assert lines[0] == "0 1"  # total, from the output
+        assert lines[sep[0] + 1] == "1 1"  # catalyst fragment charge/mult, from the output
+        assert lines[sep[1] + 1] == "-1 1"  # substrate fragment
+        assert sep[1] - sep[0] == 3  # one catalyst atom between the separators
+        assert len(lines) - sep[1] - 2 == 4  # ...and four substrate atoms after
+        assert sum(1 for ln in lines if ln and ln[0].isalpha()) == 5  # nothing dropped
+
+    def test_inherited_layout_uses_optimised_coordinates(self) -> None:
+        """Layout comes from the first $molecule; coordinates must come from the last block."""
+        result = build_fragmented_molecule(
+            _XYZ_COMPOSITE, _XYZ_CAT, _XYZ_SUB, FRAGMENTED_OPT_OUTPUT
+        )
+        assert result is not None
+        assert "9.9990000000" not in result  # the echoed *starting* geometry
+        for optimised in ("0.1000000000", "0.2000000000", "0.5000000000"):
+            assert optimised in result
+
+    def test_unusable_output_layout_falls_back_and_fails_loud(self) -> None:
+        """Fragment counts that disagree with the geometry are not trusted."""
+        # Same 5 optimised atoms, but the echoed $molecule claims 1 + 2.
+        text = FRAGMENTED_OPT_OUTPUT.replace(
+            " O   9.9990000000   3.0000000000   0.0000000000\n"
+            " H   9.9990000000   4.0000000000   0.0000000000\n",
+            "",
+        )
+        assert build_fragmented_molecule(_XYZ_COMPOSITE, _XYZ_CAT, _XYZ_SUB, text) is None
+
+    def test_three_fragment_output_falls_back_and_fails_loud(self) -> None:
+        """The builder is two-fragment; anything else defers to the templates."""
+        text = FRAGMENTED_OPT_OUTPUT.replace(
+            " O   9.9990000000   3.0000000000   0.0000000000\n",
+            " ---\n 0 1\n O   9.9990000000   3.0000000000   0.0000000000\n",
+        )
+        assert build_fragmented_molecule(_XYZ_COMPOSITE, _XYZ_CAT, _XYZ_SUB, text) is None
+
+    def test_template_coords_still_require_matching_counts(self) -> None:
+        """With no output at all, a composite that disagrees with cat+sub is still fatal."""
+        four_atom_composite = (
+            "4\n0 1\nLi  0.0  0.0  0.0\nC   1.0  0.0  0.0\nO   2.0  0.0  0.0\nH   3.0  0.0  0.0\n"
+        )
+        assert build_fragmented_molecule(four_atom_composite, _XYZ_CAT, _XYZ_SUB) is None
+
+    def test_composite_disagreeing_with_fragments_warns_but_builds(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """A stale composite template is diagnostic, not fatal — cat+sub drive the split."""
+        # Composite declares 3 atoms; cat + sub also cover 3, but say so as 1 + 2 while the
+        # composite header claims a different total.
+        stale_composite = "2\n-1 2\nLi  0.0  0.0  0.0\nC   1.0  0.0  0.0\n"
+        with caplog.at_level(logging.WARNING):
+            result = build_fragmented_molecule(
+                stale_composite, _XYZ_CAT, _XYZ_SUB, _THREE_ATOM_OPT_OUTPUT, label="preTS_a-b"
+            )
+        assert result is not None  # still builds
+        assert "preTS_a-b" in caplog.text
+        assert "2" in caplog.text and "3" in caplog.text
 
 
 # ===================================================================

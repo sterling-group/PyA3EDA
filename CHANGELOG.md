@@ -37,6 +37,18 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **EDA single points silently dropped atoms.** When an optimised geometry held more
+  atoms than the catalyst/substrate templates declared — an OPT extended with explicit
+  solvent molecules, say — the fragment split trimmed the surplus without a word, so the
+  SP ran on a *different molecule* than the one that was optimised and returned
+  plausible-looking energies for it. A fragmented SP now takes its split from the
+  `$molecule` block echoed in the OPT output, so hand-extended optimisations carry through
+  without editing a single template; when that is unavailable the template split must match
+  the geometry exactly, and a disagreement is a logged error instead of a silent trim.
+  (Coordinates still come from the last `Standard Nuclear Orientation` — only the
+  fragmentation is read from the echoed block.)
+- A composite template whose atom count disagrees with its own catalyst + substrate
+  fragments now logs a warning naming the file, instead of passing unnoticed.
 - A catalyst **dimer** single point was built as a fragment-EDA calculation (it is
   a standalone molecule); it now builds correctly so the dissociation correction
   works.

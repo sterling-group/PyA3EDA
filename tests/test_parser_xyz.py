@@ -9,10 +9,11 @@ from pya3eda.parser.xyz import (
     XYZData,
     format_coord_line,
     format_xyz,
+    parse_output_fragments,
     parse_output_xyz,
     parse_xyz,
 )
-from tests.synthetic_outputs import OPT_OUTPUT, TS_OUTPUT
+from tests.synthetic_outputs import FRAGMENTED_OPT_OUTPUT, OPT_OUTPUT, TS_OUTPUT
 
 # ===================================================================
 # parse_xyz
@@ -198,3 +199,76 @@ class TestParseXYZEdgeCases:
         )
         result = parse_output_xyz(text)
         assert result is None
+
+
+# ===================================================================
+# parse_output_fragments
+# ===================================================================
+
+
+class TestParseOutputFragments:
+    """The echoed $molecule tells us how the optimisation split its atoms."""
+
+    def test_two_fragments(self) -> None:
+        layout = parse_output_fragments(FRAGMENTED_OPT_OUTPUT)
+        assert layout is not None
+        assert (layout.charge, layout.multiplicity) == (0, 1)
+        assert [(f.charge, f.multiplicity, f.n_atoms) for f in layout.fragments] == [
+            (1, 1, 1),
+            (-1, 1, 4),
+        ]
+
+    def test_anchors_to_the_first_block(self) -> None:
+        """A trailing Z-matrix Print $molecule must not be mistaken for the layout.
+
+        FRAGMENTED_OPT_OUTPUT ends with an unfragmented z-matrix block; picking that one
+        up would yield no fragments at all.
+        """
+        layout = parse_output_fragments(FRAGMENTED_OPT_OUTPUT)
+        assert layout is not None
+        assert len(layout.fragments) == 2
+
+    def test_no_molecule_block(self) -> None:
+        assert parse_output_fragments("just some output\n") is None
+
+    def test_unfragmented_molecule(self) -> None:
+        """No '---' separators → nothing to inherit."""
+        assert parse_output_fragments(OPT_OUTPUT) is None
+
+    def test_molecule_read(self) -> None:
+        assert parse_output_fragments("$molecule\nread\n$end\n") is None
+
+    def test_missing_total_charge_line(self) -> None:
+        text = "$molecule\n---\n0 1\nH  0.0  0.0  0.0\n$end\n"
+        assert parse_output_fragments(text) is None
+
+    def test_bad_total_charge_line(self) -> None:
+        text = "$molecule\nnot a charge\n---\n0 1\nH  0.0  0.0  0.0\n$end\n"
+        assert parse_output_fragments(text) is None
+
+    def test_empty_fragment(self) -> None:
+        text = "$molecule\n0 1\n---\n0 1\nH  0.0  0.0  0.0\n---\n\n$end\n"
+        assert parse_output_fragments(text) is None
+
+    def test_bad_fragment_header(self) -> None:
+        text = "$molecule\n0 1\n---\nHe is not a header\nH  0.0  0.0  0.0\n$end\n"
+        assert parse_output_fragments(text) is None
+
+    def test_three_fragments_are_parsed(self) -> None:
+        """Parsing is n-ary even though the builder only consumes two."""
+        text = (
+            "$molecule\n0 1\n"
+            "---\n1 1\nLi  0.0  0.0  0.0\n"
+            "---\n-1 1\nF   1.0  0.0  0.0\n"
+            "---\n0 1\nO   2.0  0.0  0.0\nH  3.0  0.0  0.0\n"
+            "$end\n"
+        )
+        layout = parse_output_fragments(text)
+        assert layout is not None
+        assert [f.n_atoms for f in layout.fragments] == [1, 1, 2]
+
+    def test_ghost_atoms_are_counted(self) -> None:
+        text = "$molecule\n0 1\n---\n0 1\n@He  0.0  0.0  0.0\nH  1.0  0.0  0.0\n$end\n"
+        layout = parse_output_fragments(text)
+        assert layout is not None
+        assert layout.fragments[0].n_atoms == 2

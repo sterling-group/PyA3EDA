@@ -31,6 +31,7 @@ import gen_logo as g
 
 
 def unit(tx, ty):
+    """Normalise a tangent vector; a zero-length one is a malformed anchor."""
     n = math.hypot(tx, ty)
     if n == 0:
         raise ValueError("zero tangent")
@@ -51,6 +52,7 @@ def segments(anchors):
 
 
 def sample(anchors, n=400):
+    """Flatten the anchor curve into a polyline of *n* points per segment."""
     pts = []
     for p0, c1, c2, p3 in segments(anchors):
         for i in range(n):
@@ -67,6 +69,7 @@ def sample(anchors, n=400):
 
 
 def y_at(pts, x):
+    """Height of the polyline at *x* by linear interpolation, or None if out of range."""
     for (x0, y0), (x1, y1) in pairwise(pts):
         if x0 <= x <= x1:
             f = 0 if x1 == x0 else (x - x0) / (x1 - x0)
@@ -75,6 +78,8 @@ def y_at(pts, x):
 
 
 def curvature(p0, c1, c2, p3, t):
+    """Signed curvature of one cubic at parameter *t* (infinite where speed is zero)."""
+
     def d1(a, b, c, d):
         return 3 * ((1 - t) ** 2 * (b - a) + 2 * (1 - t) * t * (c - b) + t**2 * (d - c))
 
@@ -88,6 +93,7 @@ def curvature(p0, c1, c2, p3, t):
 
 
 def main() -> int:
+    """Audit the logo's design constraints and curve maths; exit non-zero on any failure."""
     ok = True
 
     def fail(msg):
