@@ -8,7 +8,10 @@ so a new scheduler (PBS, cloud, …) is a new backend with no executor changes
 * :class:`LocalBackend` — runs the script via ``bash`` in the background
   (``Popen``), so many jobs run at once under the core budget; polled via
   ``Popen.poll``. Job IDs are synthetic ``local-N``.
-* :class:`SlurmBackend` — ``sbatch`` the script, poll with ``squeue``.
+* :class:`SlurmBackend` — ``sbatch`` the script, poll with ``squeue``. Each
+  submission is *acknowledgement-gated*: the next ``sbatch`` only fires once the
+  controller lists the previous job (see :meth:`SlurmBackend._confirm_queued`),
+  so a run is paced by SLURM's real responsiveness instead of a guessed sleep.
 
 ``sbatch_available()`` is the single SLURM-vs-local switch used by the ``auto``
 selection. Tests patch ``subprocess``/``Popen`` to avoid a live cluster.
@@ -25,6 +28,7 @@ import re
 import shutil
 import subprocess
 import time
+from enum import Enum, auto
 from pathlib import Path
 from typing import IO, Protocol
 
@@ -34,6 +38,15 @@ log = logging.getLogger(__name__)
 
 _JOB_ID_RE = re.compile(r"\b(\d+)\b")
 _LOCAL_PREFIX = "local-"
+_INVALID_JOB_RE = re.compile(r"invalid job id", re.IGNORECASE)
+
+
+class _QueueState(Enum):
+    """What ``squeue`` reports about one job id."""
+
+    PRESENT = auto()  # controller lists it (pending or running) → acknowledged
+    ABSENT = auto()  # controller answered but does not list it → already terminal
+    UNAVAILABLE = auto()  # squeue itself failed → no information, retry
 
 
 class JobSubmissionError(BackendError):
@@ -159,6 +172,10 @@ class SlurmBackend:
         squeue_cmd: str = "squeue",
         appear_grace_polls: int = 3,
         squeue_failure_timeout: float = 300.0,
+        confirm_submission: bool = True,
+        confirm_timeout: float = 60.0,
+        confirm_poll_interval: float = 0.25,
+        confirm_max_interval: float = 5.0,
     ) -> None:
         """Configure the ``sbatch`` / ``squeue`` commands (overridable for tests).
 
@@ -173,6 +190,11 @@ class SlurmBackend:
         window raises :class:`BackendError` rather than letting a waited run hang
         forever — a transient blip on a busy cluster resets the window on the next
         success, but a genuinely broken ``squeue`` fails loud.
+
+        *confirm_submission* gates each submission on SLURM acknowledging the
+        previous job (see :meth:`_confirm_queued`); *confirm_timeout* bounds that
+        wait, and *confirm_poll_interval* / *confirm_max_interval* are the first
+        and largest back-off steps between acknowledgement polls.
         """
         self.sbatch_cmd = sbatch_cmd
         self.squeue_cmd = squeue_cmd
@@ -181,13 +203,21 @@ class SlurmBackend:
         self._first_squeue_failure: float | None = None  # monotonic time of first failure
         self._seen: set[str] = set()  # job ids observed in squeue at least once
         self._awaiting: dict[str, int] = {}  # submitted, not yet seen → polls elapsed
+        self._confirm_submission = confirm_submission
+        self._confirm_timeout = confirm_timeout
+        self._confirm_poll_interval = confirm_poll_interval
+        self._confirm_max_interval = confirm_max_interval
 
     def available(self) -> bool:
         """Whether ``sbatch`` is on ``PATH``."""
         return sbatch_available(sbatch_cmd=self.sbatch_cmd)
 
     def submit(self, script_path: Path) -> str:
-        """``sbatch`` the script and return the parsed job ID."""
+        """``sbatch`` the script, wait for SLURM to acknowledge it, return the job ID.
+
+        The acknowledgement wait (:meth:`_confirm_queued`) is what keeps a run from
+        firing every ``sbatch`` back-to-back at a controller that may be struggling.
+        """
         try:
             result = subprocess.run(
                 [self.sbatch_cmd, str(script_path)],
@@ -206,14 +236,89 @@ class SlurmBackend:
         job_id = m.group(1)
         self._awaiting[job_id] = 0  # track until first observed in squeue (race guard)
         log.info("submitted %s as job %s", script_path, job_id)
+        self._confirm_queued(job_id)
         return job_id
+
+    def _confirm_queued(self, job_id: str) -> None:
+        """Block until SLURM acknowledges *job_id* before the caller submits the next.
+
+        ``sbatch`` returning an ID means slurmctld accepted the job, but on a
+        loaded controller it can be seconds before the job is actually visible in
+        the queue — and that is exactly when firing the next ``sbatch`` immediately
+        makes things worse. A fixed sleep cannot express that: short enough to be
+        cheap when the controller is healthy is too short when it is not. So poll
+        ``squeue -j`` with a backing-off interval instead — a responsive controller
+        confirms on the first query with no sleep at all, a lagging one is waited
+        out for precisely as long as it lags.
+
+        Never fatal: the job *is* already queued, so this gate is pacing, not
+        correctness. If the wait times out, or ``squeue`` is unusable, it is
+        disabled for the rest of the run (warned once) rather than charging the
+        same penalty to every remaining submission.
+        """
+        deadline = time.monotonic() + self._confirm_timeout
+        interval = self._confirm_poll_interval
+        while self._confirm_submission:
+            state = self._queue_state(job_id)
+            if not self._confirm_submission:
+                return  # squeue itself turned out to be unusable → stop polling
+            if state is _QueueState.PRESENT:
+                # Acknowledged: also settles the submit→poll race outright, so
+                # is_finished needs no appearance grace for this job.
+                self._seen.add(job_id)
+                self._awaiting.pop(job_id, None)
+                log.debug("job %s acknowledged by SLURM", job_id)
+                return
+            if state is _QueueState.ABSENT:
+                # Controller answered and does not list it → already terminal (a
+                # very short job) or a queue it cannot report on. Nothing to wait
+                # for; leave the appearance grace to is_finished either way.
+                log.debug("job %s not listed by squeue after submit; not waiting", job_id)
+                return
+            if time.monotonic() >= deadline:
+                self._disable_confirm(
+                    f"squeue did not acknowledge job {job_id} within {self._confirm_timeout:.0f}s"
+                )
+                return
+            time.sleep(interval)
+            interval = min(interval * 2, self._confirm_max_interval)
+
+    def _queue_state(self, job_id: str) -> _QueueState:
+        """Ask ``squeue`` about a single job id (cheaper than listing the whole queue)."""
+        try:
+            result = subprocess.run(
+                [self.squeue_cmd, "-h", "-j", job_id, "-o", "%i"],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+        except subprocess.CalledProcessError as exc:
+            # "Invalid job id" is an answer, not an outage: the controller knows
+            # nothing about the job, so it has already left the queue.
+            if _INVALID_JOB_RE.search(exc.stderr or ""):
+                return _QueueState.ABSENT
+            return _QueueState.UNAVAILABLE
+        except FileNotFoundError:
+            self._disable_confirm(f"{self.squeue_cmd} not found")
+            return _QueueState.UNAVAILABLE
+        ids = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+        if any(i == job_id or i.startswith(f"{job_id}_") for i in ids):
+            return _QueueState.PRESENT
+        return _QueueState.ABSENT
+
+    def _disable_confirm(self, reason: str) -> None:
+        """Turn the acknowledgement gate off for the rest of the run, warning once."""
+        if self._confirm_submission:
+            self._confirm_submission = False
+            log.warning("%s; submitting without acknowledgement gating from here on", reason)
 
     def is_finished(self, job_id: str) -> bool:
         """Return True once *job_id* is no longer running.
 
         A job is "finished" only after it has been *observed* in ``squeue`` and
-        then disappeared. A submitted-but-never-yet-seen job is held as running
-        for ``appear_grace_polls`` polls to absorb scheduler latency, so the
+        then disappeared — which, for jobs acknowledged at submit time, is already
+        the case before the first poll. A submitted-but-never-yet-seen job is held
+        as running for ``appear_grace_polls`` polls to absorb scheduler latency, so the
         throttler/pipeline does not free its cores (or build its SPs) before the
         job has even started. Jobs this backend never submitted fall back to the
         plain "absent ⇒ finished" rule.

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import subprocess
 import time
 from pathlib import Path
@@ -147,7 +148,7 @@ class TestSlurmBackend:
         script.write_text("#!/bin/bash\n")
         result = MagicMock(stdout="Submitted batch job 12345\n")
         with patch("pya3eda.runner.backend.subprocess.run", return_value=result) as run:
-            job_id = SlurmBackend().submit(script)
+            job_id = SlurmBackend(confirm_submission=False).submit(script)
         assert job_id == "12345"
         assert run.call_args.kwargs["cwd"] == script.parent
 
@@ -253,6 +254,159 @@ class TestSlurmBackend:
             return_value=MagicMock(stdout="JOBID\n"),
         ):
             assert be.is_finished(jid) is True  # was seen, now gone → finished
+
+
+# ===================================================================
+# SLURM submission acknowledgement gate
+# ===================================================================
+
+
+class _FakeSlurm:
+    """``subprocess.run`` stand-in: ``sbatch`` returns an id, ``squeue`` reads a script.
+
+    Each *squeue_replies* entry is either stdout to return or an exception to
+    raise; the last entry repeats once the script is exhausted.
+    """
+
+    def __init__(self, *squeue_replies: str | Exception, job_id: str = "777") -> None:
+        self.job_id = job_id
+        self.squeue_replies = list(squeue_replies) or [""]
+        self.squeue_calls: list[list[str]] = []
+
+    def __call__(self, cmd: list[str], **kwargs: object) -> MagicMock:
+        if cmd[0] == "sbatch":
+            return MagicMock(stdout=f"Submitted batch job {self.job_id}\n")
+        self.squeue_calls.append(cmd)
+        idx = min(len(self.squeue_calls) - 1, len(self.squeue_replies) - 1)
+        reply = self.squeue_replies[idx]
+        if isinstance(reply, Exception):
+            raise reply
+        return MagicMock(stdout=reply)
+
+
+def _squeue_down() -> subprocess.CalledProcessError:
+    return subprocess.CalledProcessError(
+        1, "squeue", stderr="slurm_load_jobs error: Socket timed out"
+    )
+
+
+def _invalid_job() -> subprocess.CalledProcessError:
+    return subprocess.CalledProcessError(
+        1, "squeue", stderr="slurm_load_jobs error: Invalid job id specified"
+    )
+
+
+class TestSlurmSubmitConfirmation:
+    """submit() waits for SLURM to acknowledge each job before returning."""
+
+    def _submit(
+        self, tmp_path: Path, fake: _FakeSlurm, sleeps: list[float], **kw: float
+    ) -> tuple[SlurmBackend, str]:
+        script = tmp_path / "job.slurm"
+        script.write_text("#!/bin/bash\n")
+        be = SlurmBackend(**kw)
+        with (
+            patch("pya3eda.runner.backend.subprocess.run", side_effect=fake),
+            patch("pya3eda.runner.backend.time.sleep", side_effect=sleeps.append),
+        ):
+            return be, be.submit(script)
+
+    def test_acknowledged_on_first_poll_never_sleeps(self, tmp_path: Path) -> None:
+        """A responsive controller costs one squeue call and no wait at all."""
+        fake = _FakeSlurm("777\n")
+        sleeps: list[float] = []
+        _, jid = self._submit(tmp_path, fake, sleeps)
+        assert jid == "777"
+        assert len(fake.squeue_calls) == 1
+        assert fake.squeue_calls[0][:4] == ["squeue", "-h", "-j", "777"]
+        assert sleeps == []
+
+    def test_waits_out_a_lagging_controller(self, tmp_path: Path) -> None:
+        """squeue erroring is retried with a backing-off interval, not a fixed sleep."""
+        fake = _FakeSlurm(_squeue_down(), _squeue_down(), "777\n")
+        sleeps: list[float] = []
+        self._submit(tmp_path, fake, sleeps, confirm_poll_interval=0.25)
+        assert len(fake.squeue_calls) == 3
+        assert sleeps == [0.25, 0.5]  # doubling until acknowledged
+
+    def test_backoff_is_capped(self, tmp_path: Path) -> None:
+        fake = _FakeSlurm(*[_squeue_down()] * 5, "777\n")
+        sleeps: list[float] = []
+        self._submit(tmp_path, fake, sleeps, confirm_poll_interval=1.0, confirm_max_interval=2.0)
+        assert sleeps == [1.0, 2.0, 2.0, 2.0, 2.0]
+
+    def test_absent_job_does_not_wait(self, tmp_path: Path) -> None:
+        """squeue answering without the job (already terminal) ends the wait at once."""
+        fake = _FakeSlurm("")
+        sleeps: list[float] = []
+        be, jid = self._submit(tmp_path, fake, sleeps)
+        assert len(fake.squeue_calls) == 1
+        assert sleeps == []
+        assert jid in be._awaiting  # ambiguous → keep the is_finished grace window
+
+    def test_invalid_job_id_is_an_answer_not_an_outage(self, tmp_path: Path) -> None:
+        fake = _FakeSlurm(_invalid_job())
+        sleeps: list[float] = []
+        self._submit(tmp_path, fake, sleeps)
+        assert len(fake.squeue_calls) == 1
+        assert sleeps == []
+
+    def test_timeout_disables_the_gate_for_the_rest_of_the_run(self, tmp_path: Path) -> None:
+        """One slow confirmation must not tax every remaining submission."""
+        script = tmp_path / "job.slurm"
+        script.write_text("#!/bin/bash\n")
+        fake = _FakeSlurm(_squeue_down())
+        be = SlurmBackend(confirm_timeout=0.0)
+        with (
+            patch("pya3eda.runner.backend.subprocess.run", side_effect=fake),
+            patch("pya3eda.runner.backend.time.sleep"),
+        ):
+            be.submit(script)
+            assert len(fake.squeue_calls) == 1
+            be.submit(script)
+        assert len(fake.squeue_calls) == 1  # gate off → no further confirmation polls
+
+    def test_missing_squeue_disables_the_gate_immediately(self, tmp_path: Path) -> None:
+        script = tmp_path / "job.slurm"
+        script.write_text("#!/bin/bash\n")
+
+        def run(cmd: list[str], **kwargs: object) -> MagicMock:
+            if cmd[0] == "sbatch":
+                return MagicMock(stdout="Submitted batch job 777\n")
+            raise FileNotFoundError(cmd[0])
+
+        be = SlurmBackend()
+        with (
+            patch("pya3eda.runner.backend.subprocess.run", side_effect=run),
+            patch("pya3eda.runner.backend.time.sleep") as sleep,
+        ):
+            assert be.submit(script) == "777"
+            assert be.submit(script) == "777"
+        assert sleep.call_count == 0
+        assert be._confirm_submission is False
+
+    def test_the_gate_reports_itself_off_only_once(self, caplog: pytest.LogCaptureFixture) -> None:
+        """Disabling is idempotent: one warning per run, not one per failed submission."""
+        be = SlurmBackend()
+        with caplog.at_level(logging.WARNING):
+            be._disable_confirm("squeue did not acknowledge job 777 within 60s")
+            be._disable_confirm("squeue not found")
+        assert be._confirm_submission is False
+        assert len(caplog.records) == 1
+
+    def test_acknowledged_job_needs_no_appearance_grace(self, tmp_path: Path) -> None:
+        """Confirming at submit time settles the submit→poll race outright."""
+        fake = _FakeSlurm("777\n", "JOBID\n")  # acknowledged, then gone from squeue
+        sleeps: list[float] = []
+        be, jid = self._submit(tmp_path, fake, sleeps)
+        with patch("pya3eda.runner.backend.subprocess.run", side_effect=fake):
+            assert be.is_finished(jid) is True  # no grace polls burned first
+
+    def test_disabled_gate_skips_confirmation(self, tmp_path: Path) -> None:
+        fake = _FakeSlurm("777\n")
+        sleeps: list[float] = []
+        self._submit(tmp_path, fake, sleeps, confirm_submission=False)
+        assert fake.squeue_calls == []
 
 
 def test_backends_registry() -> None:

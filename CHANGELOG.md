@@ -21,6 +21,12 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **SLURM submissions are acknowledgement-gated**: each `sbatch` now waits for the
+  controller to list the job in `squeue` before the next one fires, so a large run
+  is paced by the scheduler's real responsiveness instead of hammering it (or
+  guessing at a fixed sleep). Costs one `squeue -j` call and no wait when the
+  controller is healthy; a stalled or unusable `squeue` disables the gate for the
+  rest of the run with a warning rather than slowing every submission.
 - **CLI startup ~2× faster** (`--version`/`--help` ≈ 0.24 s → ≈ 0.11 s) via a lazy
   `__version__` and deferred heavy imports.
 - `ClusterConfigError` now belongs to the `PyA3EDAError` hierarchy, so a bad
