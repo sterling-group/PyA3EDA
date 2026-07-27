@@ -90,6 +90,60 @@ Running on host compute01
 
 
 # ===================================================================
+# Fragmented OPT output — 2-fragment EDA complex, 5 atoms
+#
+# Mirrors the shape that matters for SP building: the echoed $molecule
+# declares the fragmentation (1 + 4) at the *starting* geometry, while the
+# optimised coordinates live in the last Standard Nuclear Orientation.  The
+# two carry deliberately different values (9.999… vs 0.x) so a test can prove
+# which block a coordinate came from, and a trailing Z-matrix Print $molecule
+# stands in as a decoy for the first-block anchoring.
+# ===================================================================
+
+FRAGMENTED_OPT_OUTPUT = """\
+Running on host compute01
+ $molecule
+ 0 1
+ ---
+ 1 1
+ Li  9.9990000000   9.9990000000   9.9990000000
+ ---
+ -1 1
+ C   9.9990000000   1.0000000000   0.0000000000
+ O   9.9990000000   2.0000000000   0.0000000000
+ O   9.9990000000   3.0000000000   0.0000000000
+ H   9.9990000000   4.0000000000   0.0000000000
+ $end
+
+ Standard Nuclear Orientation (Angstroms)
+    I     Atom           X            Y            Z
+ ----------------------------------------------------------------
+    1      Li      0.1000000000    0.0000000000    0.0000000000
+    2      C       0.2000000000    0.0000000000    0.0000000000
+    3      O       0.3000000000    0.0000000000    0.0000000000
+    4      O       0.4000000000    0.0000000000    0.0000000000
+    5      H       0.5000000000    0.0000000000    0.0000000000
+ ----------------------------------------------------------------
+
+ Final energy is -191.709724458668
+
+        ******************************
+        **  OPTIMIZATION CONVERGED  **
+        ******************************
+
+ Z-matrix Print:
+ $molecule
+ 0 1
+ Li
+ C  1 1.264931
+ O  2 1.349998 1 119.933665
+ O  3 1.433549 2 116.001013 1 20.350182 0
+ H  4 1.085817 3 105.958864 2 166.584570 0
+ $end
+"""
+
+
+# ===================================================================
 # TS output — transition state (1 imaginary frequency)
 # ===================================================================
 

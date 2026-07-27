@@ -120,6 +120,7 @@ def spath(anchors) -> str:
 
 
 def profiles(ink=INK, blue=BLUE, red=RED, sw_black=12.5, sw_other=10.5) -> str:
+    """The three reaction-profile curves as `<path>` elements, uncatalysed drawn last."""
     # black is drawn LAST: at true strokes the tails no longer touch, but
     # the stroke-boosted favicon merges them and black must sit on top
     stroke = 'fill="none" stroke-linecap="round"'
@@ -144,6 +145,7 @@ LS = "-0.016em"
 
 
 def _wordmark_text(x, y, size, ink, blue) -> str:
+    """The "PyA3EDA" wordmark as a `<text>` element, still live text."""
     return (
         f'<text x="{x:.2f}" y="{y:.2f}" font-family="{FONT}" '
         f'font-weight="{FONT_WEIGHT}" '
@@ -190,6 +192,7 @@ def fit_wordmark(wd: Path):
 
 
 def lockup_svg(fit, ink=INK, blue=BLUE) -> str:
+    """The full curves-over-wordmark lockup for the *fit* returned by fit_wordmark()."""
     x, baseline, size, height = fit
     width = math.ceil(CURVE_RIGHT + CURVE_LEFT)  # symmetric side margins
     return (
@@ -218,6 +221,7 @@ def icon_svg(ink=INK, blue=BLUE, red=RED, boost=False) -> str:
 
 
 def text_to_path(src: Path, dst: Path) -> None:
+    """Flatten *src*'s live text to outlines via inkscape, so the SVG needs no font."""
     subprocess.run(
         ["inkscape", str(src), "--export-text-to-path", "--export-plain-svg", "-o", str(dst)],
         check=True,
@@ -228,6 +232,7 @@ def text_to_path(src: Path, dst: Path) -> None:
 
 
 def export_png(svg: Path, png: Path, size: int) -> None:
+    """Rasterise *svg* to a square *size*-pixel PNG via inkscape."""
     subprocess.run(
         ["inkscape", str(svg), "-w", str(size), "-h", str(size), "-o", str(png)],
         check=True,
@@ -238,6 +243,7 @@ def export_png(svg: Path, png: Path, size: int) -> None:
 
 
 def main() -> int:
+    """Regenerate the whole brand kit into docs/assets/; exit non-zero if inkscape is absent."""
     if shutil.which("inkscape") is None:
         print("error: inkscape is required (text->path, PNG export)")
         return 1

@@ -264,7 +264,9 @@ def _build_fragmented(
     if cat_text is None or sub_text is None:
         return None
 
-    mol = build_fragmented_molecule(composite_text, cat_text, sub_text, opt_output_text)
+    mol = build_fragmented_molecule(
+        composite_text, cat_text, sub_text, opt_output_text, label=template_name
+    )
     if mol is None:
         return None
     return mol, data.n_atoms

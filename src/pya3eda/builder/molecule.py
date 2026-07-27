@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from pya3eda.parser.xyz import XYZData, parse_output_xyz, parse_xyz
+from pya3eda.parser.xyz import XYZData, parse_output_fragments, parse_output_xyz, parse_xyz
 from pya3eda.utils import read_text
 
 log = logging.getLogger(__name__)
@@ -46,14 +46,18 @@ def _format_fragmented(
     )
 
 
-def _coords_from_output(output_text: str | None, template: XYZData) -> list[str]:
-    """Return optimised coordinates from output, falling back to template."""
+def _coords_from_output(output_text: str | None, template: XYZData) -> tuple[list[str], bool]:
+    """Return optimised coordinates from output, falling back to template.
+
+    The flag reports whether the coordinates actually came from the output, since only then
+    is that output's echoed fragmentation relevant.
+    """
     if output_text:
         data = parse_output_xyz(output_text)
         if data:
-            return data.atoms
+            return data.atoms, True
         log.warning("Failed to parse output; falling back to template coordinates")
-    return template.atoms
+    return template.atoms, False
 
 
 def _load_xyz(templates_dir: Path, name: str, calc_type: str | None = None) -> str | None:
@@ -94,7 +98,7 @@ def build_standard_molecule(
         log.error("Failed to parse XYZ template")
         return None
 
-    atoms = _coords_from_output(output_text, template)
+    atoms, _ = _coords_from_output(output_text, template)
     return _format_standard(template.charge, template.multiplicity, atoms)
 
 
@@ -103,8 +107,17 @@ def build_fragmented_molecule(
     catalyst_xyz_text: str,
     substrate_xyz_text: str,
     output_text: str | None = None,
+    label: str = "<templates>",
 ) -> str | None:
     """Build a fragmented (EDA) molecule section.
+
+    In SP mode the atom count is dictated by the optimised geometry, not by the templates:
+    an SP must describe the same molecule its OPT actually computed.  The fragmentation is
+    therefore taken from the ``$molecule`` block echoed in *output_text* when that block
+    accounts for every optimised atom, which lets a hand-extended OPT (explicit solvent
+    molecules, say) carry through without editing any template.  Failing that, the template
+    split is used and must match the geometry **exactly** — a template that disagrees is an
+    error, never a silent trim.
 
     Parameters
     ----------
@@ -116,6 +129,8 @@ def build_fragmented_molecule(
         XYZ for the substrate fragment alone.
     output_text : str | None
         If given, optimised coordinates replace the template atoms (SP mode).
+    label : str
+        Template name used in diagnostics.
     """
     composite = parse_xyz(composite_xyz_text)
     catalyst = parse_xyz(catalyst_xyz_text)
@@ -126,26 +141,56 @@ def build_fragmented_molecule(
         return None
 
     total_expected = catalyst.n_atoms + substrate.n_atoms
-    atoms = _coords_from_output(output_text, composite)
-
-    if len(atoms) < total_expected:
-        log.error(
-            "Insufficient atoms for fragmented molecule: expected %d, got %d",
+    if composite.n_atoms != total_expected:
+        log.warning(
+            "Template %s declares %d atoms but its fragments sum to %d "
+            "(catalyst %d + substrate %d) — the fragment files are what split the geometry",
+            label,
+            composite.n_atoms,
             total_expected,
+            catalyst.n_atoms,
+            substrate.n_atoms,
+        )
+
+    atoms, from_output = _coords_from_output(output_text, composite)
+
+    # Prefer the fragmentation the optimisation itself ran with; fall back to the templates.
+    layout = parse_output_fragments(output_text) if from_output and output_text else None
+    if layout is not None and len(layout.fragments) == 2:
+        cat_frag, sub_frag = layout.fragments
+        if cat_frag.n_atoms + sub_frag.n_atoms == len(atoms):
+            return _format_fragmented(
+                layout.charge,
+                layout.multiplicity,
+                cat_frag.charge,
+                cat_frag.multiplicity,
+                atoms[: cat_frag.n_atoms],
+                sub_frag.charge,
+                sub_frag.multiplicity,
+                atoms[cat_frag.n_atoms :],
+            )
+
+    if len(atoms) != total_expected:
+        log.error(
+            "Atom-count mismatch building %s: geometry has %d atoms but the templates "
+            "declare %d (catalyst %d + substrate %d). Refusing to write a truncated "
+            "$molecule — update the templates to cover every atom, or re-run the OPT so its "
+            "output carries an explicit two-fragment $molecule to inherit the split from",
+            label,
             len(atoms),
+            total_expected,
+            catalyst.n_atoms,
+            substrate.n_atoms,
         )
         return None
-
-    cat_atoms = atoms[: catalyst.n_atoms]
-    sub_atoms = atoms[catalyst.n_atoms : catalyst.n_atoms + substrate.n_atoms]
 
     return _format_fragmented(
         composite.charge,
         composite.multiplicity,
         catalyst.charge,
         catalyst.multiplicity,
-        cat_atoms,
+        atoms[: catalyst.n_atoms],
         substrate.charge,
         substrate.multiplicity,
-        sub_atoms,
+        atoms[catalyst.n_atoms :],
     )

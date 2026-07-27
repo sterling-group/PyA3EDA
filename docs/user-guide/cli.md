@@ -31,6 +31,28 @@ pya3eda build config.yaml [--overwrite MODE] [--sp-strategy STRATEGY] [--templat
 | `--sp-strategy`   | `smart`   | `always` / `smart` / `never` — when to generate single-point inputs |
 | `--template-dir`  | `templates` | Path to template directory               |
 
+!!! note "How a single point inherits its geometry"
+
+    An SP input describes the molecule its optimisation actually computed. Coordinates are
+    the optimised ones (the last `Standard Nuclear Orientation` in the OPT output), and for
+    a fragmented EDA calculation the **fragment split is read from the `$molecule` block
+    echoed at the top of that same output** — its atom counts, charges and multiplicities.
+
+    This means an OPT you extended by hand — adding explicit solvent molecules, for
+    instance — carries straight through to its SP without touching any template. If that
+    echoed block cannot be used, the catalyst + substrate templates supply the split
+    instead and must account for **every** atom in the optimised geometry: a template that
+    disagrees is a logged error and the SP is skipped, never quietly trimmed to fit.
+
+    A composite template whose own atom count disagrees with its catalyst + substrate
+    fragments is reported as a warning — the fragment files are what split the geometry.
+
+!!! warning "`--overwrite all` regenerates *every* input"
+
+    Including OPT inputs you edited by hand. Prefer the default (skip existing) or a
+    status-scoped value like `--overwrite CRASH` when a directory contains hand-edited
+    geometries.
+
 ---
 
 ## `run` — Submit Calculations

@@ -19,6 +19,22 @@ class XYZData(NamedTuple):
     atoms: list[str]  # formatted "Element   x   y   z" lines
 
 
+class Fragment(NamedTuple):
+    """One fragment of a fragmented ``$molecule`` block — size and state, no coordinates."""
+
+    charge: int
+    multiplicity: int
+    n_atoms: int
+
+
+class MoleculeLayout(NamedTuple):
+    """How a fragmented ``$molecule`` block divides its atoms between fragments."""
+
+    charge: int
+    multiplicity: int
+    fragments: list[Fragment]
+
+
 # ---------------------------------------------------------------------------
 # Formatting
 # ---------------------------------------------------------------------------
@@ -88,6 +104,77 @@ _MOLECULE_RE = re.compile(
     r"\$molecule\s*\n\s*([+-]?\d+)\s+(\d+)",
     re.MULTILINE,
 )
+
+_MOLECULE_BLOCK_RE = re.compile(r"\$molecule\s*\n(.*?)\$end", re.DOTALL | re.IGNORECASE)
+
+_CHARGE_MULT_RE = re.compile(r"^\s*([+-]?\d+)\s+(\d+)\s*$")
+
+# "Element x y z", tolerating a ghost-atom "@" prefix and isotope digits.
+_XYZ_ATOM_RE = re.compile(
+    r"^\s*@?[A-Za-z]{1,3}\d*" + r"".join([r"\s+[-+]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?"] * 3) + r"\s*$"
+)
+
+
+def parse_output_fragments(text: str) -> MoleculeLayout | None:
+    """Read the fragment layout from the ``$molecule`` block echoed in a Q-Chem output.
+
+    Returns the total charge/multiplicity plus one :class:`Fragment` per ``---``-separated
+    block — sizes and charge states only, deliberately **never coordinates**.  Optimised
+    coordinates come from the last ``Standard Nuclear Orientation`` block instead (see
+    :func:`parse_output_xyz`); the echoed block holds the *starting* geometry, and only its
+    fragmentation — invariant across an optimisation — is of interest here.
+
+    ``None`` means "no usable layout, fall back to templates": no ``$molecule`` block, no
+    ``---`` separators (an unfragmented or z-matrix molecule, or ``$molecule read``), or a
+    fragment header that is not ``charge multiplicity``.
+
+    Anchored to the *first* block on purpose: an optimisation echoes its input near the top,
+    then may print a trailing ``Z-matrix Print:`` ``$molecule`` in internal coordinates that
+    carries no fragment structure at all.
+    """
+    m = _MOLECULE_BLOCK_RE.search(text)
+    if m is None:
+        return None
+
+    # Split the block on its "---" fragment separators.
+    segments: list[list[str]] = [[]]
+    for line in m.group(1).splitlines():
+        if line.strip() == "---":
+            segments.append([])
+        else:
+            segments[-1].append(line)
+
+    if len(segments) < 2:
+        return None  # no separators → not a fragmented molecule
+
+    total_lines = [ln for ln in segments[0] if ln.strip()]
+    if not total_lines:
+        return None
+    total = _CHARGE_MULT_RE.match(total_lines[0])
+    if total is None:
+        return None
+
+    fragments: list[Fragment] = []
+    for segment in segments[1:]:
+        lines = [ln for ln in segment if ln.strip()]
+        if not lines:
+            return None
+        head = _CHARGE_MULT_RE.match(lines[0])
+        if head is None:
+            return None
+        fragments.append(
+            Fragment(
+                charge=int(head.group(1)),
+                multiplicity=int(head.group(2)),
+                n_atoms=sum(1 for ln in lines[1:] if _XYZ_ATOM_RE.match(ln)),
+            )
+        )
+
+    return MoleculeLayout(
+        charge=int(total.group(1)),
+        multiplicity=int(total.group(2)),
+        fragments=fragments,
+    )
 
 
 def parse_output_xyz(text: str) -> XYZData | None:
