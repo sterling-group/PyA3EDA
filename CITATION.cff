@@ -1,0 +1,54 @@
+# Citation metadata for PyA3EDA (Citation File Format 1.2.0).
+# GitHub renders this as the repository's "Cite this repository" button, and
+# Zenodo reads a subset of it when archiving a GitHub Release.  Keep it free of
+# a `.zenodo.json` sibling: when both exist, Zenodo ignores this file entirely.
+cff-version: 1.2.0
+message: "If you use PyA3EDA in your research, please cite it using the metadata below."
+title: "PyA3EDA: Python automation for Asymmetrically-constrained Adiabatic ALMO-EDA (A3EDA)"
+abstract: >-
+  PyA3EDA automates the full computational workflow for
+  Asymmetrically-constrained Adiabatic ALMO-EDA (A3EDA) calculations in Q-Chem.
+  A3EDA decomposes catalytic barriers into physically meaningful contributions —
+  frozen-density (FRZ), polarisation (POL), and charge-transfer (CT) on the
+  electronic-energy surface, plus an additional confinement (NI) term on the
+  Gibbs-energy surface — revealing how a catalyst lowers or raises a reaction
+  barrier.  A single YAML file drives input generation, local or SLURM
+  execution, status tracking, extraction, and publication-ready plots.
+type: software
+authors:
+  - given-names: "Markus G. S."
+    family-names: Weiss
+    email: markus.guenter.weiss@rwth-aachen.de
+    # CFF 1.2.0 allows one affiliation string per author; joint appointments
+    # are conventionally written as a single semicolon-separated value.
+    affiliation: "RWTH Aachen University; The University of Texas at Dallas"
+    # orcid: "https://orcid.org/0000-0000-0000-0000"
+# Bump `version` and `date-released` in the same commit that bumps
+# pyproject.toml, so the archived Zenodo record matches the released package.
+version: 0.1.0
+date-released: "2026-09-13"
+license: GPL-3.0-or-later
+repository-code: "https://github.com/sterling-group/PyA3EDA"
+url: "https://sterling-group.github.io/PyA3EDA/"
+keywords:
+  - computational chemistry
+  - quantum chemistry
+  - energy decomposition analysis
+  - ALMO-EDA
+  - Q-Chem
+  - catalysis
+  - automation
+  - HPC
+# Uncomment after the first Zenodo-archived release.  `doi` below must be the
+# *concept* DOI (the "all versions" DOI on the Zenodo record sidebar): it is
+# minted once and always resolves to the latest release, so it never needs
+# touching again.  The version DOI changes every release and is listed
+# separately under `identifiers`.
+# doi: 10.5281/zenodo.XXXXXXX
+# identifiers:
+#   - type: doi
+#     value: 10.5281/zenodo.XXXXXXX
+#     description: "Concept DOI — always resolves to the latest PyA3EDA release."
+#   - type: doi
+#     value: 10.5281/zenodo.YYYYYYY
+#     description: "Version DOI for PyA3EDA v0.1.0."
