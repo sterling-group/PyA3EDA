@@ -65,9 +65,11 @@ When `dimer: true`, PyA3EDA enumerates a `dimer` stage **alongside `cat`** at
 `<method_key>/<catalyst>/dimer/` — built, run, and extracted by the normal
 `build`/`run`/`extract` like any other calculation. It needs an initial geometry
 template `templates/molecule/<catalyst>-dimer.xyz`. The barplot then gains a
-leading **DISS** term (`correction = 2·E_cat − E_dimer`) so `FULL` includes the
-cost of freeing one active monomer from the dimer. Catalysts without the flag are
-untouched.
+leading **DISS** term (`correction = max(2·E_cat − E_dimer, 0)`) so `FULL`
+includes the cost of freeing one active monomer from the dimer. The term is
+floored at zero: a dimer that is unbound relative to two monomers has no
+dissociation cost, so it shows a zero bar instead of lowering the barrier.
+Catalysts without the flag are untouched.
 
 ### `reactants` and `products`
 

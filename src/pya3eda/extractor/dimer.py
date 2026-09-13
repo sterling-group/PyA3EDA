@@ -4,12 +4,16 @@ A catalyst declared ``dimer: true`` has a dimer resting state; freeing one activ
 monomer costs the dimer dissociation energy (the second monomer is a spectator).
 The net per-(catalyst, surface) shift is::
 
-    correction = 2 * X_cat - X_dimer
+    correction = max(2 * X_cat - X_dimer, 0)
 
 added as a leading **DISS** contribution (:attr:`DeltaDeltaData.dd_dissoc`) so
-``FULL`` grows by it. The dimer is a normal ``dimer``-stage calculation in the
-tree, so both ``X_cat`` (monomer) and ``X_dimer`` come from the standard
-extraction — nothing here parses files.
+``FULL`` grows by it. The floor at zero matters: a dimer that is *unbound*
+relative to two monomers has no dissociation cost (the resting state is then the
+monomer), so it contributes a zero bar instead of lowering the barrier.
+
+The dimer is a normal ``dimer``-stage calculation in the tree, so both ``X_cat``
+(monomer) and ``X_dimer`` come from the standard extraction — nothing here parses
+files.
 """
 
 from __future__ import annotations
@@ -99,7 +103,11 @@ def apply_dimer_corrections(
             out.append(dd)
             continue
 
-        corr = 2.0 * x_cat - x_dimer
+        # A dimer that is unbound relative to two monomers costs nothing to free:
+        # the resting state is then the monomer already, so the penalty floors at
+        # zero instead of crediting the barrier with a negative DISS term.
+        raw = 2.0 * x_cat - x_dimer
+        corr = max(raw, 0.0)
         barrier_full = dd.barrier_full + corr if dd.barrier_full is not None else None
         out.append(
             dd.model_copy(
@@ -111,11 +119,12 @@ def apply_dimer_corrections(
             )
         )
         log.info(
-            "Dimer correction %s/%s %s: %+.3f kcal/mol",
+            "Dimer correction %s/%s %s: %+.3f kcal/mol%s",
             dd.method_key,
             cat_s,
             dd.energy_type,
             corr,
+            "" if corr == raw else f" (floored from {raw:+.3f} — dimer unbound)",
         )
 
     if errors:
