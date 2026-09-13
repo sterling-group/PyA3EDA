@@ -116,6 +116,23 @@ def test_e_correction_uses_electronic_energy() -> None:
     assert out[0].barrier_full == pytest.approx(40.0 + corr)
 
 
+def test_negative_correction_floors_to_zero(caplog: pytest.LogCaptureFixture) -> None:
+    """An unbound dimer costs nothing to dissociate — it must not credit the barrier."""
+    extracted = {
+        _cid("cat", "lip"): ExtractedData(calc_id=_cid("cat", "lip"), energy=-100.0),
+        _cid("dimer", "lip-dimer"): ExtractedData(
+            calc_id=_cid("dimer", "lip-dimer"), energy=-195.0
+        ),
+    }
+    dd = _dd("E", dd_complete=-10.0, barrier_full=40.0)
+    with caplog.at_level(logging.INFO):
+        out = apply_dimer_corrections([dd], _reg({"lip"}), extracted)
+    assert out[0].dd_dissoc == 0.0  # raw 2*-100 - -195 = -5
+    assert out[0].dd_complete == pytest.approx(-10.0)
+    assert out[0].barrier_full == pytest.approx(40.0)
+    assert "floored from -5.000" in caplog.text
+
+
 def test_e_correction_falls_back_to_sp_energy() -> None:
     extracted = {
         _cid("cat", "lip"): ExtractedData(calc_id=_cid("cat", "lip"), sp_energy=-100.0),

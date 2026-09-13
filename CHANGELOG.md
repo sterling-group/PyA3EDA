@@ -67,6 +67,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - A catalyst **dimer** single point was built as a fragment-EDA calculation (it is
   a standalone molecule); it now builds correctly so the dissociation correction
   works.
+- A **negative dimer dissociation** (a dimer unbound relative to two monomers)
+  was added to `FULL`/ΔΔ‡ as a *credit*, lowering the barrier. The **DISS** term
+  is now floored at zero — `max(2·E_cat − E_dimer, 0)` — so such a dimer shows a
+  zero bar and leaves the totals untouched; the raw value is still logged.
 - **SLURM** robustness: a just-submitted job no longer reads as "finished" before
   it appears in `squeue` (submit→poll race), and a persistently failing `squeue`
   now fails loudly instead of hanging a waited run forever.
