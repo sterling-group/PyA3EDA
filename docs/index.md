@@ -50,15 +50,27 @@ configuration file.
 
 ## Citing PyA3EDA
 
-If you use PyA3EDA in your research, please cite:
+If you use PyA3EDA in your research, please cite both the method and the
+software release you ran.
 
-!!! quote "Reference"
+!!! quote "Method"
 
     M. G. S. Weiss, A. J. Sterling,
     *Asymmetrically-constrained Adiabatic ALMO-EDA for Catalytic Barrier Decomposition*,
     manuscript in preparation (2026).
 
     DOI to be added upon publication.
+
+!!! quote "Software"
+
+    M. G. S. Weiss, *PyA3EDA: Python automation for Asymmetrically-constrained
+    Adiabatic ALMO-EDA (A3EDA)*, Zenodo.
+    [10.5281/zenodo.22738497](https://doi.org/10.5281/zenodo.22738497)
+
+    This is the *concept* DOI: it always resolves to the latest release. To cite
+    the exact version you ran, use the version DOI shown on that release's
+    Zenodo record. Ready-made metadata for reference managers is in
+    [`CITATION.cff`](https://github.com/sterling-group/PyA3EDA/blob/main/CITATION.cff).
 
 ## Key Features
 
