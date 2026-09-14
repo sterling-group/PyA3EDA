@@ -22,11 +22,11 @@ authors:
     # CFF 1.2.0 allows one affiliation string per author; joint appointments
     # are conventionally written as a single semicolon-separated value.
     affiliation: "RWTH Aachen University; The University of Texas at Dallas"
-    # orcid: "https://orcid.org/0000-0000-0000-0000"
+    orcid: "https://orcid.org/0009-0002-2682-262X"
 # Bump `version` and `date-released` in the same commit that bumps
 # pyproject.toml, so the archived Zenodo record matches the released package.
 version: 0.1.0
-date-released: "2026-09-13"
+date-released: "2026-09-14"
 license: GPL-3.0-or-later
 repository-code: "https://github.com/sterling-group/PyA3EDA"
 url: "https://sterling-group.github.io/PyA3EDA/"
@@ -39,16 +39,15 @@ keywords:
   - catalysis
   - automation
   - HPC
-# Uncomment after the first Zenodo-archived release.  `doi` below must be the
-# *concept* DOI (the "all versions" DOI on the Zenodo record sidebar): it is
-# minted once and always resolves to the latest release, so it never needs
-# touching again.  The version DOI changes every release and is listed
-# separately under `identifiers`.
-# doi: 10.5281/zenodo.XXXXXXX
-# identifiers:
-#   - type: doi
-#     value: 10.5281/zenodo.XXXXXXX
-#     description: "Concept DOI — always resolves to the latest PyA3EDA release."
-#   - type: doi
-#     value: 10.5281/zenodo.YYYYYYY
-#     description: "Version DOI for PyA3EDA v0.1.0."
+# The *concept* DOI: minted once, always resolves to the latest release, so it
+# never needs touching again.  Version DOIs change every release and are listed
+# under `identifiers` as they are archived.
+doi: 10.5281/zenodo.22738497
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.22738497
+    description: "Concept DOI — always resolves to the latest PyA3EDA release."
+  # Add the v0.1.0 version DOI here once that release is archived on Zenodo.
+  # - type: doi
+  #   value: 10.5281/zenodo.XXXXXXX
+  #   description: "Version DOI for PyA3EDA v0.1.0."

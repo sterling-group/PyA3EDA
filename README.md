@@ -12,6 +12,7 @@
 [![CI](https://github.com/sterling-group/PyA3EDA/actions/workflows/ci.yml/badge.svg)](https://github.com/sterling-group/PyA3EDA/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/sterling-group/PyA3EDA/actions/workflows/ci.yml)
 [![Docs](https://github.com/sterling-group/PyA3EDA/actions/workflows/docs.yml/badge.svg)](https://sterling-group.github.io/PyA3EDA/)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22738497.svg)](https://doi.org/10.5281/zenodo.22738497)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: GPL v3](https://img.shields.io/badge/license-GPL%20v3-blue.svg)](LICENSE)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
@@ -32,6 +33,12 @@ surface — revealing *how* a catalyst lowers (or raises) a reaction barrier.
 > **Reference** — The A3EDA method is described in:
 > M. G. S. Weiss, A. J. Sterling, *manuscript in preparation*.
 > (DOI to be added upon publication.)
+>
+> **Software** — To cite the code itself, use the archived release:
+> [10.5281/zenodo.22738497](https://doi.org/10.5281/zenodo.22738497).
+> That is the *concept* DOI and always resolves to the latest release; to cite
+> the exact version you ran, use the version DOI on that release's Zenodo
+> record. Reference-manager metadata lives in [`CITATION.cff`](CITATION.cff).
 
 ---
 
