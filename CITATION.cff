@@ -48,6 +48,6 @@ identifiers:
     value: 10.5281/zenodo.22738497
     description: "Concept DOI — always resolves to the latest PyA3EDA release."
   # Add the v0.1.0 version DOI here once that release is archived on Zenodo.
-  # - type: doi
-  #   value: 10.5281/zenodo.XXXXXXX
-  #   description: "Version DOI for PyA3EDA v0.1.0."
+  - type: doi
+    value: 10.5281/zenodo.22758811 
+    description: "Version DOI for PyA3EDA v0.1.0."
